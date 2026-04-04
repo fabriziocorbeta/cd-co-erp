@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CD & Co — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/api/config"></script>
+<style>
+  :root {
+    --bg:  #050505; --bg2: #121212; --bg3: #1a1a1a; --bg5: rgba(255,255,255,.06);
+    --cr:  #f5f5f5; --mu:  #8a8278; --g:   #C5A059; --g2:  #E3C17A;
+    --pos: #4a9b6f; --neg: #9b4a4a;
+    --r:   16px; --fd: 'Cormorant Garamond', serif; --fb: 'Inter', sans-serif; --fm: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { background: var(--bg); color: var(--cr); font-family: var(--fb); min-height: 100vh }
+
+  /* ── AUTH GATE ── */
+  #gate {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg);
+  }
+  #gate-box {
+    width: 380px; background: var(--bg2); border: 1px solid var(--bg5);
+    border-radius: 20px; padding: 40px 36px; text-align: center;
+  }
+  #gate-box h1 { font-family: var(--fd); font-size: 1.6rem; font-weight: 300; color: var(--g); margin-bottom: 8px }
+  #gate-box p  { color: var(--mu); font-size: .82rem; margin-bottom: 28px }
+  .gate-btn {
+    width: 100%; padding: 13px; background: linear-gradient(135deg, var(--g), var(--g2));
+    border: none; border-radius: 12px; color: #000; font-weight: 600;
+    font-size: .9rem; cursor: pointer; transition: opacity .2s;
+  }
+  .gate-btn:hover { opacity: .85 }
+  #gate-err { color: var(--neg); font-size: .8rem; margin-top: 14px; min-height: 20px }
+
+  /* ── PANEL ── */
+  #panel { display: none }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 48px; border-bottom: 1px solid var(--bg5);
+    background: rgba(18,18,18,.95); backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-family: var(--fd); font-size: 1.4rem; font-weight: 300; color: var(--g) }
+  header .meta { font-family: var(--fm); font-size: .65rem; color: var(--mu); letter-spacing: .1em }
+  .logout-btn {
+    padding: 8px 18px; background: transparent; border: 1px solid var(--bg5);
+    border-radius: 8px; color: var(--mu); cursor: pointer; font-size: .8rem;
+    transition: all .2s;
+  }
+  .logout-btn:hover { border-color: var(--neg); color: var(--neg) }
+
+  main { padding: 40px 48px; max-width: 1400px }
+
+  /* ── STAT CARDS ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 40px }
+  .stat {
+    background: var(--bg2); border: 1px solid var(--bg5); border-radius: var(--r);
+    padding: 24px 28px; position: relative; overflow: hidden;
+  }
+  .stat::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--g2), transparent);
+  }
+  .stat-label { font-family: var(--fm); font-size: .58rem; letter-spacing: .22em; color: var(--g); text-transform: uppercase; margin-bottom: 10px }
+  .stat-val   { font-family: var(--fd); font-size: 1.9rem; font-weight: 300; color: var(--cr) }
+  .stat-sub   { font-size: .75rem; color: var(--mu); margin-top: 6px }
+  .pos { color: var(--pos) } .neg-c { color: var(--neg) }
+
+  /* ── SECTION ── */
+  .section { background: var(--bg2); border: 1px solid var(--bg5); border-radius: var(--r); margin-bottom: 28px; overflow: hidden }
+  .section-head {
+    padding: 18px 28px; border-bottom: 1px solid var(--bg5);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-title { font-family: var(--fd); font-size: 1.05rem; font-weight: 400; color: var(--cr) }
+  .section-count { font-family: var(--fm); font-size: .7rem; color: var(--g); background: rgba(197,160,89,.1); padding: 4px 10px; border-radius: 20px }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse }
+  th { padding: 12px 20px; text-align: left; font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; color: var(--mu); text-transform: uppercase; border-bottom: 1px solid var(--bg5) }
+  td { padding: 14px 20px; font-size: .83rem; border-bottom: 1px solid rgba(255,255,255,.03) }
+  tr:last-child td { border-bottom: none }
+  tr:hover td { background: rgba(255,255,255,.02) }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: .68rem; font-family: var(--fm);
+  }
+  .badge-admin { background: rgba(197,160,89,.2); color: var(--g) }
+  .badge-user  { background: rgba(255,255,255,.06); color: var(--mu) }
+  .badge-pro   { background: rgba(74,155,111,.15); color: var(--pos) }
+  .badge-free  { background: rgba(255,255,255,.04); color: var(--mu) }
+
+  /* Role toggle button */
+  .role-btn {
+    padding: 5px 12px; border-radius: 8px; border: 1px solid var(--bg5);
+    background: transparent; color: var(--mu); cursor: pointer; font-size: .75rem;
+    transition: all .2s;
+  }
+  .role-btn:hover { border-color: var(--g); color: var(--g) }
+
+  /* ── INVENTORY ── */
+  .inv-row td:nth-child(3) { font-family: var(--fm) }
+  .stock-low { color: var(--neg) }
+  .stock-ok  { color: var(--pos) }
+
+  /* ── LOADER ── */
+  #loader {
+    display: flex; align-items: center; justify-content: center; min-height: 300px;
+    color: var(--mu); font-size: .85rem; gap: 10px;
+  }
+  .spin { animation: spin .8s linear infinite; display: inline-block }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* ── REFRESH ── */
+  .refresh-btn {
+    padding: 8px 16px; background: rgba(197,160,89,.1); border: 1px solid rgba(197,160,89,.3);
+    border-radius: 8px; color: var(--g); cursor: pointer; font-size: .8rem; transition: all .2s;
+  }
+  .refresh-btn:hover { background: rgba(197,160,89,.2) }
+</style>
+</head>
+<body>
+
+<!-- ── AUTH GATE ── -->
+<div id="gate">
+  <div id="gate-box">
+    <h1>◆ Admin</h1>
+    <p>CD & Co. — Panel de Administración<br>Acceso exclusivo para administradores</p>
+    <button class="gate-btn" onclick="adminLogin()">Iniciar sesión con Google</button>
+    <div id="gate-err"></div>
+  </div>
+</div>
+
+<!-- ── PANEL ── -->
+<div id="panel">
+  <header>
+    <div>
+      <h1>◆ CD & Co. Admin</h1>
+      <div class="meta" id="admin-email-label">cargando...</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="refresh-btn" onclick="loadAdminData()">↻ Actualizar</button>
+      <button class="logout-btn" onclick="adminLogout()">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="loader"><span class="spin">◆</span> Cargando datos del sistema...</div>
+    <div id="content" style="display:none">
+
+      <!-- Stat cards -->
+      <div class="stats" id="stats-grid"></div>
+
+      <!-- Usuarios -->
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Usuarios del Sistema</span>
+          <span class="section-count" id="users-count">—</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Email</th><th>Plan</th><th>Rol</th><th>Registrado</th><th>Acción</th>
+          </tr></thead>
+          <tbody id="users-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Inventario -->
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Inventario de Productos</span>
+          <span class="section-count" id="inv-count">—</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Producto</th><th>Categoría</th><th>Stock</th><th>Precio Venta</th>
+          </tr></thead>
+          <tbody id="inv-body"></tbody>
+        </table>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// ADMIN PANEL — CD & Co. ERP
+// ══════════════════════════════════════════
+
+const ADMIN_EMAIL = 'fabriziocorbeta@gmail.com';
+let sb, currentSession;
+
+// Inicializar Supabase cuando window.__ENV__ esté disponible
+function initSB() {
+  const url = window.__ENV__?.SUPABASE_URL;
+  const key = window.__ENV__?.SUPABASE_ANON_KEY;
+  if (!url || !key) return false;
+  sb = window.supabase.createClient(url, key);
+  return true;
+}
+
+async function adminLogin() {
+  if (!initSB()) { showErr('Error: configuración no cargada'); return; }
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) showErr(error.message);
+}
+
+async function adminLogout() {
+  await sb?.auth.signOut();
+  location.reload();
+}
+
+function showErr(msg) {
+  document.getElementById('gate-err').textContent = msg;
+}
+
+// ── Verificar sesión al cargar ─────────────────────────────────────────
+window.addEventListener('load', async () => {
+  // Esperar a que /api/config cargue window.__ENV__
+  await new Promise(r => setTimeout(r, 300));
+  if (!initSB()) { showErr('Error cargando configuración'); return; }
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return; // Mostrar gate
+
+  currentSession = session;
+
+  // Verificar que el email es el admin autorizado (primera capa)
+  if (session.user.email !== ADMIN_EMAIL) {
+    showErr('⚠ Acceso denegado. Esta área es exclusiva del administrador.');
+    await sb.auth.signOut();
+    return;
+  }
+
+  // Mostrar panel y cargar datos
+  document.getElementById('gate').style.display  = 'none';
+  document.getElementById('panel').style.display = 'block';
+  document.getElementById('admin-email-label').textContent = session.user.email + ' · ADMIN';
+  await loadAdminData();
+});
+
+// ── Cargar datos desde la API segura ──────────────────────────────────
+async function loadAdminData() {
+  document.getElementById('loader').style.display  = 'flex';
+  document.getElementById('content').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/admin', {
+      headers: { 'Authorization': `Bearer ${currentSession.access_token}` }
+    });
+
+    if (res.status === 403) {
+      showErr('⚠ Acceso denegado por el servidor.');
+      document.getElementById('gate').style.display  = 'flex';
+      document.getElementById('panel').style.display = 'none';
+      return;
+    }
+
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+
+    const data = await res.json();
+    renderDashboard(data);
+
+  } catch (err) {
+    console.error('[Admin]', err);
+    document.getElementById('loader').innerHTML =
+      `<span style="color:var(--neg)">⚠ Error al cargar datos: ${err.message}</span>`;
+  }
+}
+
+// ── Renderizar dashboard ───────────────────────────────────────────────
+function renderDashboard(data) {
+  const { patrimonio, inventario, usuarios } = data;
+
+  // Stats
+  const usdFmt = v => '$' + Math.abs(v).toLocaleString('es-PY', { maximumFractionDigits: 0 });
+  const pygFmt = v => '₲' + Math.abs(v).toLocaleString('es-PY', { maximumFractionDigits: 0 });
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat">
+      <div class="stat-label">Patrimonio Global USD</div>
+      <div class="stat-val ${patrimonio.USD >= 0 ? 'pos' : 'neg-c'}">${usdFmt(patrimonio.USD)}</div>
+      <div class="stat-sub">Suma neta de todos los usuarios</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Patrimonio Global PYG</div>
+      <div class="stat-val ${patrimonio.PYG >= 0 ? 'pos' : 'neg-c'}">${pygFmt(patrimonio.PYG)}</div>
+      <div class="stat-sub">Suma neta de todos los usuarios</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Usuarios Activos</div>
+      <div class="stat-val">${usuarios.length}</div>
+      <div class="stat-sub">${usuarios.filter(u => u.plan === 'pro').length} en plan Pro</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Unidades en Stock</div>
+      <div class="stat-val">${inventario.totalUnidades}</div>
+      <div class="stat-sub">${inventario.totalProductos} productos · ${usdFmt(inventario.valorTotal)} valor total</div>
+    </div>
+  `;
+
+  // Usuarios
+  document.getElementById('users-count').textContent = `${usuarios.length} usuarios`;
+  document.getElementById('users-body').innerHTML = usuarios.map(u => `
+    <tr>
+      <td>${u.email}</td>
+      <td><span class="badge badge-${u.plan}">${u.plan}</span></td>
+      <td><span class="badge badge-${u.role}">${u.role}</span></td>
+      <td style="color:var(--mu);font-size:.78rem">${new Date(u.created_at).toLocaleDateString('es-PY')}</td>
+      <td>
+        ${u.email !== ADMIN_EMAIL
+          ? `<button class="role-btn" onclick="toggleRole('${u.id}','${u.role}')">${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</button>`
+          : '<span style="color:var(--g);font-size:.75rem">Vos</span>'}
+      </td>
+    </tr>
+  `).join('');
+
+  // Inventario
+  document.getElementById('inv-count').textContent = `${inventario.totalProductos} productos`;
+  // (inventario detallado requiere datos por producto desde la API)
+  document.getElementById('inv-body').innerHTML = `
+    <tr><td colspan="4" style="color:var(--mu);font-size:.82rem;padding:20px">
+      Total: ${inventario.totalUnidades} unidades · Valor de venta estimado: $${inventario.valorTotal.toLocaleString('es-PY', {maximumFractionDigits:0})}
+    </td></tr>`;
+
+  document.getElementById('loader').style.display  = 'none';
+  document.getElementById('content').style.display = 'block';
+}
+
+// ── Cambiar role de un usuario ─────────────────────────────────────────
+async function toggleRole(userId, currentRole) {
+  const newRole = currentRole === 'admin' ? 'user' : 'admin';
+  if (!confirm(`¿Cambiar rol de este usuario a "${newRole}"?`)) return;
+
+  // Llamar a la API con el JWT del admin
+  const res = await fetch(`/api/admin?action=set_role&user_id=${userId}&role=${newRole}`, {
+    headers: { 'Authorization': `Bearer ${currentSession.access_token}` }
+  });
+
+  if (res.ok) {
+    await loadAdminData();
+  } else {
+    alert('Error al cambiar el rol. Verificá en Supabase manualmente.');
+  }
+}
+</script>
+</body>
+</html>
