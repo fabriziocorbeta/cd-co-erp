@@ -1,0 +1,66 @@
+# ════════════════════════════════════════════
+# 🔐 VARIABLES DE ENTORNO (NUNCA COMMITEAR)
+# ════════════════════════════════════════════
+.env.local
+.env*.local
+.env
+.env.production.local
+.env.development.local
+.env.test.local
+
+# ════════════════════════════════════════════
+# 📦 DEPENDENCIAS
+# ════════════════════════════════════════════
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ════════════════════════════════════════════
+# 🎯 IDE & EDITOR
+# ════════════════════════════════════════════
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.AppleDouble
+.LSOverride
+*.sublime-workspace
+*.sublime-project
+
+# ════════════════════════════════════════════
+# 🛠️ BUILD & DIST
+# ════════════════════════════════════════════
+dist/
+build/
+.next/
+out/
+
+# ════════════════════════════════════════════
+# 💾 SISTEMA OPERATIVO
+# ════════════════════════════════════════════
+.DS_Store
+Thumbs.db
+.Thumbs.db
+
+# ════════════════════════════════════════════
+# 📁 BACKUPS Y TEMPORALES
+# ════════════════════════════════════════════
+*.bak
+*.backup
+*.tmp
+vercel.json.bak
+backups/*.json
+!backups/.gitkeep
+
+# ════════════════════════════════════════════
+# 🔐 CREDENCIALES (NO COMMITEAR NUNCA)
+# ════════════════════════════════════════════
+# Nota: js/config.js SÍ se commitea — usa window.__ENV__ como fuente primaria
+# Las credenciales reales van en Vercel Environment Variables, NO en el código
+secrets.json
+service-account.json
+google-credentials.json

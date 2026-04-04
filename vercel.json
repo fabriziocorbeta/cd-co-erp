@@ -1,0 +1,1 @@
+{ "buildCommand": "mkdir -p public && cp -r index.html css js assets api public/ 2>/dev/null || true", "outputDirectory": "public" }

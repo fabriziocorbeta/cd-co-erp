@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0c0b09"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="CD & Co"/>
+<meta name="description" content="CD & Co — ERP: Finanzas, Inventario, Ventas, Pedidos, Facturas"/>
+<link rel="manifest" id="pwa-manifest"/>
+<title>CD & Co — ERP</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Styles -->
+<link rel="stylesheet" href="css/app.css"/>
+</head>
+<body>
+
+<!-- ── SYSTEM BANNERS ── -->
+<div class="off-bar" id="off-bar">⚡ Sin conexión — modo offline activo</div>
+<div class="inst-bar" id="inst-bar">
+  <div class="ib-i">◆</div>
+  <div class="ib-info">
+    <div class="ib-t">Instalar CD & Co</div>
+    <div class="ib-s">Accedé sin internet desde tu pantalla de inicio</div>
+  </div>
+  <button class="ib-install" id="ib-install">Instalar</button>
+  <button class="ib-x" id="ib-close">✕</button>
+</div>
+
+<!-- ════════ AUTH ════════ -->
+<div id="auth">
+  <div class="al">
+    <div class="wr">
+      <div class="wr-o"></div>
+      <div class="wr-f"><div class="wr-cd">CD</div><div class="wr-co">&amp; Co</div></div>
+    </div>
+    <div class="ab">
+      <h1>Tu vida,<br><em>en orden</em></h1>
+      <p>Tan útil para tus finanzas personales como para las de tu negocio. Todo en un solo lugar, siempre bajo control.</p>
+      <div class="am">
+        <div class="ami"><div class="ami-v" id="am1">$0</div><div class="ami-l">Balance</div></div>
+        <div class="ami"><div class="ami-v" id="am2">0</div><div class="ami-l">Productos</div></div>
+        <div class="ami"><div class="ami-v" id="am3">0</div><div class="ami-l">Ventas</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="ar">
+    <div class="a-ey">CD & Co · Acceso privado</div>
+    <div class="a-ttl">Bienvenido<br>de vuelta</div>
+    <div id="auth-err" class="ae"></div>
+    <div class="tabs">
+      <button class="tab on" id="t-l" onclick="swTab('l')">Iniciar sesión</button>
+      <button class="tab" id="t-r" onclick="swTab('r')">Registrarse</button>
+    </div>
+    <div id="f-l">
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="l-em" type="email" placeholder="tu@email.com" autocomplete="email"/></div>
+      <div class="fg"><label class="fl">Contraseña</label><input class="fi" id="l-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <button class="bg" id="btn-l" onclick="doLogin()">Ingresar a la aplicación</button>
+    </div>
+    <div id="f-r" style="display:none">
+      <div class="fg"><label class="fl">Nombre</label><input class="fi" id="r-nm" placeholder="Fabri Benítez"/></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="r-em" type="email" placeholder="tu@email.com"/></div>
+      <div class="fg"><label class="fl">Contraseña</label><input class="fi" id="r-pw" type="password" placeholder="Mínimo 6 caracteres"/></div>
+      <button class="bg" id="btn-r" onclick="doReg()">Crear cuenta gratis</button>
+    </div>
+    <div class="a-div">o</div>
+    <button class="bgh" onclick="doGoogle()">
+      <svg width="15" height="15" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continuar con Google
+    </button>
+    <button class="demo-b" onclick="demoLogin()">→ Entrar en modo demo</button>
+    <div class="plan-pre">
+      <div class="plan-pre-l">Planes</div>
+      <div class="pchips">
+        <div class="pchip" onclick="hlp(this)"><div class="pchip-n">Free</div><div class="pchip-p" style="color:var(--pos)">$0</div><div class="pchip-s">/mes</div></div>
+        <div class="pchip on" onclick="hlp(this)"><div class="pchip-n">Pro</div><div class="pchip-p">$4.99</div><div class="pchip-s">/mes</div></div>
+        <div class="pchip" onclick="hlp(this)"><div class="pchip-n">Business</div><div class="pchip-p">$14.99</div><div class="pchip-s">/mes</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ APP SHELL ════════ -->
+<div id="app">
+  <!-- Hamburger Button (Mobile Only) -->
+  <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()" title="Menú">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <!-- Sidebar Overlay (Mobile Only) -->
+  <div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
+  <div class="wrap">
+    <!-- SIDEBAR -->
+    <nav class="sb" id="sidebar">
+      <div class="sb-brand">
+        <div class="sb-ey">CD & Co · ERP</div>
+        <div class="sb-logo">CD <em>&</em> Co</div>
+      </div>
+      <div class="sb-user" onclick="goPage('plan')">
+        <div class="sb-av" id="s-av">FB</div>
+        <div style="flex:1;min-width:0"><div class="sb-un" id="s-nm">Fabri</div><div class="sb-up" id="s-pl">PRO</div></div>
+        <span style="color:var(--g);font-size:9px;opacity:.6">▲</span>
+      </div>
+      <div class="sb-sec">Finanzas</div>
+      <button class="ni" id="nav-dashboard" onclick="goPage('dashboard')"><div class="ic-sq"><span class="ic">◈</span></div> <span class="ni-t">Dashboard</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-patrimonio" onclick="goPage('patrimonio')"><div class="ic-sq"><span class="ic">⚖️</span></div> <span class="ni-t">Patrimonio</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-notifs" onclick="goPage('notifs')"><div class="ic-sq"><span class="ic">🔔</span></div> <span class="ni-t">Notificaciones</span> <span class="badge" id="badge-notifs" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-accounts" onclick="goPage('accounts')"><div class="ic-sq"><span class="ic">🏦</span></div> <span class="ni-t">Mis cuentas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-budgets" onclick="goPage('budgets')"><div class="ic-sq"><span class="ic">📊</span></div> <span class="ni-t">Presupuestos</span> <span class="badge" id="badge-budgets" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-goals" onclick="goPage('goals')"><div class="ic-sq"><span class="ic">🎯</span></div> <span class="ni-t">Metas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-subs" onclick="goPage('subscriptions')"><div class="ic-sq"><span class="ic">🔄</span></div> <span class="ni-t">Suscripciones</span> <span class="badge" id="badge-subs" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-profitability" onclick="goPage('profitability')"><div class="ic-sq"><span class="ic">💹</span></div> <span class="ni-t">Rentabilidad</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-txs" onclick="goPage('txs')"><div class="ic-sq"><span class="ic">↕</span></div> <span class="ni-t">Movimientos</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-debts" onclick="goPage('debts')"><div class="ic-sq"><span class="ic">💳</span></div> <span class="ni-t">Deudas</span> <span class="badge" id="badge-debts" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-receivables" onclick="goPage('receivables')"><div class="ic-sq"><span class="ic">🤝</span></div> <span class="ni-t">A Cobrar</span> <span class="badge" id="badge-receivables" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-history" onclick="goPage('history')"><div class="ic-sq"><span class="ic">🗓</span></div> <span class="ni-t">Histórico</span> <div class="ni-dot"></div></button>
+      <div class="sb-sec">Negocio</div>
+      <!-- FLOTA: desactivado temporalmente — módulo en pausa
+      <button class="ni" id="nav-fleet" onclick="goPage('fleet')"><div class="ic-sq"><span class="ic">🚙</span></div> <span class="ni-t">Flota</span> <div class="ni-dot"></div></button>
+      -->
+      <button class="ni" id="nav-inventory" onclick="goPage('inventory')"><div class="ic-sq"><span class="ic">📦</span></div> <span class="ni-t">Inventario</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-sales" onclick="goPage('sales')"><div class="ic-sq"><span class="ic">🛒</span></div> <span class="ni-t">Ventas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-orders" onclick="goPage('orders')"><div class="ic-sq"><span class="ic">📋</span></div> <span class="ni-t">Pedidos</span> <span class="badge" id="badge-orders" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-invoices" onclick="goPage('invoices')"><div class="ic-sq"><span class="ic">🧾</span></div> <span class="ni-t">Facturas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-contacts" onclick="goPage('contacts')"><div class="ic-sq"><span class="ic">👥</span></div> <span class="ni-t">Contactos</span> <div class="ni-dot"></div></button>
+      <div class="sb-sec">Análisis</div>
+      <button class="ni" id="nav-reports" onclick="goPage('reports')"><div class="ic-sq"><span class="ic">📈</span></div> <span class="ni-t">Reportes</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-advice" onclick="goPage('advice')"><div class="ic-sq"><span class="ic">💡</span></div> <span class="ni-t">Consejos</span> <div class="ni-dot"></div></button>
+      <div class="sb-sec">Ajustes</div>
+      <button class="ni" id="nav-plan" onclick="goPage('plan')"><div class="ic-sq"><span class="ic">◆</span></div> <span class="ni-t">Plan &amp; Config</span> <div class="ni-dot"></div></button>
+      <div class="sb-foot">
+        <button class="ni" onclick="toggleMode()"><div class="ic-sq"><span class="ic">◑</span></div> <span class="ni-t">Modo claro</span> <div class="ni-dot"></div></button>
+        <button class="ni" onclick="doLogout()"><div class="ic-sq"><span class="ic">⏻</span></div> <span class="ni-t">Salir</span> <div class="ni-dot"></div></button>
+      </div>
+    </nav>
+
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <div class="page on" id="page-dashboard">
+        <div class="tb">
+          <div class="tb-l"><div class="tb-ey">CD & Co · Dashboard</div><div class="tb-t">Bienvenido, <span id="gr-nm">Fabri</span></div></div>
+          <div class="tb-r"><button class="btn btn-o" onclick="document.body.classList.toggle('presentation-mode')" style="font-size:.65rem;padding:4px 8px;border-color:var(--bg5);color:var(--mu);cursor:pointer" title="Modo Presentación">👁 Ocultar Datos Sensibles</button><div class="dtag" id="top-date">—</div><div class="ib" onclick="exportCSV()" title="Exportar CSV">⬇</div><div class="ib" onclick="toggleMode()">◑</div></div>
+        </div>
+        <div class="pg-body">
+          <div class="eth-dash-grid">
+            
+            <!-- Columna Izquierda (Principal) -->
+            <div class="eth-dash-main">
+              <!-- Fila Superior -->
+              <div class="eth-top-row">
+                  <div class="panel pp glass-card" style="padding: 32px; display:flex; flex-direction:column; align-items:flex-start;">
+                    <div style="font-size:.8rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Patrimonio Neto</div>
+                    <div style="display:flex;align-items:baseline;gap:8px" id="d-total-balance-box">
+                       <span class="gold-gradient-text sens" style="font-size:3rem;font-weight:800;letter-spacing:-1px;margin-bottom:18px;text-shadow:0 0 20px rgba(212,175,55,0.4)" id="d-total-balance">$0.00</span>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:16px;">
+                       <button class="btn btn-g" style="padding:12px 24px" onclick="openTxModal('income')"><span style="margin-right:6px">↓</span> Ingreso</button>
+                       <button class="btn btn-o" style="padding:12px 24px" onclick="openTxModal('expense')"><span style="margin-right:6px">↑</span> Gasto</button>
+                    </div>
+                 </div>
+                 
+                 <div class="eth-week-metrics">
+                    <div class="panel pp glass-card" style="padding:24px;flex:1;display:flex;flex-direction:column;justify-content:center;min-height:90px">
+                       <div style="font-size:.75rem;color:var(--mu);margin-bottom:6px">Ingresos (Mes)</div>
+                       <div class="sens" style="font-size:1.6rem;font-weight:700;color:var(--cr)" id="d-wk-inc">₲0.00</div>
+                       <div style="margin-top:8px" id="d-wk-inc-var"></div>
+                    </div>
+                    <div class="panel pp glass-card" style="padding:24px;flex:1;display:flex;flex-direction:column;justify-content:center;min-height:90px">
+                       <div style="font-size:.75rem;color:var(--mu);margin-bottom:6px">Gastos (Mes)</div>
+                       <div class="sens" style="font-size:1.6rem;font-weight:700;color:var(--cr)" id="d-wk-exp">₲0.00</div>
+                       <div style="margin-top:8px" id="d-wk-exp-var"></div>
+                    </div>
+                 </div>
+              </div>
+
+              <!-- Revenue Flow -->
+              <div class="panel pp glass-card" style="padding:16px;margin-top:16px">
+                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                    <div class="sh-t" style="margin:0">Revenue Flow</div>
+                    <div style="display:flex;gap:4px">
+                       <button class="flt on" id="d-rf-mo" onclick="setDashboardFlowPer('month')">Mensual</button>
+                       <button class="flt" id="d-rf-wk" onclick="setDashboardFlowPer('week')">Semanal</button>
+                    </div>
+                 </div>
+                 <div class="sens" style="position:relative;width:100%;height:180px"><canvas id="d-revenue-chart"></canvas></div>
+              </div>
+
+              <!-- Expense Split & Recent -->
+              <div class="eth-split-row" style="display:grid;grid-template-columns:1fr 1.5fr;gap:16px;margin-top:16px">
+                 <div class="panel pp glass-card" style="padding:16px;display:flex;flex-direction:column;align-items:center">
+                    <div class="sh-t" style="align-self:flex-start;margin-bottom:16px">Expense Split</div>
+                    <div class="sens" style="position:relative;width:140px;height:140px;margin-bottom:16px;flex-shrink:0"><canvas id="d-expense-donut"></canvas></div>
+                    <div class="sens" id="d-expense-list" style="width:100%;font-size:.75rem;display:flex;flex-direction:column;gap:6px;max-height:120px;overflow-y:auto;padding-right:6px"></div>
+                 </div>
+                 <div class="panel pp glass-card" style="padding:16px;display:flex;flex-direction:column">
+                    <div class="sh-t" style="margin-bottom:16px;display:flex;justify-content:space-between"><span>Recent Transactions</span><button class="btn btn-o" style="padding:4px 8px;font-size:.65rem" onclick="goPage('txs')">Ver más</button></div>
+                    <div class="sens" id="d-recent-txs" style="display:flex;flex-direction:column;gap:10px;flex:1;overflow-y:auto"></div>
+                 </div>
+              </div>
+            </div>
+
+            <!-- Columna Derecha -->
+            <div class="eth-dash-side">
+               <div style="font-size:.8rem;font-weight:600;color:var(--g2);margin-bottom:12px;margin-left:4px">My Cards</div>
+               <div class="eth-cards-stack-container" id="d-my-cards-stack" onclick="goPage('debts')" style="cursor:pointer">
+                  <!-- Stack injected via JS -->
+               </div>
+               
+               <div style="font-size:.8rem;font-weight:600;color:var(--g2);margin-bottom:12px;margin-left:4px;margin-top:32px;display:flex;justify-content:space-between"><span>Subscriptions</span><span style="color:var(--c9960c);cursor:pointer;font-size:.7rem;font-weight:400" onclick="goPage('subscriptions')">Ver todas</span></div>
+               <div class="panel pp" style="padding:14px;background:var(--bg2);border:none"><div id="d-active-subs" style="display:flex;flex-direction:column;gap:12px"></div></div>
+
+               <div style="margin-top:24px" class="fx-w">
+                 <div class="fx-h"><div><div class="fx-brand">Cambios Chaco</div><div class="fx-src">Tipo de cambio USD/PYG</div></div><button class="fx-rb" id="fx-rb" onclick="fetchRate()"><span class="fx-ri">↻</span><span>Actualizar</span></button></div>
+                 <div class="fx-b">
+                   <div class="fx-m">
+                     <div class="fx-side">
+                       <div class="fx-sl">Compra</div>
+                       <div class="fx-sv buy" id="fx-buy" contenteditable="true" onblur="onFxEdit(this, 'buy')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">—</div>
+                       <div class="fx-ss">₲ por $1</div>
+                     </div>
+                     <div class="fx-side">
+                       <div class="fx-sl">Venta</div>
+                       <div class="fx-sv sell" id="fx-sell" contenteditable="true" onblur="onFxEdit(this, 'sell')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">—</div>
+                       <div class="fx-ss">₲ por $1</div>
+                     </div>
+                   </div>
+                   <div class="fx-div"></div>
+                   <div class="fx-conv"><input class="fx-inp" id="fx-inp" type="number" inputmode="decimal" placeholder="100" oninput="convertFx()"/><div class="fx-dir-btn" id="fx-dir" onclick="toggleFxDir()">⇄</div><div class="fx-res" id="fx-res">—</div></div>
+                   <div class="fx-err" id="fx-err"></div>
+                   <div class="fx-ft"><div class="fx-up" id="fx-up">Sin actualizar</div><div class="fx-dot" id="fx-dot"></div></div>
+                 </div>
+               </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- MOVIMIENTOS -->
+      <div class="page" id="page-txs">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Movimientos Analytics</div></div><div class="tb-r"><input type="file" accept=".csv" style="display:none" id="csv-import-input" onchange="handleCsvImport(event)"><button class="btn btn-o" onclick="openCsvModal()" style="border-color:var(--g2);color:var(--g2)">📄 Importar CSV</button><button class="btn btn-g" onclick="openTxModal('income')">＋ Ingreso</button><button class="btn btn-danger" onclick="openTxModal('expense')">－ Gasto</button></div></div>
+        
+        <div class="pg-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);padding:10px 14px;border-radius:var(--rs);border:1px solid var(--bg5);margin-bottom:14px;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-o" id="tx-p-mo" onclick="setTxPer('month')" style="padding:4px 10px;font-size:.7rem;border-color:var(--g2);color:var(--g2)">Mes</button>
+              <button class="btn btn-o" id="tx-p-wk" onclick="setTxPer('week')" style="padding:4px 10px;font-size:.7rem">Semana</button>
+              <button class="btn btn-o" id="tx-p-dy" onclick="setTxPer('day')" style="padding:4px 10px;font-size:.7rem">Día</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <button class="btn btn-o" style="padding:4px 8px;border-color:transparent" onclick="moveTxCursor(-1)">←</button>
+              <div id="tx-period-lbl" style="font-size:.8rem;font-weight:600;min-width:140px;text-align:center;color:var(--cr)">Mes Actual</div>
+              <button class="btn btn-o" style="padding:4px 8px;border-color:transparent" onclick="moveTxCursor(1)">→</button>
+            </div>
+            <div style="display:flex;gap:4px">
+              <button class="flt on" id="tx-t-all" onclick="setTxType('all')">Todos</button>
+              <button class="flt" id="tx-t-inc" onclick="setTxType('income')">Ingresos</button>
+              <button class="flt" id="tx-t-exp" onclick="setTxType('expense')">Gastos</button>
+            </div>
+          </div>
+
+          <!-- Cards -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:16px">
+             <div class="panel pp" style="padding:16px"><div style="font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Ingresos</div><div style="font-size:1.6rem;font-weight:300;color:var(--pos)" id="tx-c-inc">$0.00</div><div style="font-size:.65rem;margin-top:6px;display:flex;align-items:center;gap:4px" id="tx-c-inc-var"></div></div>
+             <div class="panel pp" style="padding:16px"><div style="font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Gastos</div><div style="font-size:1.6rem;font-weight:300;color:var(--cr)" id="tx-c-exp">$0.00</div><div style="font-size:.65rem;margin-top:6px;display:flex;align-items:center;gap:4px" id="tx-c-exp-var"></div></div>
+             <div class="panel pp" style="padding:16px"><div style="font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Balance</div><div style="font-size:1.6rem;font-weight:600;color:var(--g2)" id="tx-c-bal">$0.00</div><div style="font-size:.65rem;margin-top:6px;display:flex;align-items:center;gap:4px" id="tx-c-bal-var"></div></div>
+          </div>
+
+          <!-- Charts -->
+          <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px" id="tx-analytics-grid">
+             <!-- Top Panel: Distribución de Gastos -->
+             <div class="panel pp" style="padding:20px">
+                <div class="sh-t" style="margin-bottom:24px;display:flex;align-items:center"><span style="margin-right:8px;color:#aeb8d8;background:rgba(174,184,216,0.1);padding:4px;border-radius:6px;font-size:14px">⏱️</span> Distribución de Gastos <span style="font-weight:400;color:var(--mu);margin-left:6px;font-size:0.75rem">Por categoría</span></div>
+                <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
+                  <!-- Donut -->
+                  <div style="position:relative;width:240px;height:240px;flex-shrink:0">
+                    <canvas id="tx-donut"></canvas>
+                    <div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                       <span style="font-size:0.7rem;color:var(--mu);margin-bottom:2px">Total Gastos</span>
+                       <span style="font-size:1.4rem;font-weight:700;color:var(--cr)" id="tx-donut-total">$0.00</span>
+                    </div>
+                  </div>
+                  <!-- List -->
+                  <div id="tx-donut-list" style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:14px;max-height:240px;overflow-y:auto;padding-right:8px"></div>
+                </div>
+             </div>
+             
+             <!-- Bottom Panel: Análisis Absoluto -->
+             <div class="panel pp" style="padding:20px;display:flex;flex-direction:column">
+                <div style="color:#b87ae8;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">| Análisis Gráfico</div>
+                <div class="sh-t" style="margin-bottom:20px;display:flex;align-items:center"><span style="margin-right:8px;font-size:16px">⏱️</span> Análisis de Categorías</div>
+                
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:24px">
+                   <!-- Expense Column -->
+                   <div style="background:var(--bg2);padding:16px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.04)">
+                         <span style="color:#d47a7a;font-weight:500;font-size:0.85rem">📈 Gastos por Categoría</span>
+                         <span style="font-size:0.75rem;color:var(--mu)">Total: <span style="color:var(--cr);font-family:var(--fm)" id="tx-ana-exp-tot">$0.00</span></span>
+                      </div>
+                      <div id="tx-bars-exp" style="display:flex;flex-direction:column;gap:14px;max-height:400px;overflow-y:auto;padding-right:4px"></div>
+                      <div id="tx-bars-exp-more" style="text-align:center;font-size:0.7rem;color:var(--mu);margin-top:14px;padding-top:14px;border-top:1px dashed rgba(255,255,255,0.04)"></div>
+                   </div>
+                   <!-- Income Column -->
+                   <div style="background:var(--bg2);padding:16px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.04)">
+                         <span style="color:var(--pos);font-weight:500;font-size:0.85rem">📉 Ingresos por Categoría</span>
+                         <span style="font-size:0.75rem;color:var(--mu)">Total: <span style="color:var(--cr);font-family:var(--fm)" id="tx-ana-inc-tot">$0.00</span></span>
+                      </div>
+                      <div id="tx-bars-inc" style="display:flex;flex-direction:column;gap:14px;max-height:400px;overflow-y:auto;padding-right:4px"></div>
+                      <div id="tx-bars-inc-more" style="text-align:center;font-size:0.7rem;color:var(--mu);margin-top:14px;padding-top:14px;border-top:1px dashed rgba(255,255,255,0.04)"></div>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          <!-- Table -->
+          <div class="panel pp">
+            <div class="sf-bar" style="margin-bottom:14px;justify-content:space-between">
+              <input class="sf-inp" id="tx-search" style="max-width:300px" placeholder="Filtrar concepto o cuenta..." oninput="renderTxs()"/>
+              <button class="btn btn-o" style="padding:5px 10px;font-size:.65rem" onclick="exportCsvFiltered()">⬇ Exportar CSV filtrado</button>
+            </div>
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Moneda</th><th>Monto</th><th>Tipo</th><th>Cuenta</th><th></th></tr></thead><tbody id="tx-tbody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GESTIÓN DE FLOTA PREMIUM -->
+      <div class="page" id="page-fleet">
+        <div class="tb">
+          <div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Gestión de Flota</div></div>
+          <div class="tb-r"><button class="btn btn-g" onclick="openFuelModal()" style="font-size:.85rem;padding:12px 24px">⛽ Carga Rápida</button></div>
+        </div>
+        <div class="pg-body">
+          <!-- Comparative Dashboard -->
+          <div class="panel pp" style="margin-bottom:20px;display:flex;flex-direction:column">
+            <div class="sh-t" style="margin-bottom:14px">Comparativa de Consumo vs Costo (Últ. 6 Meses)</div>
+            <div style="position:relative;width:100%;height:180px"><canvas id="fleet-comp-chart"></canvas></div>
+          </div>
+          <!-- Vehicle Grid -->
+          <div class="sh-t" style="margin-bottom:14px;color:var(--g2)">Mis Vehículos</div>
+          <div class="card-grid" id="fleet-grid">
+            <!-- Cards will be dynamically injected here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- INVENTARIO -->
+      <div class="page" id="page-inventory">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Inventario</div></div><div class="tb-r"><button class="btn btn-o" onclick="openImportModal()" style="border-color:var(--g2);color:var(--g2);margin-right:12px"><span style="font-size:1.1em;vertical-align:middle;margin-right:4px">🚢</span> Nueva Importación</button><button class="btn btn-g" onclick="openProdModal()">＋ Producto</button></div></div>
+        <div class="pg-body">
+          <div class="sf-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="sf-inp" id="inv-search" placeholder="Buscar producto, SKU..." oninput="renderInventory()"/>
+            <button class="flt on" onclick="setInvFlt('all',this)">Todos</button><button class="flt" onclick="setInvFlt('low',this)">Stock bajo</button><button class="flt" onclick="setInvFlt('out',this)">Sin stock</button>
+            <select class="fi" id="inv-cat-flt" style="width:auto;padding:6px 10px;font-size:.74rem" onchange="renderInventory()"><option value="">Todas las categorías</option><option>Relojes</option><option>Accesorios</option><option>Perfumes</option><option>Otros</option></select>
+            <button class="btn btn-o" id="btn-sync-shopify" style="margin-left:auto;white-space:nowrap" onclick="syncShopify()">🔄 Sync Shopify</button>
+            <button class="btn btn-o" style="white-space:nowrap" onclick="exportInventoryCSV()">📥 Exportar CSV</button>
+          </div>
+          <div class="card-grid" id="inv-grid"></div>
+        </div>
+      </div>
+
+      <!-- VENTAS -->
+      <div class="page" id="page-sales">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Ventas</div></div><div class="tb-r"><button class="btn btn-g" onclick="openSaleModal()">＋ Nueva venta</button></div></div>
+        <div class="pg-body"><div class="panel pp">
+          <div class="sf-bar" style="margin-bottom:14px"><input class="sf-inp" id="sale-search" placeholder="Buscar venta, cliente..." oninput="renderSales()"/>
+            <button class="flt on" onclick="setSaleFlt('all',this)">Todas</button><button class="flt" onclick="setSaleFlt('today',this)">Hoy</button><button class="flt" onclick="setSaleFlt('month',this)">Este mes</button></div>
+          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Nº</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Moneda</th><th>Estado</th><th></th></tr></thead><tbody id="sales-tbody"></tbody></table></div>
+        </div></div>
+      </div>
+
+      <!-- PEDIDOS -->
+      <div class="page" id="page-orders">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Pedidos a proveedores</div></div><div class="tb-r"><button class="btn btn-g" onclick="openOrderModal()">＋ Nuevo pedido</button></div></div>
+        <div class="pg-body"><div class="panel pp">
+          <div class="sf-bar" style="margin-bottom:14px"><input class="sf-inp" id="ord-search" placeholder="Buscar pedido, proveedor..." oninput="renderOrders()"/>
+            <button class="flt on" onclick="setOrdFlt('all',this)">Todos</button><button class="flt" onclick="setOrdFlt('pending',this)">Pendientes</button><button class="flt" onclick="setOrdFlt('received',this)">Recibidos</button></div>
+          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Nº</th><th>Proveedor</th><th>Productos</th><th>Total</th><th>Estado</th><th></th></tr></thead><tbody id="orders-tbody"></tbody></table></div>
+        </div></div>
+      </div>
+
+      <!-- FACTURAS -->
+      <div class="page" id="page-invoices">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Facturas</div></div><div class="tb-r"><button class="btn btn-g" onclick="openSaleModal()">＋ Nueva factura</button></div></div>
+        <div class="pg-body"><div class="panel pp">
+          <div class="sf-bar" style="margin-bottom:14px"><input class="sf-inp" id="inv-s" placeholder="Buscar factura, cliente..." oninput="renderInvoices()"/>
+            <button class="flt on" onclick="setInvFlt2('all',this)">Todas</button><button class="flt" onclick="setInvFlt2('paid',this)">Pagadas</button><button class="flt" onclick="setInvFlt2('pending',this)">Pendientes</button></div>
+          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Nº Factura</th><th>Cliente</th><th>Total USD</th><th>Total PYG</th><th>Estado</th><th></th></tr></thead><tbody id="inv-tbody"></tbody></table></div>
+        </div></div>
+      </div>
+
+      <!-- CONTACTOS -->
+      <div class="page" id="page-contacts">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Clientes &amp; Proveedores</div></div><div class="tb-r"><button class="btn btn-g" onclick="openContactModal()">＋ Contacto</button></div></div>
+        <div class="pg-body">
+          <div class="sf-bar"><input class="sf-inp" id="con-search" placeholder="Buscar contacto..." oninput="renderContacts()"/>
+            <button class="flt on" onclick="setConFlt('all',this)">Todos</button><button class="flt" onclick="setConFlt('client',this)">Clientes</button><button class="flt" onclick="setConFlt('supplier',this)">Proveedores</button></div>
+          <div class="card-grid" id="contacts-grid"></div>
+        </div>
+      </div>
+
+      <!-- SUSCRIPCIONES -->
+      <div class="page" id="page-subscriptions">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Suscripciones</div></div>
+          <div class="tb-r">
+            <button class="btn btn-g" onclick="openSubModal()">＋ Nueva suscripción</button>
+          </div>
+        </div>
+        <div class="pg-body">
+          <div class="panel pp"><div id="subs-list"></div></div>
+        </div>
+      </div>
+
+      <!-- PRESUPUESTOS MENSUALES -->
+      <div class="page" id="page-budgets">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Presupuestos</div></div>
+          <div class="tb-r">
+            <select class="fs" id="bgt-month-sel" onchange="onBgtMonthChange()" style="max-width:160px;font-size:.72rem"></select>
+            <button class="btn btn-g" onclick="openBudgetModal()">＋ Nuevo presupuesto</button>
+          </div>
+        </div>
+        <div class="pg-body">
+          <div class="panel pp">
+            <div id="budgets-wrap"><div class="tbl-empty" style="padding:30px">Sin presupuestos para este mes.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUENTAS BANCARIAS & EFECTIVO -->
+      <div class="page" id="page-accounts">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Mis cuentas</div></div>
+          <div class="tb-r">
+            <button class="btn btn-g" onclick="openAccountModal()">＋ Nueva cuenta</button>
+            <button class="btn btn-o" onclick="openTransferModal()">⇄ Transferir</button>
+          </div>
+        </div>
+        <div class="pg-body">
+          <div id="acc-networth-panel" style="margin-bottom:24px"></div>
+          <div class="cc-grid" id="accounts-grid"><div class="tbl-empty" style="padding:30px;grid-column:1/-1">Sin cuentas registradas.</div></div>
+        </div>
+      </div>
+
+      <!-- PATRIMONIO -->
+      <div class="page" id="page-patrimonio">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Patrimonio</div></div><div class="tb-r"></div></div>
+        <div class="pg-body" id="patrimonio-body"></div>
+      </div>
+
+      <!-- METAS DE AHORRO -->
+      <div class="page" id="page-goals">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Metas de Ahorro</div></div><div class="tb-r"><button class="btn btn-g" onclick="openGoalModal()">＋ Nueva meta</button></div></div>
+        <div class="pg-body">
+          <div class="card-grid" id="goals-grid"></div>
+          <div style="margin-top:24px">
+            <button onclick="toggleGoalsCompleted(this)" style="background:none;border:none;color:var(--mu);cursor:pointer;font-size:.78rem;display:flex;align-items:center;gap:6px;padding:4px 0">
+              <span id="goals-comp-arrow">▶</span> Completadas (<span id="goals-comp-count">0</span>)
+            </button>
+            <div id="goals-completed" style="display:none;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONSEJOS FINANCIEROS -->
+      <div class="page" id="page-advice">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Análisis</div><div class="tb-t">Consejos Inteligentes</div></div><div class="tb-r"><button class="btn btn-o" onclick="renderAdvice()">↻ Recalcular</button></div></div>
+        <div class="pg-body">
+          <div id="advice-container" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px"></div>
+        </div>
+      </div>
+
+      <!-- RENTABILIDAD -->
+      <div class="page" id="page-profitability">
+        <div class="tb">
+          <div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Análisis de Rentabilidad</div></div>
+          <div class="tb-r" style="display:flex;gap:8px;align-items:center">
+            <button class="btn" id="cur-toggle-usd" onclick="toggleProfitabilityCurrency('$')" style="padding:8px 16px;font-size:.75rem">USD</button>
+            <button class="btn btn-g on" id="cur-toggle-pyg" onclick="toggleProfitabilityCurrency('₲')" style="padding:8px 16px;font-size:.75rem">PYG</button>
+            <button class="btn btn-o" style="padding:8px 16px;font-size:.75rem;white-space:nowrap" onclick="exportProfitabilityCSV()">📥 Exportar CSV</button>
+          </div>
+        </div>
+        <div class="pg-body">
+          <!-- KPI Cards -->
+          <div class="card-grid" id="prof-kpi-cards"></div>
+
+          <!-- Tabla de Productos -->
+          <div class="panel pp" style="margin-top:20px">
+            <div class="sf-bar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input class="sf-inp" id="prof-search" placeholder="Buscar producto, SKU..." oninput="renderProfitability()"/>
+              <select class="fi" id="prof-cat-flt" style="flex:1;min-width:150px" onchange="renderProfitability()">
+                <option value="">Todas las categorías</option>
+                <option>Relojes</option>
+                <option>Accesorios</option>
+                <option>Perfumes</option>
+                <option>Otros</option>
+              </select>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th style="text-align:left">SKU</th>
+                    <th style="text-align:left">Producto</th>
+                    <th style="text-align:left">Categoría</th>
+                    <th style="text-align:right">Precio Costo</th>
+                    <th style="text-align:right">Precio Venta</th>
+                    <th style="text-align:right">Margen %</th>
+                    <th style="text-align:right">ROI %</th>
+                    <th style="text-align:right">Stock</th>
+                    <th style="text-align:right">Inversión</th>
+                    <th style="text-align:right">Ganancia Pot.</th>
+                    <th style="text-align:center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="prof-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Resumen por Categoría -->
+          <div class="panel pp" style="margin-top:20px">
+            <div class="fl" style="font-size:.9rem;font-weight:600;margin-bottom:12px">Resumen por Categoría</div>
+            <div class="card-grid" id="prof-cat-summary"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETAS & DEUDAS -->
+      <div class="page" id="page-debts">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Tarjetas &amp; Deudas</div></div>
+          <div class="tb-r">
+            <button class="btn btn-g" id="dbtn-card" onclick="openCardModal()">＋ Nueva tarjeta</button>
+            <button class="btn btn-o" id="dbtn-debt" onclick="openDebtModal()" style="display:none">＋ Nueva deuda</button>
+          </div>
+        </div>
+        <div class="pg-body">
+          <div class="debt-tabs">
+            <button class="dtab on" id="dtab-cards" onclick="switchDebtTab('cards')">💳 Tarjetas de crédito</button>
+            <button class="dtab" id="dtab-debts" onclick="switchDebtTab('debts')">📋 Deudas &amp; cuotas</button>
+          </div>
+          <div id="section-cards" style="display:flex; flex-direction:column; gap:24px;">
+            <div id="cards-list" class="p3d" style="width:100%"><div class="tbl-empty" style="padding:30px;width:100%;text-align:center">Sin tarjetas registradas.</div></div>
+            
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:24px;" id="cards-dashboard-grid">
+               <div class="panel pp" style="padding:20px;">
+                  <div class="sh-t" style="margin-bottom:16px;">Resumen de Tarjetas</div>
+                  <div class="tbl-wrap">
+                     <table class="tbl">
+                       <thead><tr><th>Tarjeta</th><th>Monto Utilizado</th><th>Cierre</th><th>Días Faltantes</th><th></th></tr></thead>
+                       <tbody id="cards-summary-tbody"></tbody>
+                     </table>
+                  </div>
+               </div>
+               <div class="panel pp" style="padding:20px;display:flex;flex-direction:column;align-items:center;">
+                  <div class="sh-t" style="margin-bottom:16px;width:100%">Uso por Tarjeta</div>
+                  <div id="cards-donuts-container" style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center; width:100%;">
+                     <!-- Canvases injected dynamically via JS based on currencies -->
+                  </div>
+               </div>
+            </div>
+
+            <div id="card-details-panel" class="panel pp" style="padding:24px;display:none;flex-direction:column;border:none"></div>
+          </div>
+          <div id="section-debts" style="display:none">
+            <div class="panel pp">
+              <div class="tbl-wrap"><table class="tbl">
+                <thead><tr><th>Acreedor / Próx. Cuota</th><th>Total</th><th>Restante</th><th>Progreso</th><th>Cuotas</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
+                <tbody id="debts-tbody"></tbody>
+              </table></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO PATRIMONIAL -->
+      <div class="page" id="page-history">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">Datos Históricos</div><div style="font-size:0.75rem;color:var(--mu);margin-top:4px">Analiza tu evolución patrimonial</div></div></div>
+        
+        <div class="pg-body" style="max-width:900px;margin:0 auto;width:100%">
+           
+           <!-- Resumen General -->
+           <div class="panel pp">
+              <div class="sh-t" style="margin-bottom:14px">Resumen General</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+                 <div class="stat" style="background:var(--bg3)">
+                    <div class="sl">Capital Inicial</div>
+                    <div class="sv" id="hist-cap-ini">$0</div>
+                 </div>
+                 <div class="stat" style="background:var(--bg3)">
+                    <div class="sl">Capital Actual</div>
+                    <div class="sv" id="hist-cap-act">$0</div>
+                 </div>
+                 <div class="stat" style="background:linear-gradient(135deg,rgba(74,155,111,.15),var(--bg3));border-color:rgba(74,155,111,.3)">
+                    <div class="sl" style="color:var(--pos)">Crecimiento Total</div>
+                    <div class="sv" id="hist-cap-pct" style="color:var(--pos)">0%</div>
+                    <div style="font-family:var(--fm);font-size:.65rem;color:var(--mu);margin-top:4px" id="hist-cap-abs">+$0</div>
+                 </div>
+              </div>
+           </div>
+
+           <!-- Estadísticas Generales -->
+           <div class="panel pp">
+              <div class="sh-t" style="margin-bottom:14px;color:#d88c9a">Estadísticas Generales</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px" id="hist-st-grid">
+                 <div class="stat" style="background:rgba(74,122,181,.05);border-color:rgba(74,122,181,.2)">
+                    <div class="sl" style="color:var(--blue)">Registros Totales</div>
+                    <div class="sv" id="hist-st-reg" style="font-size:1.4rem">0</div>
+                 </div>
+                 <div class="stat" style="background:var(--bg3)">
+                    <div class="sl" style="color:var(--pos)">Pico Máximo</div>
+                    <div class="sv" id="hist-st-max" style="font-size:1.1rem">$0</div>
+                 </div>
+                 <div class="stat" style="background:var(--bg3)">
+                    <div class="sl" style="color:#d47a7a">Punto Mínimo</div>
+                    <div class="sv" id="hist-st-min" style="font-size:1.1rem">$0</div>
+                 </div>
+                 <div class="stat" style="background:var(--bg3)">
+                    <div class="sl" style="color:#70b8d4">Promedio Mensual</div>
+                    <div class="sv" id="hist-st-prom" style="font-size:1.1rem">$0</div>
+                 </div>
+              </div>
+           </div>
+
+           <!-- Visualización de Datos -->
+           <div class="panel pp">
+              <div class="sh-t" style="margin-bottom:14px;color:#8cd8b5">Visualización de Datos</div>
+              <div style="width:100%;height:320px;position:relative">
+                 <canvas id="history-chart"></canvas>
+              </div>
+           </div>
+
+           <!-- Análisis Anual -->
+           <div class="panel pp">
+              <div class="sh-t" style="margin-bottom:14px;color:#70b8d4">Análisis Anual</div>
+              <div id="hist-annual-list" style="display:flex;flex-direction:column;gap:8px"></div>
+           </div>
+
+           <!-- Historial Completo -->
+           <div class="panel pp">
+              <div class="sh-t" style="margin-bottom:14px;color:#d88cc2">Historial Completo</div>
+              <div class="tbl-wrap" style="max-height:400px;overflow-y:auto;border:1px solid var(--bg5);border-radius:var(--rs)">
+                 <table class="tbl">
+                    <thead style="position:sticky;top:0;background:var(--bg2);z-index:10;box-shadow:0 1px 0 var(--bg5)">
+                       <tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th style="text-align:right">Monto</th><th style="text-align:right">Balance</th></tr>
+                    </thead>
+                    <tbody id="hist-full-list"></tbody>
+                 </table>
+              </div>
+           </div>
+
+           <!-- Proyecciones -->
+           <div class="panel pp">
+              <div class="sh-t" style="margin-bottom:14px;color:var(--g2)">Proyecciones Futuras</div>
+              <div style="font-size:0.75rem;color:var(--mu);margin-bottom:16px">Basadas en la tasa de crecimiento mensual promedio histórica.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px" id="hist-proj-grid">
+                 <!-- Generated by JS -->
+              </div>
+           </div>
+           
+        </div>
+      </div>
+
+      <!-- PLAN & CONFIG -->
+      <div class="page" id="page-plan">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Configuración</div><div class="tb-t">Plan &amp; Datos fiscales</div></div></div>
+        <div class="pg-body">
+          <div class="panel pp" style="max-width:600px;margin-bottom:16px">
+            <div class="sh-t" style="font-family:var(--fd);font-size:1.1rem;margin-bottom:4px">Datos fiscales de la empresa</div>
+            <p style="font-size:.72rem;color:var(--mu);margin-bottom:16px">Estos datos aparecen en todos los comprobantes de venta.</p>
+              <div class="fg">
+                <label class="fl">Logo de la empresa</label>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                  <div id="emp-logo-preview" style="width:60px;height:60px;border-radius:8px;border:1px dashed var(--gb);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg3)">
+                    <span style="font-size:1.5rem;color:var(--mu)">📸</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <input type="file" id="emp-logo-file" accept="image/png, image/jpeg, image/svg+xml" style="font-size:.75rem;color:var(--mu)" onchange="handleLogoUpload(event)"/>
+                    <button class="btn btn-danger" id="emp-logo-rm" style="display:none;padding:4px 8px;font-size:.7rem;align-self:flex-start" onclick="removeLogo()">Eliminar logo</button>
+                  </div>
+                </div>
+              </div>
+              <div class="fg"><label class="fl">Razón social</label><input class="fi" id="emp-rs" placeholder="Mi Empresa S.R.L."/></div>
+              <div class="fg"><label class="fl">RUC</label><input class="fi" id="emp-ruc" placeholder="80123456-7" style="font-family:var(--fm)"/></div>
+              <div class="fg"><label class="fl">Dirección</label><input class="fi" id="emp-dir" placeholder="Asunción, Paraguay"/></div>
+              <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="emp-tel" placeholder="+595 21 000000"/></div>
+              <div class="fg"><label class="fl">Email</label><input class="fi" id="emp-email" type="email" placeholder="info@miempresa.com.py"/></div>
+              <div class="fg"><label class="fl">Sitio web</label><input class="fi" id="emp-web" placeholder="miempresa.com.py"/></div>
+              <div class="fg"><label class="fl">Nº de Timbrado</label><input class="fi" id="emp-tim" placeholder="12345678" style="font-family:var(--fm)"/></div>
+              <div class="fg"><label class="fl">Nº de factura inicio</label><input class="fi" id="emp-nro" type="number" placeholder="1" inputmode="numeric" style="font-family:var(--fm)"/></div>
+              <div class="fg"><label class="fl">Vigencia desde</label><input class="fi" id="emp-vd" type="date"/></div>
+              <div class="fg"><label class="fl">Vigencia hasta</label><input class="fi" id="emp-vh" type="date"/></div>
+            </div>
+            <button class="btn btn-g" style="margin-top:8px" onclick="saveEmpresa()">Guardar datos fiscales</button>
+          </div>
+          <div class="panel pp" style="max-width:600px;margin-bottom:16px">
+            <div class="sh-t" style="font-family:var(--fd);font-size:1.1rem;margin-bottom:4px">Experiencia de uso</div>
+            <p style="font-size:.72rem;color:var(--mu);margin-bottom:16px">Elegí la complejidad del panel según tus necesidades diarias.</p>
+            <div style="display:flex;gap:12px">
+              <button class="btn btn-o" id="btn-mode-simple" onclick="setAppMode('simple')" style="flex:1;justify-content:center;flex-direction:column;padding:16px;border-color:var(--bg5);color:var(--mu);height:90px">
+                <span style="font-size:1.5rem">🍃</span>
+                <span style="margin-top:4px;font-size:.8rem;color:var(--cr)">Modo Simple</span>
+                <span style="font-size:.56rem;font-family:var(--fm);color:inherit;margin-top:4px;text-transform:none">Solo gastos y balances</span>
+              </button>
+              <button class="btn" id="btn-mode-full" onclick="setAppMode('full')" style="flex:1;justify-content:center;flex-direction:column;padding:16px;border:1px solid var(--g2);color:var(--g2);background:var(--gd);height:90px">
+                <span style="font-size:1.5rem">⚙️</span>
+                <span style="margin-top:4px;font-size:.8rem;color:var(--cr)">Modo Completo</span>
+                <span style="font-size:.56rem;font-family:var(--fm);color:inherit;margin-top:4px;text-transform:none">ERP completo</span>
+              </button>
+            </div>
+          </div>
+          <div class="panel pp" style="max-width:600px;margin-bottom:16px">
+            <div class="sh-t" style="font-family:var(--fd);font-size:1.1rem;margin-bottom:4px">Personalización</div>
+            <p style="font-size:.72rem;color:var(--mu);margin-bottom:16px">Elegí el color de acento que mejor se adapte a tu estilo.</p>
+            <div class="theme-grid">
+              <button class="theme-swatch" style="background:#e8b124" onclick="setAppTheme('gold', this)" title="Dorado"></button>
+              <button class="theme-swatch" style="background:#3b82f6" onclick="setAppTheme('ocean', this)" title="Océano"></button>
+              <button class="theme-swatch" style="background:#10b981" onclick="setAppTheme('emerald', this)" title="Esmeralda"></button>
+              <button class="theme-swatch" style="background:#8b5cf6" onclick="setAppTheme('amethyst', this)" title="Amatista"></button>
+              <button class="theme-swatch" style="background:#ef4444" onclick="setAppTheme('ruby', this)" title="Rubí"></button>
+            </div>
+          </div>
+          <div class="panel pp" style="max-width:600px;margin-bottom:16px;border-left:3px solid var(--pos)">
+            <div class="sh-t" style="font-family:var(--fd);font-size:1.1rem;margin-bottom:4px">🔐 Seguridad &amp; Respaldos</div>
+            <p style="font-size:.72rem;color:var(--mu);margin-bottom:16px">Gestiona automáticamente tus backups de Supabase.</p>
+            <div id="backup-status-display" style="background:var(--bg5);padding:12px;border-radius:6px;margin-bottom:12px">
+              <span style="color:var(--mu);font-size:.75rem">⏳ Cargando...</span>
+            </div>
+            <button class="btn btn-g" id="btn-backup-now" style="width:100%;justify-content:center">💾 Generar Backup Ahora</button>
+            <p style="font-size:.65rem;color:var(--mu);margin-top:8px;line-height:1.4">
+              Los backups se generan automáticamente cada 24 horas. Los archivos se guardan en la carpeta <code style="background:var(--bg5);padding:2px 4px;border-radius:3px">/backups</code> del servidor.
+            </p>
+          </div>
+          <div class="panel pp" style="max-width:600px">
+            <div class="sh-t" style="font-family:var(--fd);font-size:1.1rem;margin-bottom:16px">Plan CD & Co</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:20px" id="plan-cards"></div>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:20px">
+              <li style="font-size:.78rem;color:var(--mu);display:flex;align-items:center;gap:8px"><span style="color:var(--g2)">◆</span> Free: 50 movimientos/mes, 20 productos, 3 metas</li>
+              <li style="font-size:.78rem;color:var(--mu);display:flex;align-items:center;gap:8px"><span style="color:var(--g2)">◆</span> Pro: Todo ilimitado + facturas + pedidos + exportar CSV</li>
+              <li style="font-size:.78rem;color:var(--mu);display:flex;align-items:center;gap:8px"><span style="color:var(--g2)">◆</span> Business: Multi-usuario (5) + API + reportes + soporte</li>
+            </ul>
+            <div style="display:flex;gap:9px"><button class="btn btn-s" onclick="goPage('dashboard')">← Volver</button><button class="btn btn-g" onclick="goStripe()">Suscribirse con Stripe →</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A COBRAR -->
+      <div class="page" id="page-receivables">
+        <div class="tb">
+          <div class="tb-l"><div class="tb-ey">Finanzas</div><div class="tb-t">A Cobrar</div></div>
+          <div class="tb-r"><button class="btn btn-g" onclick="openReceivableModal()">＋ Nueva cuenta</button></div>
+        </div>
+        <div class="pg-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:16px">
+            <div class="panel pp" style="padding:16px">
+              <div style="font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Pendiente</div>
+              <div style="font-size:1.4rem;font-weight:300;color:#d47a7a;font-family:var(--fm)" id="recv-stat-pending">$0.00</div>
+            </div>
+            <div class="panel pp" style="padding:16px">
+              <div style="font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Total Cobrado</div>
+              <div style="font-size:1.4rem;font-weight:300;color:var(--pos);font-family:var(--fm)" id="recv-stat-paid">$0.00</div>
+            </div>
+            <div class="panel pp" style="padding:16px">
+              <div style="font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Cuentas Activas</div>
+              <div style="font-size:1.4rem;font-weight:600;color:var(--g2)" id="recv-stat-active">0</div>
+            </div>
+          </div>
+          <div id="recv-grid" style="display:flex;flex-direction:column;gap:14px"></div>
+          <div style="margin-top:24px">
+            <button onclick="toggleRecvCompleted(this)" style="background:none;border:none;color:var(--mu);cursor:pointer;font-size:.78rem;display:flex;align-items:center;gap:6px;padding:4px 0">
+              <span id="recv-comp-arrow">▶</span> Completadas (<span id="recv-comp-count">0</span>)
+            </button>
+            <div id="recv-completed" style="display:none;flex-direction:column;gap:10px;margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTES -->
+      <div class="page" id="page-reports">
+        <div class="tb">
+          <div class="tb-l"><div class="tb-ey">Análisis</div><div class="tb-t">Reportes</div></div>
+          <div class="tb-r"><button class="btn btn-o" onclick="generatePdfReport()">📄 Exportar PDF Mensual</button></div>
+        </div>
+        
+        <div class="pg-body">
+          <div class="rep-split">
+            <!-- Sidebar Navigation -->
+            <div class="rep-side">
+              <button class="rep-btn" onclick="switchReport('patrimonio', this)">
+                <div class="ic-sq">📈</div>
+                <div>
+                  <div class="rep-btn-t">Mi Patrimonio Neto</div>
+                  <div class="rep-btn-s">Evolución en el tiempo</div>
+                </div>
+              </button>
+              
+              <button class="rep-btn" onclick="switchReport('flow', this)">
+                <div class="ic-sq">📊</div>
+                <div>
+                  <div class="rep-btn-t">Ingresos vs Gastos</div>
+                  <div class="rep-btn-s">Comparativa mensual</div>
+                </div>
+              </button>
+              
+              <button class="rep-btn" onclick="switchReport('categories', this)">
+                <div class="ic-sq">🍕</div>
+                <div>
+                  <div class="rep-btn-t">Resumen de Categorías</div>
+                  <div class="rep-btn-s">Desglose de gastos</div>
+                </div>
+              </button>
+              
+              <button class="rep-btn" onclick="switchReport('fixed', this)">
+                <div class="ic-sq">📋</div>
+                <div>
+                  <div class="rep-btn-t">Gastos Fijos</div>
+                  <div class="rep-btn-s">Suscripciones y cuotas</div>
+                </div>
+              </button>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="rep-main panel pp" style="padding:24px; min-height: 400px; display:flex; flex-direction:column;">
+              
+              <!-- Empty State -->
+              <div id="rep-empty-state" class="rep-empty">
+                <div class="ic">📊</div>
+                <div style="font-size:1.2rem; font-weight:600; color:var(--cr); margin-bottom:8px">Centro de Informes</div>
+                <p>Seleccione un informe de la izquierda para visualizar sus datos estratégicos.</p>
+              </div>
+
+              <!-- Report Views -->
+              <div id="rep-view-patrimonio" class="rep-view" style="height: 100%">
+                <div class="sh-t" style="margin-bottom:20px">Evolución del Patrimonio Neto</div>
+                <div style="flex:1; position:relative; min-height:350px"><canvas id="rep-chart-patrimonio"></canvas></div>
+              </div>
+
+              <div id="rep-view-flow" class="rep-view" style="height: 100%">
+                <div class="sh-t" style="margin-bottom:20px">Ingresos vs Gastos (Mensual)</div>
+                <div style="flex:1; position:relative; min-height:350px"><canvas id="rep-chart-flow"></canvas></div>
+              </div>
+
+              <div id="rep-view-categories" class="rep-view" style="height: 100%">
+                <div class="sh-t" style="margin-bottom:20px">Distribución por Categorías</div>
+                <div class="rep-categories-grid" style="display:grid; grid-template-columns: 1fr 1.5fr; gap:30px; align-items:start">
+                  <div style="position:relative; width: 100%; aspect-ratio: 1; max-width: 320px; margin: 0 auto">
+                    <canvas id="rep-chart-cats"></canvas>
+                  </div>
+                  <div id="rep-cats-legend" class="sens" style="max-height: 400px; overflow-y: auto; padding-right: 12px; display:flex; flex-direction:column; gap:4px"></div>
+                </div>
+              </div>
+
+              <div id="rep-view-fixed" class="rep-view" style="height: 100%">
+                <div class="sh-t" style="margin-bottom:20px">Gastos Fijos Mensuales</div>
+                <div id="rep-fixed-summary" style="margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr; gap:16px"></div>
+                <div class="tbl-wrap">
+                  <table class="tbl">
+                    <thead><tr><th>Concepto</th><th>Tipo</th><th>Vencimiento</th><th style="text-align:right">Monto</th></tr></thead>
+                    <tbody id="rep-fixed-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICACIONES -->
+      <div class="page" id="page-notifs">
+        <div class="tb"><div class="tb-l"><div class="tb-ey">Alertas</div><div class="tb-t">Centro de Notificaciones</div></div></div>
+        <div class="pg-body">
+          <div class="panel pp">
+            <div id="notifs-container"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /wrap -->
+</div><!-- /app -->
+
+<!-- MOBILE NAV -->
+<nav class="mob-nav" id="mob-nav">
+  <button class="mn on" onclick="goPage('dashboard');mnA(this)"><span class="mi">◈</span>Inicio</button>
+  <button class="mn" onclick="goPage('inventory');mnA(this)"><span class="mi">📦</span>Stock</button>
+  <button class="mn-fab" onclick="openQuickAdd()">＋</button>
+  <button class="mn" onclick="goPage('sales');mnA(this)"><span class="mi">🛒</span>Ventas</button>
+  <button class="mn" onclick="goPage('contacts');mnA(this)"><span class="mi">👥</span>Más</button>
+</nav>
+
+<!-- ══ MODALS (kept inline for DOM simplicity) ══ -->
+<!-- Quick Add -->
+<div id="qa-modal" class="overlay" style="display:none" onclick="oco(event,'qa-modal')"><div class="modal"><div class="mttl">Acción rápida <button class="mx" onclick="cm('qa-modal')">✕</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn btn-g" style="flex-direction:column;padding:18px;gap:6px;font-size:.8rem" onclick="cm('qa-modal');openTxModal('income')"><span style="font-size:22px">＋</span>Ingreso</button><button class="btn btn-danger" style="flex-direction:column;padding:18px;gap:6px;font-size:.8rem" onclick="cm('qa-modal');openTxModal('expense')"><span style="font-size:22px">－</span>Gasto</button><button class="btn btn-blue" style="flex-direction:column;padding:18px;gap:6px;font-size:.8rem" onclick="cm('qa-modal');openSaleModal()"><span style="font-size:22px">🛒</span>Venta</button><button class="btn btn-pur" style="flex-direction:column;padding:18px;gap:6px;font-size:.8rem" onclick="cm('qa-modal');openOrderModal()"><span style="font-size:22px">📋</span>Pedido</button></div></div></div>
+<!-- TX Modal -->
+<!-- TX Modal -->
+<div id="tx-modal" class="overlay" style="display:none" onclick="oco(event,'tx-modal')"><div class="modal"><div class="mttl"><span id="tx-mttl">Nuevo movimiento</span><button class="mx" onclick="cm('tx-modal')">✕</button></div><div style="display:flex;gap:7px;margin-bottom:16px"><button class="btn" id="tt-inc" onclick="setTT('income')" style="flex:1;justify-content:center;background:var(--pb);border:1px solid rgba(74,155,111,.3);color:var(--pos)">＋ Ingreso</button><button class="btn" id="tt-exp" onclick="setTT('expense')" style="flex:1;justify-content:center">－ Gasto</button></div><div class="fg"><label class="fl">Descripción</label><input class="fi" id="tx-desc" placeholder="Ej: Venta reloj, Pago proveedor..." maxlength="60"/></div><div class="fr2"><div><label class="fl">Monto</label><input class="fi" id="tx-amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"/></div><div><label class="fl">Moneda</label><select class="fs" id="tx-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div></div><div class="fg"><label class="fl">Categoría</label><select class="fs" id="tx-cat"></select></div><div class="fg"><label class="fl">Cuenta</label><select class="fs" id="tx-account"><option value="">Sin cuenta</option></select></div><div class="fg"><label class="fl">Fecha</label><input class="fi" id="tx-date" type="date"/></div><div class="macts" id="tx-acts"></div></div></div>
+
+<!-- Product Modal -->
+<div id="prod-modal" class="overlay" style="display:none" onclick="oco(event,'prod-modal')"><div class="modal modal-wide"><div class="mttl"><span id="prod-mttl">Nuevo producto</span><button class="mx" onclick="cm('prod-modal')">✕</button></div><div class="fr2"><div><label class="fl">Nombre</label><input class="fi" id="pr-name" placeholder="Reloj Casio EF..."/></div><div><label class="fl">SKU / Código</label><input class="fi" id="pr-sku" placeholder="REL-001"/></div></div><div class="fr2"><div><label class="fl">Variante</label><input class="fi" id="pr-var" placeholder="Color, tamaño, modelo"/></div><div><label class="fl">Nº de Serie</label><input class="fi" id="pr-sn" placeholder="Ej: SN-2024-001"/></div></div><div class="fr2"><div><label class="fl">Categoría</label><select class="fs" id="pr-cat"><option>Relojes</option><option>Accesorios</option><option>Perfumes</option><option>Otros</option></select></div><div><label class="fl">Proveedor</label><select class="fs" id="pr-sup"><option value="">Sin asignar</option></select></div></div><div class="fr3"><div><label class="fl">Precio de compra</label><input class="fi" id="pr-buy" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div><div><label class="fl">Precio de venta</label><input class="fi" id="pr-sell" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div><div><label class="fl">Moneda base</label><select class="fs" id="pr-cur"><option value="₲">Guaraníes (₲)</option><option value="$">Dólares ($)</option></select></div></div><div class="fr2"><div><label class="fl">Stock actual</label><input class="fi" id="pr-stock" type="number" inputmode="numeric" min="0" placeholder="0"/></div><div><label class="fl">Stock mínimo (alerta)</label><input class="fi" id="pr-min" type="number" inputmode="numeric" min="0" placeholder="2"/></div></div><div class="fg"><label class="fl">Descripción / Notas</label><input class="fi" id="pr-desc" placeholder="Características, color, talla..."/></div><div class="fr2"><div><label class="fl">Tipo de Cambio Histórico (opcional)</label><input class="fi" id="pr-fx" type="number" inputmode="decimal" min="0" placeholder="Ej: 7480 (si está vacío, usa el del día)"/></div><div><label class="fl">💡 Nota</label><div style="font-size:.75rem;color:var(--mu);margin-top:4px;padding:8px;background:var(--bg3);border-radius:var(--rs)">Se usa para rastrear el costo histórico en USD de este lote específico</div></div></div><div class="macts" id="prod-acts"></div></div></div>
+<!-- Stock Modal -->
+<div id="stock-modal" class="overlay" style="display:none" onclick="oco(event,'stock-modal')"><div class="modal"><div class="mttl"><span id="stock-mttl">Ajustar stock</span><button class="mx" onclick="cm('stock-modal')">✕</button></div><div class="fg"><label class="fl">Tipo de movimiento</label><select class="fs" id="stk-type"><option value="in">Entrada de stock</option><option value="out">Salida de stock</option><option value="set">Establecer cantidad exacta</option></select></div><div class="fg"><label class="fl">Cantidad</label><input class="fi" id="stk-qty" type="number" inputmode="numeric" min="0" placeholder="0"/></div><div class="fg"><label class="fl">Motivo</label><select class="fs" id="stk-reason"><option>Compra a proveedor</option><option>Venta</option><option>Ajuste de inventario</option><option>Devolución</option><option>Merma / Pérdida</option><option>Otro</option></select></div><div class="fg"><label class="fl">Notas</label><input class="fi" id="stk-notes" placeholder="Opcional..."/></div><div class="macts"><button class="mb mb-gh" onclick="cm('stock-modal')">Cancelar</button><button class="mb mb-g" onclick="saveStock()">Confirmar</button></div></div></div>
+<!-- Sale Modal -->
+<div id="sale-modal" class="overlay" style="display:none" onclick="oco(event,'sale-modal')"><div class="modal modal-wide"><div class="mttl"><span id="sale-mttl">Nueva venta</span><button class="mx" onclick="cm('sale-modal')">✕</button></div><div class="fr2"><div><label class="fl">Cliente</label><select class="fs" id="sl-client"><option value="">Cliente ocasional</option></select></div><div><label class="fl">Fecha</label><input class="fi" id="sl-date" type="date"/></div></div><div class="fr2"><div><label class="fl">Moneda</label><select class="fs" id="sl-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div><div><label class="fl">Estado</label><select class="fs" id="sl-status"><option value="paid">Pagada</option><option value="pending">Pendiente</option></select></div></div><div class="fr2"><div><label class="fl">Condición de venta</label><select class="fs" id="sl-condicion"><option value="contado">Contado</option><option value="credito">Crédito</option></select></div><div><label class="fl">Nº Factura legal (opcional)</label><input class="fi" id="sl-nrofactura" placeholder="001-001-0000001" style="font-family:var(--fm)"/></div></div><div style="margin-bottom:12px"><div class="sh"><div class="fl" style="margin:0">Productos</div><button class="btn btn-o" onclick="addSaleLine()">＋ Agregar</button></div><div id="sale-lines" style="display:flex;flex-direction:column;gap:7px;margin-top:8px"></div></div><div style="display:flex;justify-content:flex-end;margin-bottom:12px"><div style="background:var(--bg3);border:1px solid var(--gb);border-radius:var(--rs);padding:10px 16px;min-width:180px"><div style="display:flex;justify-content:space-between;font-size:.74rem;color:var(--mu);margin-bottom:4px"><span>Neto</span><span id="sl-sub">$0.00</span></div><div id="sl-iva-detail" style="display:none"></div><div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:600;color:var(--g2);margin-top:4px"><span>Total (c/IVA)</span><span id="sl-total">$0.00</span></div></div></div><div class="fr2"><div><label class="fl">Método de pago</label><select class="fs" id="sl-method"><option value="Efectivo">Efectivo</option><option value="Transferencia bancaria">Transferencia bancaria</option><option value="Tigo Money">Tigo Money</option><option value="Bancard / QR">Bancard / QR</option><option value="Tarjeta de crédito">Tarjeta de crédito</option><option value="Tarjeta de débito">Tarjeta de débito</option><option value="dLocal Go">dLocal Go</option><option value="Otro">Otro</option></select></div><div><label class="fl">Notas</label><input class="fi" id="sl-notes" placeholder="Notas opcionales..."/></div></div><div class="macts" id="sale-acts"></div></div></div>
+<!-- Order Modal -->
+<div id="order-modal" class="overlay" style="display:none" onclick="oco(event,'order-modal')">
+  <div class="modal modal-wide">
+    <div class="mttl"><span id="ord-mttl">Nuevo pedido</span><button class="mx" onclick="cm('order-modal')">✕</button></div>
+    <div class="fr2">
+      <div><label class="fl">Proveedor</label><select class="fs" id="or-sup"><option value="">Seleccionar proveedor</option></select></div>
+      <div><label class="fl">Fecha estimada de llegada</label><input class="fi" id="or-date" type="date"/></div>
+    </div>
+    <div class="fr2">
+      <div><label class="fl">N° de Pedido (Manual)</label><input class="fi" id="or-num" placeholder="Auto-increment" type="number" inputmode="numeric"/></div>
+      <div>
+        <label class="fl">Estado del pedido</label>
+        <select class="fs" id="or-status">
+          <option value="pending">🟡 Pendiente de envío</option>
+          <option value="transit">🔵 En tránsito</option>
+          <option value="received">🟢 Recibido</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr2">
+      <div>
+        <label class="fl">Estado de Pago</label>
+        <select class="fs" id="or-pay-status">
+          <option value="pending">🔴 Pendiente</option>
+          <option value="paid">🟢 Pagado</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl">Cuenta de Pago</label>
+        <select class="fs" id="or-pay-account">
+          <option value="">Seleccionar cuenta</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="sh"><div class="fl" style="margin:0">Productos a pedir</div><button class="btn btn-o" onclick="addOrderLine()">＋ Agregar</button></div>
+      <div id="order-lines" style="display:flex;flex-direction:column;gap:7px;margin-top:8px"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <div style="background:var(--bg3);border:1px solid var(--gb);border-radius:var(--rs);padding:10px 16px;min-width:180px">
+        <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:600;color:var(--g2)"><span>Total estimado</span><span id="or-total">$0.00</span></div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Notas / Referencia</label><input class="fi" id="or-notes" placeholder="Instrucciones, referencias..."/></div>
+    <div class="macts" id="ord-acts"></div>
+  </div>
+</div>
+<!-- New Category Modal -->
+<div id="new-cat-modal" class="overlay" style="display:none;z-index:999" onclick="oco(event,'new-cat-modal')"><div class="modal"><div class="mttl">Nueva categoría<button class="mx" onclick="cm('new-cat-modal')">✕</button></div><div class="fr2"><div><label class="fl">Nombre</label><input class="fi" id="nc-name" placeholder="Ej: Regalos"/></div><div><label class="fl">Ícono (Emoji)</label><input class="fi" id="nc-icon" placeholder="🎁"/></div></div><div class="fg"><label class="fl">Tipo</label><select class="fs" id="nc-type"><option value="gastos">Gastos</option><option value="ingresos">Ingresos</option></select></div><div class="macts"><button class="mb mb-gh" onclick="cm('new-cat-modal')">Cancelar</button><button class="mb mb-g" onclick="saveNewCat()">Guardar categoría</button></div></div></div>
+
+<!-- Contact Modal -->
+<div id="contact-modal" class="overlay" style="display:none" onclick="oco(event,'contact-modal')"><div class="modal"><div class="mttl"><span id="con-mttl">Nuevo contacto</span><button class="mx" onclick="cm('contact-modal')">✕</button></div><div class="fr2"><div><label class="fl">Nombre</label><input class="fi" id="co-name" placeholder="Nombre o empresa"/></div><div><label class="fl">Tipo</label><select class="fs" id="co-type"><option value="client">Cliente</option><option value="supplier">Proveedor</option><option value="both">Ambos</option></select></div></div><div class="fr2"><div><label class="fl">Teléfono / WhatsApp</label><input class="fi" id="co-phone" placeholder="+595 9..." inputmode="tel"/></div><div><label class="fl">Email</label><input class="fi" id="co-email" type="email" placeholder="opcional"/></div></div><div class="fg"><label class="fl">RUC / CI</label><input class="fi" id="co-ruc" placeholder="Opcional"/></div><div class="fg"><label class="fl">Notas</label><input class="fi" id="co-notes" placeholder="Dirección, referencias..."/></div><div class="macts" id="con-acts"></div></div></div>
+<!-- Invoice View Modal -->
+<div id="inv-view-modal" class="overlay" style="display:none" onclick="oco(event,'inv-view-modal')"><div class="modal modal-wide"><div class="mttl">Comprobante <div style="display:flex;gap:7px"><button class="btn btn-o" onclick="printInvoice()">🖨 Imprimir</button><button class="mx" onclick="cm('inv-view-modal')">✕</button></div></div><div id="inv-view-content"></div></div></div>
+<!-- Card Modal -->
+<!-- Sub Modal -->
+<div id="sub-modal" class="overlay" style="display:none" onclick="oco(event,'sub-modal')"><div class="modal">
+  <div class="mttl"><span id="sub-mttl">Nueva suscripción</span><button class="mx" onclick="cm('sub-modal')">✕</button></div>
+  <div class="fr2">
+    <div style="flex:3"><label class="fl">Nombre</label><input class="fi" id="sub-name" placeholder="Netflix, Spotify, AWS..."/></div>
+    <div style="flex:1"><label class="fl">Ícono</label><input class="fi" id="sub-icon" placeholder="🔄" maxlength="2"/></div>
+  </div>
+  <div class="fg"><label class="fl">Descripción (opcional)</label><input class="fi" id="sub-desc" placeholder="Plan premium, dominio, etc."/></div>
+  <div class="fr2">
+    <div><label class="fl">Monto</label><input class="fi" id="sub-amt" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Moneda</label><select class="fs" id="sub-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Frecuencia</label><select class="fs" id="sub-freq"><option value="monthly">Mensual</option><option value="annual">Anual</option></select></div>
+    <div><label class="fl">Próximo cobro</label><input class="fi" id="sub-next" type="date"/></div>
+  </div>
+  <div class="macts" id="sub-modal-acts"></div>
+</div></div>
+<!-- Budget Modal -->
+
+<div id="budget-modal" class="overlay" style="display:none" onclick="oco(event,'budget-modal')"><div class="modal">
+  <div class="mttl"><span id="bgt-mttl">Nuevo presupuesto</span><button class="mx" onclick="cm('budget-modal')">✕</button></div>
+  <div class="fg"><label class="fl">Categoría</label><select class="fs" id="bgt-cat"><option>Relojes</option><option>Accesorios</option><option>Perfumes</option><option>Stock / Compras</option><option>Salario</option><option>Servicios</option><option>Transporte</option><option>Marketing</option><option>Otros</option></select></div>
+  <div class="fr2">
+    <div><label class="fl">Límite de gasto</label><input class="fi" id="bgt-amt" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Moneda</label><select class="fs" id="bgt-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  </div>
+  <div class="fg"><label class="fl">Mes</label><input class="fi" id="bgt-month" type="month"/></div>
+  <div class="macts" id="bgt-modal-acts"></div>
+</div></div>
+<!-- Account Modal -->
+
+<div id="account-modal" class="overlay" style="display:none" onclick="oco(event,'account-modal')"><div class="modal">
+  <div class="mttl"><span id="acc-mttl">Nueva cuenta</span><button class="mx" onclick="cm('account-modal')">✕</button></div>
+  <div class="fg"><label class="fl">Nombre de la cuenta</label><input class="fi" id="acc-name" placeholder="Ej: Efectivo Caja, Itaú Corriente..."/></div>
+  <div class="fr2">
+    <div><label class="fl">Tipo de cuenta</label><select class="fs" id="acc-type"><option value="bank">🏦 Banco</option><option value="cash">💵 Efectivo</option><option value="digital">📱 Billetera Digital</option></select></div>
+    <div><label class="fl">Banco / Entidad</label><input class="fi" id="acc-bank" placeholder="Itaú, Tigo, BCP..."/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Moneda</label><select class="fs" id="acc-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+    <div><label class="fl">Saldo inicial</label><input class="fi" id="acc-init" type="number" inputmode="decimal" placeholder="0.00"/></div>
+  </div>
+  <div class="fg"><label class="fl">Notas (opcional)</label><input class="fi" id="acc-notes" placeholder="Descripción, uso..."/></div>
+  <div id="acc-bal-adj" style="display:none">
+    <div style="background:var(--bg3);border:1px solid var(--gb);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:.65rem;color:var(--mu);margin-bottom:2px">Saldo actual calculado</div><div style="font-weight:600;color:var(--g2);font-family:var(--fm)" id="acc-cur-bal-disp">—</div></div>
+      <div style="font-size:.62rem;color:var(--mu);text-align:right">Saldo inicial ±<br>movimientos vinculados</div>
+    </div>
+    <div class="fg"><label class="fl">Nuevo saldo real (ajuste directo)</label><input class="fi" id="acc-new-balance" type="number" inputmode="decimal" placeholder="Dejá vacío para no ajustar"/></div>
+  </div>
+  <div class="macts" id="acc-modal-acts"></div>
+</div></div>
+<!-- Transfer Modal -->
+<div id="transfer-modal" class="overlay" style="display:none" onclick="oco(event,'transfer-modal')"><div class="modal">
+  <div class="mttl">⇄ Transferencia entre cuentas<button class="mx" onclick="cm('transfer-modal')">✕</button></div>
+  <div class="fg"><label class="fl">Cuenta origen</label><select class="fs" id="tr-from"></select></div>
+  <div style="text-align:center;font-size:1.4rem;color:var(--g2);margin:-4px 0">↓</div>
+  <div class="fg"><label class="fl">Cuenta destino</label><select class="fs" id="tr-to"></select></div>
+  <div class="fr2">
+    <div><label class="fl">Monto</label><input class="fi" id="tr-amt" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Moneda</label><select class="fs" id="tr-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Fecha</label><input class="fi" id="tr-date" type="date"/></div>
+    <div><label class="fl">Nota (opcional)</label><input class="fi" id="tr-note" placeholder="Retiro, envío..."/></div>
+  </div>
+  <div class="macts"><button class="mb mb-gh" onclick="cm('transfer-modal')">Cancelar</button><button class="mb mb-g" onclick="saveTransfer()">Confirmar transferencia</button></div>
+</div></div>
+<!-- Pay Card Modal -->
+<div id="pay-card-modal" class="overlay" style="display:none" onclick="oco(event,'pay-card-modal')"><div class="modal">
+  <div class="mttl">Pagar Tarjeta <button class="mx" onclick="cm('pay-card-modal')">✕</button></div>
+  <div class="fg"><label class="fl">Tarjeta a pagar</label><input class="fi" id="pc-name" readonly /></div>
+  <div class="fg"><label class="fl">Cuenta origen (Fondos)</label><select class="fs" id="pc-from"></select></div>
+  <div class="fr2">
+    <div><label class="fl">Monto a pagar</label><input class="fi" id="pc-amt" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Moneda</label><select class="fs" id="pc-cur" disabled><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  </div>
+  <div class="fg"><label class="fl">Fecha de pago</label><input class="fi" id="pc-date" type="date"/></div>
+  <div class="macts"><button class="mb mb-gh" onclick="cm('pay-card-modal')">Cancelar</button><button class="mb mb-g" onclick="saveCardPayment()">Confirmar Pago</button></div>
+</div></div>
+<!-- Goal Modal -->
+<div id="goal-modal" class="overlay" style="display:none" onclick="oco(event,'goal-modal')"><div class="modal">
+  <div class="mttl"><span id="goal-mttl">Nueva meta</span><button class="mx" onclick="cm('goal-modal')">✕</button></div>
+  <div class="fr2">
+    <div style="flex:3"><label class="fl">Nombre de la meta</label><input class="fi" id="goal-name" placeholder="Ej: Viaje a Japón, Auto nuevo..."/></div>
+    <div style="flex:1"><label class="fl">Ícono</label><input class="fi" id="goal-icon" placeholder="🎯" maxlength="2"/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Monto objetivo</label><input class="fi" id="goal-target" type="number" inputmode="decimal" placeholder="0.00"/></div>
+    <div><label class="fl">Moneda</label><select class="fs" id="goal-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Monto actual (Manual)</label><input class="fi" id="goal-current" type="number" inputmode="decimal" placeholder="0.00"/></div>
+    <div><label class="fl">Fecha objetivo</label><input class="fi" id="goal-date" type="date"/></div>
+  </div>
+  <div class="fg">
+    <label class="fl">Sincronizar con cuenta (opcional)</label>
+    <select class="fs" id="goal-account"><option value="">Ingreso manual</option></select>
+    <p style="font-size:.65rem;color:var(--mu);margin-top:4px">Si seleccionas una cuenta, el monto actual se actualizará automáticamente con su saldo.</p>
+  </div>
+  <div class="macts" id="goal-modal-acts"></div>
+</div></div>
+<!-- Card Modal -->
+<div id="card-modal" class="overlay" style="display:none" onclick="oco(event,'card-modal')"><div class="modal"><div class="mttl"><span id="card-mttl">Nueva tarjeta</span><button class="mx" onclick="cm('card-modal')">✕</button></div>
+  <div class="fg"><label class="fl">Nombre de la tarjeta</label><input class="fi" id="cc-name" placeholder="Ej: Visa Itaú Personal"/></div>
+  <div class="fr2">
+    <div><label class="fl">Banco / Emisor</label><input class="fi" id="cc-bank" placeholder="Itaú, Personal, Visión..."/></div>
+    <div><label class="fl">Color visual</label><select class="fs" id="cc-color"><option value="gold">Dorado</option><option value="dark" selected>Oscuro</option><option value="blue">Azul</option><option value="purple">Violeta</option><option value="green">Verde</option></select></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Límite de crédito</label><input class="fi" id="cc-limit" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Saldo inicial usado</label><input class="fi" id="cc-used" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Últimos 4 dígitos</label><input class="fi" id="cc-last4" maxlength="4" placeholder="1234"/></div>
+    <div><label class="fl">Vencimiento (MM/AA)</label><input class="fi" id="cc-exp" maxlength="5" placeholder="12/28"/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Día de corte</label><input class="fi" id="cc-cut" type="number" inputmode="numeric" min="1" max="31" placeholder="15"/></div>
+    <div><label class="fl">Día de pago</label><input class="fi" id="cc-pay" type="number" inputmode="numeric" min="1" max="31" placeholder="10"/></div>
+  </div>
+  <div class="fg"><label class="fl">Moneda</label><select class="fs" id="cc-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  <div class="macts" id="card-acts"></div>
+</div></div>
+<!-- Debt Modal -->
+<div id="debt-modal" class="overlay" style="display:none" onclick="oco(event,'debt-modal')"><div class="modal"><div class="mttl"><span id="debt-mttl">Nueva deuda</span><button class="mx" onclick="cm('debt-modal')">✕</button></div>
+  <div class="fr2">
+    <div><label class="fl">Acreedor / Entidad</label><input class="fi" id="db-creditor" placeholder="Banco, persona, empresa..."/></div>
+    <div><label class="fl">Descripción</label><input class="fi" id="db-desc" placeholder="Préstamo personal, cuotas..."/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Monto total</label><input class="fi" id="db-total" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Ya pagado</label><input class="fi" id="db-paid" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Total de cuotas</label><input class="fi" id="db-inst" type="number" inputmode="numeric" min="0" placeholder="0 = sin cuotas"/></div>
+    <div><label class="fl">Cuotas pagadas</label><input class="fi" id="db-paid-inst" type="number" inputmode="numeric" min="0" placeholder="0"/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Vencimiento (Cuota final)</label><input class="fi" id="db-due" type="date"/></div>
+    <div><label class="fl">Moneda</label><select class="fs" id="db-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  </div>
+  <div class="macts" id="debt-acts"></div>
+</div></div>
+<!-- Order Edit Modal -->
+<div id="order-edit-modal" class="overlay" style="display:none" onclick="oco(event,'order-edit-modal')">
+  <div class="modal">
+    <div class="mttl">Editar pedido a proveedor <button class="mx" onclick="cm('order-edit-modal')">✕</button></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Proveedor</label><input class="fi" id="provNombre" disabled/></div>
+      <div class="fg"><label class="fl">N° de Referencia / Factura</label><input class="fi" id="provRef" placeholder="Ej: #0001"/></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Costo Total del Pedido</label><input class="fi" id="provCostoTotal" type="number" step="0.01" placeholder="0.00"/></div>
+      <div class="fg"><label class="fl">Moneda</label><select class="fs" id="provMoneda"><option value="₲">Guaraníes (₲)</option><option value="$">Dólares ($)</option></select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Ya pagado (Anticipo)</label><input class="fi" id="provMontoPagado" type="number" step="0.01" placeholder="0.00"/></div>
+      <div class="fg"><label class="fl">Estado del pedido</label>
+        <select class="fs" id="provEstado">
+          <option value="pending">🟡 Pendiente de envío</option>
+          <option value="transit">🔵 En tránsito</option>
+          <option value="received">🟢 Recibido</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr2">
+      <div class="fg">
+        <label class="fl">Estado de Pago</label>
+        <select class="fs" id="provPayStatus">
+          <option value="pending">🔴 Pendiente</option>
+          <option value="paid">🟢 Pagado</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Cuenta de Pago</label>
+        <select class="fs" id="provPayAccount">
+          <option value="">Seleccionar cuenta</option>
+        </select>
+      </div>
+    </div>
+    <div class="macts" id="ord-edit-acts">
+      <button class="mb mb-gh" onclick="cm('order-edit-modal')">Cancelar</button>
+      <button class="mb mb-g" onclick="saveEditOrder()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receive Order Modal -->
+<div id="recv-modal" class="overlay" style="display:none" onclick="oco(event,'recv-modal')"><div class="modal"><div class="mttl">Recibir pedido <button class="mx" onclick="cm('recv-modal')">✕</button></div><div id="recv-content"></div><div class="macts"><button class="mb mb-gh" onclick="cm('recv-modal')">Cancelar</button><button class="mb mb-g" onclick="confirmReceive()">✓ Confirmar recepción</button></div></div></div>
+
+<!-- Nueva / Editar Cuenta A Cobrar -->
+<div id="ra-modal" class="overlay" style="display:none" onclick="oco(event,'ra-modal')"><div class="modal"><div class="mttl"><span id="recv-mttl">Nueva cuenta a cobrar</span><button class="mx" onclick="cm('ra-modal')">✕</button></div>
+  <div class="fr2"><div><label class="fl">Nombre / Deudor</label><input class="fi" id="recv-name" placeholder="Ej: Juan Pérez - Reloj"/></div><div><label class="fl">Tipo</label><input class="fi" id="recv-type" placeholder="Reloj, Préstamo, Servicio..."/></div></div>
+  <div class="fr2"><div><label class="fl">Monto total</label><input class="fi" id="recv-total" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div><div><label class="fl">Moneda</label><select class="fs" id="recv-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div></div>
+  <div class="fg"><label class="fl">Ya cobrado (inicio)</label><input class="fi" id="recv-paid-ini" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+  <div class="fr2"><div><label class="fl">Cuotas totales (opcional)</label><input class="fi" id="recv-inst" type="number" inputmode="numeric" min="0" placeholder="0 = sin cuotas"/></div><div><label class="fl">Cuotas cobradas</label><input class="fi" id="recv-paid-inst" type="number" inputmode="numeric" min="0" placeholder="0"/></div></div>
+  <div class="fg"><label class="fl">Notas</label><input class="fi" id="recv-notes" placeholder="Observaciones..."/></div>
+  <div class="macts" id="recv-modal-acts"></div>
+</div></div>
+
+<!-- Registrar Pago (A Cobrar) -->
+<div id="recvp-modal" class="overlay" style="display:none" onclick="oco(event,'recvp-modal')"><div class="modal"><div class="mttl">Registrar cobro <button class="mx" onclick="cm('recvp-modal')">✕</button></div>
+  <input type="hidden" id="recvp-id"/>
+  <div style="background:var(--bg3);border:1px solid var(--gb);border-radius:var(--rs);padding:12px 14px;margin-bottom:16px">
+    <div style="font-size:.65rem;color:var(--mu);margin-bottom:2px">Cuenta</div>
+    <div style="font-weight:600;color:var(--g2)" id="recvp-name">—</div>
+    <div style="font-size:.72rem;color:#d47a7a;margin-top:4px">Pendiente: <span id="recvp-pending" style="font-family:var(--fm)">—</span></div>
+  </div>
+  <div class="fr2"><div><label class="fl">Monto cobrado</label><input class="fi" id="recvp-amt" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div><div><label class="fl">Fecha</label><input class="fi" id="recvp-date" type="date"/></div></div>
+  <div class="fg"><label class="fl">Categoría de ingreso</label><select class="fs" id="recvp-cat"></select></div>
+  <div class="fg" style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--bg5);border-radius:var(--rs);padding:11px 13px">
+    <input type="checkbox" id="recvp-register-tx" checked style="width:16px;height:16px;accent-color:var(--g2)"/>
+    <label for="recvp-register-tx" style="font-size:.8rem;color:var(--cr);cursor:pointer">Registrar como ingreso en Movimientos</label>
+  </div>
+  <div class="macts"><button class="mb mb-gh" onclick="cm('recvp-modal')">Cancelar</button><button class="mb mb-g" onclick="saveRecvPay()">✓ Confirmar cobro</button></div>
+</div></div>
+
+<!-- Debt Payment Modal -->
+<div id="debtp-modal" class="overlay" style="display:none" onclick="oco(event,'debtp-modal')"><div class="modal">
+  <div class="mttl">Registrar Pago de Deuda <button class="mx" onclick="cm('debtp-modal')">✕</button></div>
+  <div class="panel" style="background:var(--bg3);padding:15px;margin-bottom:15px;border:1px solid var(--bg5)">
+    <div style="font-size:.65rem;color:var(--mu);margin-bottom:2px">Acreedor</div>
+    <div style="font-weight:600;color:var(--g2)" id="debtp-name">—</div>
+    <div style="font-size:.72rem;color:#d47a7a;margin-top:4px">Saldo Pendiente: <span id="debtp-pending" style="font-family:var(--fm)">—</span></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Monto a abonar</label><input class="fi" id="debtp-amt" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Fecha</label><input class="fi" id="debtp-date" type="date"/></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Cuenta origen</label><select class="fs" id="debtp-account"></select></div>
+    <div><label class="fl">Categoría de gasto</label><select class="fs" id="debtp-cat"></select></div>
+  </div>
+  <div class="fg" style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--bg5);border-radius:var(--rs);padding:11px 13px">
+    <input type="checkbox" id="debtp-register-tx" checked style="width:16px;height:16px;accent-color:var(--g2)"/>
+    <label for="debtp-register-tx" style="font-size:.8rem;color:var(--cr);cursor:pointer">Registrar como gasto en Movimientos</label>
+  </div>
+  <div class="macts"><button class="mb mb-gh" onclick="cm('debtp-modal')">Cancelar</button><button class="mb mb-g" onclick="saveDebtPay()">✓ Confirmar pago</button></div>
+</div></div>
+
+<!-- Fleet Fuel Loading Modal (Mobile Optimized) -->
+<div id="fuel-modal" class="overlay" style="display:none" onclick="oco(event,'fuel-modal')">
+  <div class="modal" style="max-width:380px">
+    <div class="mttl">⛽ Registro Ágil de Combustible <button class="mx" onclick="cm('fuel-modal')">✕</button></div>
+    
+    <div class="fg">
+      <label class="fl">Seleccionar Vehículo</label>
+      <div id="fuel-vehicle-selector" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none">
+        <!-- Rendered by JS -->
+      </div>
+      <input type="hidden" id="fuel-vehicle-id">
+    </div>
+
+    <div class="fr2">
+      <div><label class="fl">Monto (Costo Total)</label><input class="fi" id="fuel-amt" type="number" inputmode="decimal" min="0" placeholder="0.00" style="font-size:1.1rem;font-weight:600"/></div>
+      <div>
+         <label class="fl">Moneda/Cuenta</label>
+         <select class="fs" id="fuel-acc"></select>
+      </div>
+    </div>
+    
+    <div class="fr2" style="margin-top:10px">
+      <div><label class="fl">Litros</label><input class="fi" id="fuel-lts" type="number" inputmode="decimal" placeholder="Ej: 40" /></div>
+      <div><label class="fl">Odómetro (Km)</label><input class="fi" id="fuel-km" type="number" inputmode="numeric" placeholder="Opcional" /></div>
+    </div>
+    
+    <div class="fg" style="margin-top:10px"><label class="fl">Fecha</label><input class="fi" id="fuel-date" type="date"/></div>
+
+    <div class="macts" style="margin-top:20px"><button class="btn btn-o" onclick="cm('fuel-modal')" style="flex:1">Cancelar</button><button class="btn btn-g" onclick="saveFuelLog()" style="flex:2;font-size:1rem;padding:14px">✓ Guardar Gasto</button></div>
+  </div>
+</div>
+
+<!-- Landed Cost Calculator Modal -->
+<div id="import-modal" class="overlay" style="display:none" onclick="oco(event,'import-modal')">
+  <div class="modal modal-wide" style="max-width: 900px; padding: 0; overflow: hidden; background: #050505; border: 1px solid var(--bg5)">
+    <!-- Header -->
+    <div style="padding: 24px 32px; border-bottom: 1px solid var(--bg5); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, #121212, #050505)">
+      <div>
+        <div style="font-size: 0.75rem; color: var(--mu); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px">Landed Cost Calculator</div>
+        <div style="font-size: 1.4rem; font-family: var(--fd); color: var(--cr)">Nueva Importación</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 24px">
+        <div style="text-align: right">
+          <div style="font-size: 0.70rem; color: var(--mu); text-transform: uppercase; letter-spacing: 0.05em">Cotización USD Actual</div>
+          <div style="font-family: var(--fm); font-size: 1.1rem; color: var(--g2)" id="imp-fx-display">₲ 7.350</div>
+        </div>
+        <button class="mx" onclick="cm('import-modal')" style="position: relative; top: 0; right: 0; background: var(--bg3)">✕</button>
+      </div>
+    </div>
+    
+    <!-- Body: 2 Columns Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 340px; min-height: 480px">
+      
+      <!-- Left: Data Entry -->
+      <div style="padding: 32px; display: flex; flex-direction: column; gap: 20px; background: #050505">
+        <div class="fg">
+          <label class="fl">Producto a Ingresar</label>
+          <select class="fs" id="imp-prod" onchange="impCalc()"><option value="">Selecciona un producto del inventario...</option></select>
+        </div>
+        <div class="fr2">
+          <div>
+            <label class="fl">Cantidad de Unidades</label>
+            <input class="fi" id="imp-qty" type="number" min="1" placeholder="Ej: 50" oninput="impCalc()"/>
+          </div>
+          <div>
+            <label class="fl">Costo Unit. Origen (USD)</label>
+            <input class="fi" id="imp-cost-usd" type="number" step="0.01" min="0" placeholder="0.00" oninput="impCalc()"/>
+          </div>
+        </div>
+        <div class="fr2">
+          <div>
+            <label class="fl">Flete Internacional Total (USD)</label>
+            <input class="fi" id="imp-freight-usd" type="number" step="0.01" min="0" placeholder="0.00" oninput="impCalc()"/>
+            <div style="font-size: 0.65rem; color: var(--mu); margin-top: 6px" id="imp-freight-unit">Flete unitario: $0.00</div>
+          </div>
+          <div>
+            <label class="fl">Despacho / Aduana Total (PYG)</label>
+            <input class="fi" id="imp-customs-pyg" type="number" min="0" placeholder="0" oninput="impCalc()"/>
+            <div style="font-size: 0.65rem; color: var(--mu); margin-top: 6px" id="imp-customs-unit">Despacho unitario: ₲ 0</div>
+          </div>
+        </div>
+        
+        <!-- Dual Exchange Rates -->
+        <div style="background: var(--bg2); border-radius: 8px; padding: 14px; border: 1px solid var(--bg5)">
+          <div style="font-size: 0.7rem; color: var(--g2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px">💱 Tipos de Cambio por Componente</div>
+          <div class="fr2">
+            <div>
+              <label class="fl">TC Producto (USD→PYG)</label>
+              <input class="fi" id="imp-fx-prod" type="number" step="1" min="0" placeholder="7350" oninput="impCalc()" style="font-family:var(--fm)"/>
+              <div style="font-size:0.6rem;color:var(--mu);margin-top:4px">Tasa del proveedor / banco</div>
+            </div>
+            <div>
+              <label class="fl">TC Flete (USD→PYG)</label>
+              <input class="fi" id="imp-fx-freight" type="number" step="1" min="0" placeholder="7350" oninput="impCalc()" style="font-family:var(--fm)"/>
+              <div style="font-size:0.6rem;color:var(--mu);margin-top:4px">Tasa del courier / casa de cambio</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: auto; padding: 16px; background: var(--bg3); border-radius: 8px; border: 1px dashed var(--bg5)">
+          <div style="font-size: 0.75rem; color: var(--m3); margin-bottom: 8px">Resumen de Inversión Total:</div>
+          <div style="display: flex; justify-content: space-between; font-family: var(--fm); font-size: 0.85rem">
+            <span style="color: var(--mu)">Costo FOB (USD):</span>
+            <span id="imp-tot-fob" style="color: var(--cr)">$ 0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-family: var(--fm); font-size: 0.85rem; margin-top: 4px">
+            <span style="color: var(--mu)">Costo Landed Total (PYG):</span>
+            <span id="imp-tot-pyg" style="color: var(--g2)">₲ 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Results & Action -->
+      <div style="padding: 32px; background: url('https://cdn.pixabay.com/photo/2016/11/29/13/39/analog-watch-1869928_1280.jpg') center/cover; position: relative">
+        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,5,5,0.7) 0%, rgba(5,5,5,0.95) 100%); z-index: 1"></div>
+        
+        <div class="import-glass" style="position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column">
+          
+          <div style="text-align: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.08)">
+            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 8px">Costo Unit. Real (Landed)</div>
+            <div class="neon-gold-text" style="font-size: 2.2rem" id="imp-landed-cost">₲ 0</div>
+            <div style="font-size: 0.75rem; color: var(--g); margin-top: 6px; font-family: var(--fm)" id="imp-landed-usd">($ 0.00)</div>
+          </div>
+
+          <div class="fg" style="margin-bottom: 16px">
+            <label class="fl" style="color: rgba(255,255,255,0.8)">Margen de Ganancia Deseado (%)</label>
+            <input class="fi" id="imp-margin" type="number" min="0" value="40" style="background: rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.1); color: #fff" oninput="impCalc()"/>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 32px; border: 1px solid rgba(0, 255, 102, 0.2)">
+            <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px">Precio de Venta Sugerido</div>
+            <div class="neon-green-text" style="font-size: 1.6rem" id="imp-suggested-price">₲ 0</div>
+          </div>
+
+          <div style="margin-top: auto">
+            <button class="btn-gold" onclick="saveImport()">Ingresar al Inventario</button>
+            <button class="btn" style="width: 100%; border: none; background: transparent; color: rgba(255,255,255,0.5); font-size: 0.75rem; margin-top: 12px" onclick="cm('import-modal')">Cancelar Operación</button>
+          </div>
+
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<!-- ══ JS MODULES (load order matters) ══ -->
+<!-- Cargar variables de entorno desde Vercel en producción -->
+<script>
+  // Intentar cargar config desde API (Vercel) o usar defaults
+  fetch('/api/config')
+    .then(r => r.text())
+    .then(code => {
+      try { eval(code); } catch(e) {
+        console.log('[Config] Using default environment');
+        window.__ENV__ = {};
+      }
+    })
+    .catch(() => {
+      console.log('[Config] API not available, using defaults');
+      window.__ENV__ = {};
+    });
+</script>
+<script src="js/env-loader.js"></script>
+<script src="js/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/fleet.js"></script>
+<script src="js/transactions.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/sales.js"></script>
+<script src="js/orders.js"></script>
+<script src="js/invoices.js"></script>
+<script src="js/contacts.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/budgets.js"></script>
+<script src="js/subscriptions.js"></script>
+<script src="js/accounts.js"></script>
+<script src="js/debts.js"></script>
+<script src="js/history.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/notifs.js"></script>
+<script src="js/pwa.js"></script>
+<script src="js/receivables.js"></script>
+<script src="js/cdco_import.js"></script>
+<script src="js/patrimonio.js"></script>
+<script src="js/profitability.js"></script>
+<script src="js/goals.js"></script>
+<script src="js/advice.js"></script>
+<script src="js/backup-ui.js"></script>
+<script src="scripts/seed-fleet-data.js"></script>
+
+<div id="print-area"></div>
+</body>
+</html>
