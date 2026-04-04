@@ -365,14 +365,21 @@ function renderDashboard(data) {
   // Usuarios
   document.getElementById('users-count').textContent = `${usuarios.length} usuarios`;
   document.getElementById('users-body').innerHTML = usuarios.map(u => `
-    <tr>
+    <tr id="user-row-${u.id}">
       <td>${u.email}</td>
-      <td><span class="badge badge-${u.plan}">${u.plan}</span></td>
+      <td><span class="badge badge-${u.plan}" id="badge-plan-${u.id}">${u.plan}</span></td>
       <td><span class="badge badge-${u.role}">${u.role}</span></td>
-      <td style="color:var(--mu);font-size:.78rem">${new Date(u.created_at).toLocaleDateString('es-PY')}</td>
-      <td>
+      <td style="color:var(--mu);font-size:.78rem">${u.created_at ? new Date(u.created_at).toLocaleDateString('es-PY') : '—'}</td>
+      <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="plan-sel-${u.id}" style="background:var(--bg3);color:var(--cr);border:1px solid var(--bg5);border-radius:4px;padding:4px 8px;font-size:.75rem;cursor:pointer">
+          <option value="free"     ${u.plan==='free'     ?'selected':''}>Free</option>
+          <option value="pro"      ${u.plan==='pro'      ?'selected':''}>Pro</option>
+          <option value="socio"    ${u.plan==='socio'    ?'selected':''}>Socio</option>
+          <option value="familiar" ${u.plan==='familiar' ?'selected':''}>Familiar</option>
+        </select>
+        <button class="role-btn" onclick="updateUserPlan('${u.id}')">Actualizar</button>
         ${u.email !== ADMIN_EMAIL
-          ? `<button class="role-btn" onclick="toggleRole('${u.id}','${u.role}')">${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</button>`
+          ? `<button class="role-btn" style="background:var(--bg4)" onclick="toggleRole('${u.id}','${u.role}')">${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</button>`
           : '<span style="color:var(--g);font-size:.75rem">Vos</span>'}
       </td>
     </tr>
@@ -390,12 +397,55 @@ function renderDashboard(data) {
   document.getElementById('content').style.display = 'block';
 }
 
+// ── Actualizar plan de un usuario ─────────────────────────────────────
+async function updateUserPlan(userId) {
+  const sel  = document.getElementById(`plan-sel-${userId}`);
+  const plan = sel?.value;
+  if (!plan) return;
+
+  const btn = sel.nextElementSibling;
+  const origText = btn.textContent;
+  btn.disabled    = true;
+  btn.textContent = '...';
+
+  try {
+    const res = await fetch('/api/update-user-plan', {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${currentSession.access_token}`,
+        'Content-Type':  'application/json'
+      },
+      body: JSON.stringify({ userId, plan })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      // Actualizar badge en la fila sin recargar todo
+      const badge = document.getElementById(`badge-plan-${userId}`);
+      if (badge) {
+        badge.textContent  = plan;
+        badge.className    = `badge badge-${plan}`;
+      }
+      btn.textContent = '✓';
+      setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 1500);
+    } else {
+      alert(`Error: ${data.error || 'No se pudo actualizar el plan'}`);
+      btn.textContent = origText;
+      btn.disabled    = false;
+    }
+  } catch (e) {
+    console.error('[updateUserPlan]', e.message);
+    alert('Error de conexión al actualizar el plan');
+    btn.textContent = origText;
+    btn.disabled    = false;
+  }
+}
+
 // ── Cambiar role de un usuario ─────────────────────────────────────────
 async function toggleRole(userId, currentRole) {
   const newRole = currentRole === 'admin' ? 'user' : 'admin';
   if (!confirm(`¿Cambiar rol de este usuario a "${newRole}"?`)) return;
 
-  // Llamar a la API con el JWT del admin
   const res = await fetch(`/api/admin?action=set_role&user_id=${userId}&role=${newRole}`, {
     headers: { 'Authorization': `Bearer ${currentSession.access_token}` }
   });

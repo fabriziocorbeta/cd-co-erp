@@ -40,22 +40,56 @@ body.light-mode {
   --bg3: #E2E8F0 !important;
   --bg4: #CBD5E1 !important;
   --bg5: #94A3B8 !important;
-  --cr: #000000 !important; /* TEXTO NEGRO PURO */
+  --cr: #0F172A !important;   /* texto principal oscuro */
   --so: #1E293B !important;
-  --mu: #000000 !important; /* TEXTO NEGRO PURO */
-  --m2: #000000 !important;
+  --mu: #475569 !important;   /* texto muted — gris medio, legible */
+  --m2: #334155 !important;
   --m3: #1E293B !important;
-  --rs: #CBD5E1 !important;
-  --g1: #856404 !important; /* Dorado mucho más oscuro */
-  --nb: rgba(155,74,74,.1) !important;
-  --pb: rgba(74,155,111,.1) !important;
+  --rs: 12px !important;      /* restaurar border-radius */
+  --lm-bc: #CBD5E1;           /* border-color para light mode */
+  --g1: #856404 !important;   /* dorado oscuro para fondos claros */
+  --g2: #b45309 !important;   /* acento dorado oscuro */
+  --nb: rgba(220,38,38,.08) !important;
+  --pb: rgba(22,163,74,.08) !important;
   color-scheme: light;
 }
 
-body.light-mode * { 
-  border-color: var(--rs) !important; 
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important; 
+body.light-mode * {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
 }
+
+/* Tarjetas y paneles — bordes y fondos definidos en modo claro */
+body.light-mode .panel,
+body.light-mode .pp,
+body.light-mode .stat,
+body.light-mode .card {
+  background: var(--bg2) !important;
+  border: 1px solid #CBD5E1 !important;
+}
+
+/* Inputs y selects legibles en modo claro */
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #94A3B8 !important;
+}
+body.light-mode input::placeholder { color: #94A3B8 !important; }
+
+/* Sidebar y navbar en modo claro */
+body.light-mode .sidebar { background: #F8FAFC !important; }
+body.light-mode .ni { color: #334155 !important; }
+body.light-mode .ni.on, body.light-mode .ni:hover { background: #E2E8F0 !important; color: #0F172A !important; }
+
+/* Tablas legibles */
+body.light-mode .tbl th { background: #E2E8F0 !important; color: #334155 !important; }
+body.light-mode .tbl tr:hover td { background: #F1F5F9 !important; }
+
+/* Botones en modo claro */
+body.light-mode .btn { background: #E2E8F0 !important; color: #1E293B !important; border-color: #94A3B8 !important; }
+body.light-mode .btn-g { background: #b45309 !important; color: #fff !important; border-color: #b45309 !important; }
 
 /* ═══════════════ THEMES ═══════════════ */
 /* Default (Gold) is defined in :root */

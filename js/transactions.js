@@ -324,7 +324,7 @@ async function saveTx(){
   if(accId) tx.account_id=accId;
 
   if(SB_ON){
-    const saved=await sbUpsert('txs',tx);
+    const saved=await sbSaveTransaction(tx);
     if(!saved)return;
     const i=S.txs.findIndex(t=>t.id===tx.id);
     if(i>=0)S.txs[i]=saved;else S.txs.unshift(saved);

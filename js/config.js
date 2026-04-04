@@ -207,6 +207,48 @@ async function sbDelete(table, id) {
   if (error) { console.error(`❌ sbDelete(${table}):`, error.message); toast('Error al eliminar'); return false; }
   return true;
 }
+
+// Guarda/actualiza una transacción en Supabase usando los nombres de columna reales
+// El modelo local usa {desc, cur, cat} pero la tabla DB usa {description, currency, category}
+async function sbSaveTransaction(tx) {
+  if (!SB_ON || !sb) return tx; // offline: retornar tal cual
+  const userId = S.user?.id;
+  if (!userId) { toast('Sesión expirada'); return null; }
+  const payload = {
+    id:          tx.id,
+    user_id:     userId,
+    type:        tx.type,
+    description: tx.desc,
+    amount:      tx.amount,
+    currency:    tx.cur || '$',
+    category:    tx.cat || '',
+    date:        tx.date,
+    icon:        tx.icon || null,
+    account_id:  tx.account_id || null
+  };
+  const { data, error } = await sb
+    .from('transactions')
+    .upsert(payload, { onConflict: 'id' })
+    .select()
+    .single();
+  if (error) {
+    console.error('❌ sbSaveTransaction:', error.message, '| code:', error.code, '| details:', error.details);
+    toast('Error al guardar');
+    return null;
+  }
+  // Mapear de vuelta al formato local
+  return {
+    id:         data.id,
+    type:       data.type,
+    desc:       data.description,
+    amount:     data.amount,
+    cur:        data.currency || '$',
+    cat:        data.category,
+    date:       data.date,
+    icon:       data.icon,
+    account_id: data.account_id
+  };
+}
 // ────────────────────────────────────────────────────────────────
 
 // 📥 LOAD all products from Supabase
