@@ -93,46 +93,29 @@ export default async function handler(req, res) {
 
   console.log(`[Admin] Cargando datos para ${user.email}...`);
 
-  // Intentar cargar datos — con fallbacks por si tabla/columnas tienen nombres diferentes
-  const [users, txs, products] = await Promise.all([
-    // Lista de usuarios — select=* para tolerar columnas opcionales
+  // Cargar datos necesarios para admin dashboard
+  const [users, accounts, products] = await Promise.all([
+    // Lista de usuarios
     safeFetch(`${SB_URL}/rest/v1/profiles?select=*&order=created_at.desc`, headers),
-    // Transacciones: intentar con 'transactions' primero
-    safeFetch(`${SB_URL}/rest/v1/transactions?select=*`, headers),
+    // Cuentas/Saldos para calcular patrimonio global
+    safeFetch(`${SB_URL}/rest/v1/accounts?select=*`, headers),
     // Inventario
     safeFetch(`${SB_URL}/rest/v1/products?select=*`, headers)
   ]);
 
-  console.log(`[Admin] Datos: ${users.length} usuarios, ${txs.length} txs, ${products.length} productos`);
+  console.log(`[Admin] Datos: ${users.length} usuarios, ${accounts.length} cuentas, ${products.length} productos`);
 
-  // Calcular patrimonio global: suma neta por moneda
-  // Soporta múltiples convenciones de nombres de columnas
+  // Calcular patrimonio global desde tabla accounts
+  // Sumar balance por moneda (cur)
   const patrimonio = { USD: 0, PYG: 0 };
-  txs.forEach(t => {
-    // Intentar encontrar el campo de monto en varios nombres posibles
-    const rawAmt = parseFloat(t.amount || t.monto || t.amt || 0) || 0;
-    if (rawAmt === 0) return; // saltar si no hay monto
+  accounts.forEach(acc => {
+    const balance = parseFloat(acc.balance || 0) || 0;
+    const cur = (acc.cur || '$').toUpperCase();
 
-    // Intentar encontrar la moneda en varios nombres posibles
-    let cur = (t.currency || t.cur || t.moneda || '$').toUpperCase();
-    if (cur === '₲' || cur === 'PYG') cur = 'PYG';
-    else if (cur === '$' || cur === 'USD') cur = 'USD';
+    if (cur === 'USD' || cur === '$') patrimonio.USD += balance;
+    else patrimonio.PYG += balance;
 
-    let contribution;
-    if (rawAmt < 0) {
-      // Convención "signed amount": negativo = gasto, positivo = ingreso
-      contribution = rawAmt;
-    } else {
-      // Convención "type field": type=income suma, type=expense resta
-      const type = t.type || t.tipo || 'income';
-      const sign = (type === 'income' || type === 'ingreso') ? 1 : -1;
-      contribution = sign * rawAmt;
-    }
-
-    if (cur === 'USD') patrimonio.USD += contribution;
-    else patrimonio.PYG += contribution;
-
-    console.log(`[Admin] Tx: ${rawAmt} ${cur} (type: ${t.type})`);
+    console.log(`[Admin] Account: ${acc.name || 'unknown'} - balance: ${balance} ${cur}`);
   });
 
   // Inventario total — soportar múltiples nombres de columnas

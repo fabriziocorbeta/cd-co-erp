@@ -131,7 +131,7 @@
   <div id="gate-box">
     <h1>◆ Admin</h1>
     <p>CD & Co. — Panel de Administración<br>Acceso exclusivo para administradores</p>
-    <input id="gate-email" type="email" placeholder="Email" value="fabriziocorbeta@gmail.com"
+    <input id="gate-email" type="email" placeholder="Email" value=""
       style="width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
       border-radius:10px;color:#f5f5f5;font-size:.88rem;margin-bottom:10px;box-sizing:border-box;outline:none"/>
     <input id="gate-pass" type="password" placeholder="Contraseña"
@@ -377,7 +377,7 @@ function renderDashboard(data) {
           <option value="socio"    ${u.plan==='socio'    ?'selected':''}>Socio</option>
           <option value="familiar" ${u.plan==='familiar' ?'selected':''}>Familiar</option>
         </select>
-        <button class="role-btn" onclick="updateUserPlan('${u.id}')">Actualizar</button>
+        <button class="role-btn" style="background:var(--g2);color:#fff;border:1px solid var(--g2);border-radius:var(--rs);padding:6px 12px;font-weight:600;cursor:pointer;transition:all 0.2s" onclick="updateUserPlan('${u.id}')">Actualizar Plan</button>
         ${u.email !== ADMIN_EMAIL
           ? `<button class="role-btn" style="background:var(--bg4)" onclick="toggleRole('${u.id}','${u.role}')">${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</button>`
           : '<span style="color:var(--g);font-size:.75rem">Vos</span>'}
