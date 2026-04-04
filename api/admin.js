@@ -93,23 +93,30 @@ export default async function handler(req, res) {
 
   console.log(`[Admin] Cargando datos para ${user.email}...`);
 
+  // Intentar cargar datos — con fallbacks por si tabla/columnas tienen nombres diferentes
   const [users, txs, products] = await Promise.all([
-    // Lista de usuarios — select=* para tolerar columnas opcionales (role puede no existir)
+    // Lista de usuarios — select=* para tolerar columnas opcionales
     safeFetch(`${SB_URL}/rest/v1/profiles?select=*&order=created_at.desc`, headers),
-    // Todas las transacciones para calcular patrimonio neto global
-    safeFetch(`${SB_URL}/rest/v1/transactions?select=type,amount,currency`, headers),
-    // Inventario — sin columna 'cur' que no existe en el schema
-    safeFetch(`${SB_URL}/rest/v1/products?select=name,stock,sell_price,category`, headers)
+    // Transacciones: intentar con 'transactions' primero
+    safeFetch(`${SB_URL}/rest/v1/transactions?select=*`, headers),
+    // Inventario
+    safeFetch(`${SB_URL}/rest/v1/products?select=*`, headers)
   ]);
 
   console.log(`[Admin] Datos: ${users.length} usuarios, ${txs.length} txs, ${products.length} productos`);
 
   // Calcular patrimonio global: suma neta por moneda
-  // Soporta ambas convenciones: montos con signo (expense=-) y montos positivos con type field
+  // Soporta múltiples convenciones de nombres de columnas
   const patrimonio = { USD: 0, PYG: 0 };
   txs.forEach(t => {
-    const rawAmt = parseFloat(t.amount) || 0;
-    const cur    = (t.currency || '$').toUpperCase();
+    // Intentar encontrar el campo de monto en varios nombres posibles
+    const rawAmt = parseFloat(t.amount || t.monto || t.amt || 0) || 0;
+    if (rawAmt === 0) return; // saltar si no hay monto
+
+    // Intentar encontrar la moneda en varios nombres posibles
+    let cur = (t.currency || t.cur || t.moneda || '$').toUpperCase();
+    if (cur === '₲' || cur === 'PYG') cur = 'PYG';
+    else if (cur === '$' || cur === 'USD') cur = 'USD';
 
     let contribution;
     if (rawAmt < 0) {
@@ -117,19 +124,25 @@ export default async function handler(req, res) {
       contribution = rawAmt;
     } else {
       // Convención "type field": type=income suma, type=expense resta
-      const sign = t.type === 'income' ? 1 : -1;
+      const type = t.type || t.tipo || 'income';
+      const sign = (type === 'income' || type === 'ingreso') ? 1 : -1;
       contribution = sign * rawAmt;
     }
 
-    if (cur === '$' || cur === 'USD') patrimonio.USD += contribution;
-    else                              patrimonio.PYG += contribution;
+    if (cur === 'USD') patrimonio.USD += contribution;
+    else patrimonio.PYG += contribution;
+
+    console.log(`[Admin] Tx: ${rawAmt} ${cur} (type: ${t.type})`);
   });
 
-  // Inventario total
+  // Inventario total — soportar múltiples nombres de columnas
   const inventario = products.reduce((acc, p) => {
-    acc.totalUnidades  += (p.stock || 0);
-    acc.valorTotal     += (p.stock || 0) * (parseFloat(p.sell_price) || 0);
+    const stock = p.stock || p.cantidad || 0;
+    const price = parseFloat(p.sell_price || p.precio_venta || p.price || 0) || 0;
+    acc.totalUnidades  += stock;
+    acc.valorTotal     += stock * price;
     acc.totalProductos += 1;
+    console.log(`[Admin] Prod: ${p.name || 'unknown'} - stock: ${stock}, price: ${price}`);
     return acc;
   }, { totalUnidades: 0, valorTotal: 0, totalProductos: 0 });
 
