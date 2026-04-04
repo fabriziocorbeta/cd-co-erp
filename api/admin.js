@@ -4,6 +4,22 @@
 
 const ADMIN_EMAIL = 'fabriziocorbeta@gmail.com';
 
+// Fetch seguro: retorna [] si la respuesta no es un array válido
+async function safeFetch(url, headers) {
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error(`[Admin] Supabase error ${res.status} → ${url}:`, JSON.stringify(err));
+    return [];
+  }
+  const data = await res.json();
+  if (!Array.isArray(data)) {
+    console.error(`[Admin] Respuesta no es array para ${url}:`, JSON.stringify(data));
+    return [];
+  }
+  return data;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -64,19 +80,13 @@ export default async function handler(req, res) {
     'Authorization': `Bearer ${SB_SERVICE_KEY}`
   };
 
-  const [usersRes, txsRes, productsRes] = await Promise.all([
-    // Lista de usuarios
-    fetch(`${SB_URL}/rest/v1/profiles?select=id,email,plan,role,created_at&order=created_at.desc`, { headers }),
-    // Suma global de transacciones por tipo
-    fetch(`${SB_URL}/rest/v1/transactions?select=type,amount,currency`, { headers }),
-    // Inventario total de productos
-    fetch(`${SB_URL}/rest/v1/products?select=name,stock,sell_price,cur,category`, { headers })
-  ]);
-
   const [users, txs, products] = await Promise.all([
-    usersRes.json(),
-    txsRes.json(),
-    productsRes.json()
+    // Lista de usuarios
+    safeFetch(`${SB_URL}/rest/v1/profiles?select=id,email,plan,role,created_at&order=created_at.desc`, headers),
+    // Suma global de transacciones por tipo
+    safeFetch(`${SB_URL}/rest/v1/transactions?select=type,amount,currency`, headers),
+    // Inventario total de productos
+    safeFetch(`${SB_URL}/rest/v1/products?select=name,stock,sell_price,cur,category`, headers)
   ]);
 
   // Calcular patrimonio global: ingresos - gastos en USD y en PYG
