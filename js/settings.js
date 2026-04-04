@@ -193,3 +193,88 @@ function applySavedTheme() {
   }
 }
 
+// ══════════════════════════════════════════
+// BACKUP DE DATOS (Consentido por el usuario)
+// El usuario descarga sus propios datos o los envía a su Drive personal.
+// Ninguna copia se realiza sin acción explícita del usuario.
+// ══════════════════════════════════════════
+
+function buildUserBackup() {
+  const now = new Date();
+  return {
+    _meta: {
+      app: 'CD & Co. ERP',
+      version: 'v3',
+      exported_at: now.toISOString(),
+      exported_by: S.user?.email || 'usuario',
+      user_id: S.user?.id || null,
+      notice: 'Archivo de respaldo personal generado por el propio usuario. Contiene datos financieros privados.'
+    },
+    goals:         S.goals         || [],
+    accounts:      S.accounts      || [],
+    txs:           S.txs           || [],
+    budgets:       S.budgets       || [],
+    sales:         S.sales         || [],
+    products:      S.products      || [],
+    contacts:      S.contacts      || [],
+    subscriptions: S.subscriptions || [],
+    receivables:   S.receivables   || [],
+    debts:         S.debts         || [],
+    empresa:       EMPRESA         || {}
+  };
+}
+
+/** Descarga el backup como archivo JSON en el dispositivo del usuario */
+function downloadBackup() {
+  const data = buildUserBackup();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().split('T')[0];
+  a.href     = url;
+  a.download = `cdco-backup-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('◆ Backup descargado correctamente');
+}
+
+/** Restaura datos desde un archivo JSON descargado previamente */
+function restoreFromBackup(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data._meta || data._meta.app !== 'CD & Co. ERP') {
+        toast('⚠ Archivo no reconocido como backup de CD & Co.');
+        return;
+      }
+      // Confirmar antes de sobreescribir
+      if (!confirm(`¿Restaurar backup del ${data._meta.exported_at?.split('T')[0]}? Esto reemplazará los datos actuales.`)) return;
+
+      if (data.goals)         S.goals         = data.goals;
+      if (data.accounts)      S.accounts      = data.accounts;
+      if (data.txs)           S.txs           = data.txs;
+      if (data.budgets)       S.budgets       = data.budgets;
+      if (data.sales)         S.sales         = data.sales;
+      if (data.products)      S.products      = data.products;
+      if (data.contacts)      S.contacts      = data.contacts;
+      if (data.subscriptions) S.subscriptions = data.subscriptions;
+      if (data.receivables)   S.receivables   = data.receivables;
+      if (data.debts)         S.debts         = data.debts;
+      if (data.empresa)       Object.assign(EMPRESA, data.empresa);
+
+      lsave();
+      if (typeof renderAll === 'function') renderAll();
+      toast('✓ Backup restaurado correctamente');
+    } catch (err) {
+      console.error('[Backup] Error al restaurar:', err);
+      toast('⚠ Error al leer el archivo de backup');
+    }
+  };
+  reader.readAsText(file);
+}
+
