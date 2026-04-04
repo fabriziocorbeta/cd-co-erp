@@ -131,7 +131,14 @@
   <div id="gate-box">
     <h1>◆ Admin</h1>
     <p>CD & Co. — Panel de Administración<br>Acceso exclusivo para administradores</p>
-    <button class="gate-btn" onclick="adminLogin()">Iniciar sesión con Google</button>
+    <input id="gate-email" type="email" placeholder="Email" value="fabriziocorbeta@gmail.com"
+      style="width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+      border-radius:10px;color:#f5f5f5;font-size:.88rem;margin-bottom:10px;box-sizing:border-box;outline:none"/>
+    <input id="gate-pass" type="password" placeholder="Contraseña"
+      style="width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+      border-radius:10px;color:#f5f5f5;font-size:.88rem;margin-bottom:18px;box-sizing:border-box;outline:none"
+      onkeydown="if(event.key==='Enter')adminLogin()"/>
+    <button class="gate-btn" onclick="adminLogin()">Ingresar al Panel</button>
     <div id="gate-err"></div>
   </div>
 </div>
@@ -206,12 +213,35 @@ function initSB() {
 }
 
 async function adminLogin() {
-  if (!initSB()) { showErr('Error: configuración no cargada'); return; }
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href }
-  });
-  if (error) showErr(error.message);
+  if (!initSB()) { showErr('Error: configuración no cargada. Recargá la página.'); return; }
+
+  const email = document.getElementById('gate-email').value.trim();
+  const pass  = document.getElementById('gate-pass').value;
+
+  if (!email || !pass) { showErr('Completá email y contraseña'); return; }
+
+  // Primera capa: verificar email antes de llamar a Supabase
+  if (email !== ADMIN_EMAIL) {
+    showErr('⚠ Acceso denegado. Solo el administrador puede ingresar.');
+    return;
+  }
+
+  showErr('Verificando...');
+  const btn = document.querySelector('.gate-btn');
+  btn.disabled = true;
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+  if (error) {
+    showErr(error.message === 'Invalid login credentials'
+      ? '⚠ Contraseña incorrecta'
+      : error.message);
+    btn.disabled = false;
+    return;
+  }
+
+  currentSession = data.session;
+  // El resto del flujo lo maneja el listener onAuthStateChange
 }
 
 async function adminLogout() {
@@ -226,22 +256,46 @@ function showErr(msg) {
 // ── Verificar sesión al cargar ─────────────────────────────────────────
 window.addEventListener('load', async () => {
   // Esperar a que /api/config cargue window.__ENV__
-  await new Promise(r => setTimeout(r, 300));
-  if (!initSB()) { showErr('Error cargando configuración'); return; }
+  await new Promise(r => setTimeout(r, 400));
+  if (!initSB()) { showErr('Error cargando configuración. Recargá la página.'); return; }
 
+  // Escuchar cambios de auth (login, logout, token refresh)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentSession = session;
+
+      if (session.user.email !== ADMIN_EMAIL) {
+        showErr('⚠ Acceso denegado. Solo el administrador puede ingresar.');
+        await sb.auth.signOut();
+        document.querySelector('.gate-btn').disabled = false;
+        return;
+      }
+
+      document.getElementById('gate').style.display  = 'none';
+      document.getElementById('panel').style.display = 'block';
+      document.getElementById('admin-email-label').textContent = session.user.email + ' · ADMIN';
+      await loadAdminData();
+    }
+
+    if (event === 'SIGNED_OUT') {
+      document.getElementById('gate').style.display  = 'flex';
+      document.getElementById('panel').style.display = 'none';
+      document.getElementById('gate-pass').value     = '';
+      showErr('');
+    }
+  });
+
+  // Verificar si ya hay sesión activa (vuelve a la página sin loguear de nuevo)
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) return; // Mostrar gate
+  if (!session) return;
 
   currentSession = session;
-
-  // Verificar que el email es el admin autorizado (primera capa)
   if (session.user.email !== ADMIN_EMAIL) {
-    showErr('⚠ Acceso denegado. Esta área es exclusiva del administrador.');
+    showErr('⚠ Acceso denegado.');
     await sb.auth.signOut();
     return;
   }
 
-  // Mostrar panel y cargar datos
   document.getElementById('gate').style.display  = 'none';
   document.getElementById('panel').style.display = 'block';
   document.getElementById('admin-email-label').textContent = session.user.email + ' · ADMIN';
