@@ -84,7 +84,29 @@ export default async function handler(req, res) {
     });
   }
 
-  // ── 5. Actualizar plan en profiles ────────────────────────────────────
+  // ── 5. Obtener usuario actual para verificar existencia ──────────────
+  let targetUser;
+  try {
+    const getUserRes = await fetch(
+      `${SB_URL}/rest/v1/profiles?id=eq.${userId}&select=id,email,plan`,
+      {
+        headers: { 'apikey': SB_SERVICE_KEY, 'Authorization': `Bearer ${SB_SERVICE_KEY}` }
+      }
+    );
+    const existingUsers = await getUserRes.json().catch(() => []);
+    targetUser = Array.isArray(existingUsers) ? existingUsers[0] : null;
+
+    if (!targetUser) {
+      console.error(`[UpdatePlan] Usuario ${userId} no encontrado en profiles`);
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    console.log(`[UpdatePlan] Usuario encontrado: ${targetUser.email}, plan actual: ${targetUser.plan}`);
+  } catch (e) {
+    console.error('[UpdatePlan] Error al obtener usuario:', e.message);
+    return res.status(500).json({ error: 'Error al verificar usuario' });
+  }
+
+  // ── 6. Actualizar plan en profiles ────────────────────────────────────
   try {
     const updateRes = await fetch(
       `${SB_URL}/rest/v1/profiles?id=eq.${userId}`,
@@ -102,14 +124,19 @@ export default async function handler(req, res) {
 
     if (!updateRes.ok) {
       const err = await updateRes.json().catch(() => ({}));
-      console.error('[UpdatePlan] Error Supabase al actualizar:', JSON.stringify(err));
-      return res.status(500).json({ error: 'Error al actualizar el plan en base de datos', detail: err });
+      const errMsg = typeof err === 'string' ? err : JSON.stringify(err);
+      console.error(`[UpdatePlan] HTTP ${updateRes.status}: ${errMsg}`);
+      return res.status(updateRes.status).json({
+        error: 'Error al actualizar el plan en base de datos',
+        detail: errMsg,
+        hint: 'Verifica que: 1) Exista la columna "plan", 2) Las políticas RLS permitan el UPDATE, 3) El token de servicio tenga permisos'
+      });
     }
 
     const updated = await updateRes.json().catch(() => []);
     const user    = Array.isArray(updated) ? updated[0] : updated;
 
-    console.log(`[UpdatePlan] Plan de ${user?.email || userId} actualizado a '${plan}' por ${caller.email}`);
+    console.log(`[UpdatePlan] ✓ Plan de ${user?.email || userId} actualizado a '${plan}' por ${caller.email}`);
 
     return res.status(200).json({
       ok:   true,
@@ -118,6 +145,6 @@ export default async function handler(req, res) {
 
   } catch (e) {
     console.error('[UpdatePlan] Exception al actualizar plan:', e.message);
-    return res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ error: 'Error interno del servidor', detail: e.message });
   }
 }

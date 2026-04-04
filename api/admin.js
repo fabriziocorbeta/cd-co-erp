@@ -118,14 +118,21 @@ export default async function handler(req, res) {
     console.log(`[Admin] Account: ${acc.name || 'unknown'} - balance: ${balance} ${cur}`);
   });
 
-  // Inventario total — soportar múltiples nombres de columnas
+  // Inventario total — sumar sell_price × stock para valor total
   const inventario = products.reduce((acc, p) => {
-    const stock = p.stock || p.cantidad || 0;
-    const price = parseFloat(p.sell_price || p.precio_venta || p.price || 0) || 0;
-    acc.totalUnidades  += stock;
-    acc.valorTotal     += stock * price;
-    acc.totalProductos += 1;
-    console.log(`[Admin] Prod: ${p.name || 'unknown'} - stock: ${stock}, price: ${price}`);
+    // Convertir a número, manejar strings y nulls
+    const stock = parseInt(p.stock) || parseInt(p.cantidad) || 0;
+    const price = parseFloat(p.sell_price) || parseFloat(p.precio_venta) || parseFloat(p.price) || 0;
+
+    // Solo contar productos válidos
+    if (stock >= 0 && price >= 0) {
+      acc.totalUnidades  += stock;
+      acc.valorTotal     += (stock * price);
+      acc.totalProductos += 1;
+      console.log(`[Admin] Prod: ${p.name || 'unknown'} - stock: ${stock}, sell_price: ${price}, subtotal: ${stock * price}`);
+    } else {
+      console.warn(`[Admin] Prod inválido ${p.name}: stock=${stock}, price=${price}`);
+    }
     return acc;
   }, { totalUnidades: 0, valorTotal: 0, totalProductos: 0 });
 

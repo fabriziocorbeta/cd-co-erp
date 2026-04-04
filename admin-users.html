@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin · CD & Co</title>
+  <script src="js/env-loader.js"></script>
+  <style>
+    :root {
+      --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --bg4:#222; --bg5:rgba(255,255,255,.06);
+      --g:#c9960c; --g2:#d4a017; --cr:#f0ead6; --mu:#8a8278; --m3:#6a6460;
+      --pos:#4caf50; --neg:#e57373; --fm:'DM Mono',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--cr);font-family:'Outfit',sans-serif;min-height:100vh;padding:32px}
+    #guard{display:flex;align-items:center;justify-content:center;min-height:80vh;flex-direction:column;gap:16px}
+    #app{display:none}
+    h1{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--g2);letter-spacing:.04em}
+    .subtitle{font-size:.75rem;color:var(--mu);text-transform:uppercase;letter-spacing:.1em;margin-bottom:32px}
+    .header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;border-bottom:1px solid var(--bg5);padding-bottom:16px}
+    .badge{font-size:.62rem;background:rgba(201,150,12,.15);color:var(--g2);padding:3px 10px;border-radius:20px;border:1px solid rgba(201,150,12,.25)}
+    table{width:100%;border-collapse:collapse;font-size:.82rem}
+    th{text-align:left;padding:10px 14px;color:var(--mu);font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--bg5);font-weight:400}
+    td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+    tr:hover td{background:var(--bg2)}
+    .plan-free{font-size:.68rem;background:rgba(138,130,120,.12);color:var(--mu);padding:3px 10px;border-radius:20px}
+    .plan-pro{font-size:.68rem;background:rgba(201,150,12,.15);color:var(--g2);padding:3px 10px;border-radius:20px;border:1px solid rgba(201,150,12,.2)}
+    .btn-pro{background:linear-gradient(135deg,#c9960c,#a37a0a);color:#000;border:none;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;letter-spacing:.03em;transition:.2s}
+    .btn-pro:hover{opacity:.85}
+    .btn-pro:disabled{opacity:.4;cursor:not-allowed}
+    .btn-downgrade{background:transparent;color:var(--mu);border:1px solid var(--bg5);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.68rem;transition:.2s}
+    .btn-downgrade:hover{border-color:var(--neg);color:var(--neg)}
+    .btn-back{background:transparent;border:1px solid var(--bg5);color:var(--mu);padding:6px 16px;border-radius:6px;cursor:pointer;font-size:.75rem;text-decoration:none;display:inline-block;margin-bottom:24px;transition:.2s}
+    .btn-back:hover{border-color:var(--g);color:var(--g)}
+    .empty{text-align:center;padding:40px;color:var(--mu)}
+    .toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;border:1px solid var(--g);color:var(--g2);padding:10px 20px;border-radius:8px;font-size:.8rem;opacity:0;transition:.3s;pointer-events:none}
+    .toast.show{opacity:1}
+    .spinner{width:32px;height:32px;border:2px solid var(--bg5);border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .mono{font-family:var(--fm);font-size:.78rem}
+    .stats-bar{display:flex;gap:24px;margin-bottom:28px}
+    .stat{background:var(--bg2);border:1px solid var(--bg5);border-radius:8px;padding:12px 20px;flex:1}
+    .stat-n{font-family:var(--fm);font-size:1.4rem;color:var(--g2);font-weight:600}
+    .stat-l{font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Outfit:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- Guard: shown until auth verified -->
+<div id="guard">
+  <div class="spinner"></div>
+  <div style="color:var(--mu);font-size:.8rem">Verificando acceso...</div>
+</div>
+
+<!-- Admin App -->
+<div id="app">
+  <a class="btn-back" href="index.html">← Volver al ERP</a>
+  <div class="header">
+    <div>
+      <h1>Panel de Administración</h1>
+      <div class="subtitle">CD & Co · Gestión de Usuarios</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:.7rem;color:var(--mu)" id="admin-email-disp"></div>
+      <div class="badge" style="margin-top:4px">Super Admin</div>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-n" id="stat-total">—</div><div class="stat-l">Usuarios Totales</div></div>
+    <div class="stat"><div class="stat-n" id="stat-pro" style="color:var(--g2)">—</div><div class="stat-l">Plan Pro</div></div>
+    <div class="stat"><div class="stat-n" id="stat-free">—</div><div class="stat-l">Plan Free</div></div>
+  </div>
+
+  <div style="background:var(--bg2);border:1px solid var(--bg5);border-radius:10px;overflow:hidden">
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Nombre</th>
+          <th>Plan</th>
+          <th>Registro</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="users-tbody">
+        <tr><td colspan="5" class="empty">Cargando usuarios...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_EMAIL = 'fabriziocorbeta@gmail.com';
+const ADMIN_EMAILS = ['fabriziocorbeta@gmail.com']; // whitelist extensible
+
+const SB_URL = window.__ENV__?.SUPABASE_URL || '';
+const SB_KEY = window.__ENV__?.SUPABASE_ANON_KEY || '';
+
+let sb = null;
+let currentSession = null;
+
+function toast(msg, err = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = err ? '#e57373' : 'var(--g)';
+  el.style.color = err ? '#e57373' : 'var(--g2)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function fmtDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('es-PY', { year:'numeric', month:'short', day:'numeric' });
+}
+
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty"><div class="spinner" style="margin:0 auto"></div></td></tr>';
+
+  if (!sb) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty" style="color:var(--g2)">Modo local — Supabase no conectado</td></tr>';
+    document.getElementById('stat-total').textContent = '—';
+    document.getElementById('stat-pro').textContent = '—';
+    document.getElementById('stat-free').textContent = '—';
+    return;
+  }
+
+  try {
+    // En localhost sin sesión → query directa a profiles (RLS permite leer con anon key si hay policy)
+    // Con sesión admin → usar RPC protegida
+    let data, error;
+    if (currentSession) {
+      ({ data, error } = await sb.rpc('admin_list_profiles'));
+    } else {
+      ({ data, error } = await sb.from('profiles').select('id, email, full_name, plan_type, created_at').order('created_at', { ascending: false }));
+    }
+    if (error) throw error;
+
+    if (!data || !data.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No hay usuarios registrados aún.</td></tr>';
+      return;
+    }
+
+    // Stats
+    const proCount = data.filter(u => u.plan_type === 'pro').length;
+    document.getElementById('stat-total').textContent = data.length;
+    document.getElementById('stat-pro').textContent = proCount;
+    document.getElementById('stat-free').textContent = data.length - proCount;
+
+    tbody.innerHTML = data.map(u => `
+      <tr>
+        <td class="mono">${u.email || '—'}</td>
+        <td style="color:var(--cr)">${u.full_name || '—'}</td>
+        <td>
+          <span class="plan-${u.plan_type === 'pro' ? 'pro' : 'free'}">
+            ${u.plan_type === 'pro' ? '★ Pro' : 'Free'}
+          </span>
+        </td>
+        <td class="mono" style="color:var(--mu)">${fmtDate(u.created_at)}</td>
+        <td style="display:flex;gap:8px;align-items:center">
+          ${u.plan_type !== 'pro'
+            ? `<button class="btn-pro" onclick="setPlan('${u.id}', 'pro', this)">Hacer Pro</button>`
+            : `<button class="btn-downgrade" onclick="setPlan('${u.id}', 'free', this)">→ Free</button>`
+          }
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty" style="color:#e57373">${err.message || 'Error al cargar usuarios'}</td></tr>`;
+    toast('Error: ' + err.message, true);
+  }
+}
+
+async function setPlan(userId, plan, btn) {
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const { error } = await sb.rpc('admin_set_plan', { target_id: userId, new_plan: plan });
+    if (error) throw error;
+    toast(`Plan actualizado a ${plan === 'pro' ? '★ Pro' : 'Free'}`);
+    await loadUsers(); // re-render con datos frescos
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+    btn.disabled = false;
+    btn.textContent = plan === 'pro' ? 'Hacer Pro' : '→ Free';
+  }
+}
+
+async function init() {
+  const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  // ── LOCALHOST: acceso automático sin sesión ──────────────────────────
+  if (isLocalhost) {
+    if (SB_URL && SB_KEY) {
+      sb = window.supabase.createClient(SB_URL.trim(), SB_KEY.trim());
+      const { data: { session } } = await sb.auth.getSession();
+      currentSession = session || null;
+    }
+    // Entrar siempre en localhost como Invitado Admin
+    document.getElementById('guard').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('admin-email-disp').textContent = ADMIN_EMAIL;
+    await loadUsers();
+    return;
+  }
+
+  // ── PRODUCCIÓN: requiere sesión real ────────────────────────────────
+  if (!SB_URL || !SB_KEY) {
+    document.getElementById('guard').innerHTML =
+      '<div style="color:#e57373;text-align:center">Supabase no configurado.</div>';
+    return;
+  }
+
+  sb = window.supabase.createClient(SB_URL.trim(), SB_KEY.trim());
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session || !ADMIN_EMAILS.includes(session.user.email)) {
+    document.getElementById('guard').innerHTML = `
+      <div style="text-align:center">
+        <div style="color:#e57373;font-size:1.1rem;margin-bottom:8px">Acceso denegado</div>
+        <a href="index.html" style="color:var(--g);font-size:.8rem">← Volver al ERP</a>
+      </div>`;
+    return;
+  }
+
+  currentSession = session;
+  document.getElementById('guard').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('admin-email-disp').textContent = session.user.email;
+  await loadUsers();
+}
+
+init();
+</script>
+</body>
+</html>
