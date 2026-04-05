@@ -473,6 +473,7 @@ async function saveCardPayment() {
         },
         body: JSON.stringify({
           account_id: fromId,
+          card_id: payingCardId,
           amount: amt,
           currency: currency === '$' ? 'USD' : currency === '₲' ? 'PYG' : currency,
           description: `Pago de tarjeta: ${c.name}`,
@@ -491,9 +492,17 @@ async function saveCardPayment() {
       const result = await res.json();
       console.log('[PayDebt Success]', result);
 
-      // Actualizar estado local
+      // Actualizar estado local — cuenta origen
       if (fromAcc) {
         fromAcc.balance = result.account.balanceAfter;
+      }
+
+      // Actualizar used de la tarjeta en estado local
+      if (result.card && result.card.usedAfter !== null) {
+        const cardInState = S.cards.find(x => x.id === payingCardId);
+        if (cardInState) {
+          cardInState.used = result.card.usedAfter;
+        }
       }
 
       // Agregar transacción al estado

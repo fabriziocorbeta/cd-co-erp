@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Body inválido — JSON requerido' });
   }
 
-  const { account_id: accountId, amount, currency, description, date } = body || {};
+  const { account_id: accountId, card_id: cardId, amount, currency, description, date } = body || {};
 
   if (!accountId) return res.status(400).json({ error: 'account_id es requerido' });
   if (!amount || amount <= 0) return res.status(400).json({ error: 'amount debe ser > 0' });
@@ -190,7 +190,52 @@ export default async function handler(req, res) {
     // No es fatal
   }
 
-  // ── 7. Responder con éxito ──────────────────────────────────────────
+  // ── 7. Actualizar 'used' de la tarjeta (si se envió card_id) ─────────
+  let cardUsedAfter = null;
+  if (cardId) {
+    try {
+      const cardRes = await fetch(
+        `${SB_URL}/rest/v1/cards?id=eq.${cardId}&user_id=eq.${user.id}&select=id,used`,
+        { headers: { 'apikey': SB_SERVICE_KEY, 'Authorization': `Bearer ${SB_SERVICE_KEY}` } }
+      );
+      const cards = await cardRes.json();
+      const card = Array.isArray(cards) ? cards[0] : null;
+
+      if (card) {
+        const currentUsed = parseFloat(card.used) || 0;
+        const newUsed = Math.max(0, currentUsed - amount);
+
+        const patchCard = await fetch(
+          `${SB_URL}/rest/v1/cards?id=eq.${cardId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': SB_SERVICE_KEY,
+              'Authorization': `Bearer ${SB_SERVICE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({ used: newUsed })
+          }
+        );
+
+        if (patchCard.ok) {
+          cardUsedAfter = newUsed;
+          console.log(`[PayDebt] ✓ Card used actualizado: ${currentUsed} → ${newUsed}`);
+        } else {
+          const err = await patchCard.json().catch(() => ({}));
+          console.error(`[PayDebt] Error actualizando card used: ${JSON.stringify(err)}`);
+        }
+      } else {
+        console.warn(`[PayDebt] card_id ${cardId} no encontrada — se omite update de tarjeta`);
+      }
+    } catch (e) {
+      console.error('[PayDebt] Exception actualizando card:', e.message);
+      // No es fatal — el pago ya fue procesado
+    }
+  }
+
+  // ── 8. Responder con éxito ──────────────────────────────────────────
   return res.status(200).json({
     ok: true,
     account: {
@@ -201,6 +246,7 @@ export default async function handler(req, res) {
       currency: account.cur,
       amountPaid: amount
     },
+    card: cardId ? { id: cardId, usedAfter: cardUsedAfter } : null,
     transaction: txId,
     message: `Pago de ₲${amount} registrado exitosamente desde "${account.name}"`
   });
