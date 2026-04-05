@@ -52,13 +52,24 @@ export default async function handler(req, res) {
 
   if (!accountId) return res.status(400).json({ error: 'account_id es requerido' });
   if (!amount || amount <= 0) return res.status(400).json({ error: 'amount debe ser > 0' });
-  if (!currency || !['USD', 'PYG', '$', '₲'].includes(currency)) {
-    return res.status(400).json({ error: 'currency inválida (USD/PYG/$/ ₲)' });
+  if (!currency) {
+    return res.status(400).json({ error: 'currency es requerida' });
   }
 
-  const cur = currency === '$' ? 'USD' : currency === '₲' ? 'PYG' : currency;
+  // Normalizar todas las variantes de guaraní al mismo grupo
+  // G, ₲, PYG → familia PYG  |  $, USD → familia USD
+  const normalizeCur = (c) => {
+    if (!c) return c;
+    if (['G', '₲', 'PYG'].includes(c)) return 'PYG_FAMILY';
+    if (['$', 'USD'].includes(c)) return 'USD_FAMILY';
+    return c;
+  };
 
-  console.log(`[PayDebt] Usuario: ${user.email}, accountId: ${accountId}, amount: ${amount} ${cur}`);
+  if (!normalizeCur(currency)) {
+    return res.status(400).json({ error: `currency inválida: ${currency}` });
+  }
+
+  console.log(`[PayDebt] Usuario: ${user.email}, accountId: ${accountId}, amount: ${amount} ${currency}`);
 
   // ── 4. Obtener saldo actual de la cuenta ────────────────────────────
   let account;
@@ -75,21 +86,23 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
 
-    // Verificar moneda
-    if (account.cur !== cur) {
-      console.error(`[PayDebt] Moneda mismatch: account.cur=${account.cur}, requested=${cur}`);
-      return res.status(400).json({ error: `Cuenta en ${account.cur}, se intenta pagar con ${cur}` });
+    // Verificar moneda usando normalización — G, ₲ y PYG son la misma familia
+    const accCurFamily  = normalizeCur(account.cur);
+    const payCurFamily  = normalizeCur(currency);
+    if (accCurFamily !== payCurFamily) {
+      console.error(`[PayDebt] Moneda mismatch: account.cur=${account.cur}, requested=${currency}`);
+      return res.status(400).json({ error: `Cuenta en ${account.cur}, se intenta pagar con ${currency}` });
     }
 
     const currentBalance = parseFloat(account.balance) || 0;
-    console.log(`[PayDebt] Saldo actual: ${currentBalance} ${cur}`);
+    console.log(`[PayDebt] Saldo actual: ${currentBalance} ${account.cur}`);
 
     // Verificar fondos suficientes
     if (currentBalance < amount) {
       console.warn(`[PayDebt] Fondos insuficientes: ${currentBalance} < ${amount}`);
       return res.status(400).json({
         error: 'Fondos insuficientes',
-        detail: `Saldo: ${currentBalance} ${cur}, Intento: ${amount} ${cur}`
+        detail: `Saldo: ${currentBalance} ${account.cur}, Intento: ${amount} ${account.cur}`
       });
     }
   } catch (e) {
@@ -127,7 +140,7 @@ export default async function handler(req, res) {
 
     const updated = await updateRes.json();
     const updatedAcc = Array.isArray(updated) ? updated[0] : updated;
-    console.log(`[PayDebt] ✓ Saldo actualizado: ${account.balance} → ${newBalance} ${cur}`);
+    console.log(`[PayDebt] ✓ Saldo actualizado: ${account.balance} → ${newBalance} ${account.cur}`);
   } catch (e) {
     console.error('[PayDebt] Exception actualizando balance:', e.message);
     return res.status(500).json({ error: 'Error interno al actualizar saldo', detail: e.message });
@@ -141,7 +154,7 @@ export default async function handler(req, res) {
     type:       'expense',
     desc:       description || 'Pago de tarjeta',  // ✅ columna real: desc
     amount:     -amount,
-    cur:        cur,                                // ✅ columna real: cur
+    cur:        account.cur,                        // ✅ usar moneda real de la cuenta (ej: 'G')
     cat:        'Pago de Tarjeta',                  // ✅ columna real: cat
     date:       date || new Date().toISOString().split('T')[0],
     account_id: accountId                           // ✅ columna real: account_id
@@ -185,7 +198,7 @@ export default async function handler(req, res) {
       name: account.name,
       balanceBefore: parseFloat(account.balance),
       balanceAfter: newBalance,
-      currency: cur,
+      currency: account.cur,
       amountPaid: amount
     },
     transaction: txId,
