@@ -251,12 +251,27 @@ function openSubModal(id) {
   g('sub-cur').value     = s ? (s.cur || s.currency || '$') : '$';
   g('sub-freq').value    = s ? (s.frequency || 'monthly') : 'monthly';
   g('sub-next').value    = s ? (s.nextDate || '') : '';
-  // Poblar selector de cuenta/tarjeta
+  // Poblar selector de cuenta/tarjeta con optgroup y íconos
   const selAcc = g('sub-account');
   if (selAcc) {
-    const accs = (S.accounts || []).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-    const cards = (S.cards || []).map(c => `<option value="${c.id}">💳 ${c.name}</option>`).join('');
-    selAcc.innerHTML = `<option value="">Sin vincular</option>${accs}${cards}`;
+    let html = '<option value="">Sin vincular</option>';
+    const accs  = S.accounts || [];
+    const cards = S.cards    || [];
+    if (accs.length) {
+      html += '<optgroup label="─── Cuentas bancarias ───">';
+      html += accs.map(a => {
+        const icon = typeof acctTypeIcon === 'function' ? acctTypeIcon(a.type) : '🏦';
+        const cur  = a.cur || a.currency || '';
+        return `<option value="${a.id}">${icon} ${a.name}${cur ? ' (' + cur + ')' : ''}</option>`;
+      }).join('');
+      html += '</optgroup>';
+    }
+    if (cards.length) {
+      html += '<optgroup label="─── Tarjetas ───">';
+      html += cards.map(c => `<option value="${c.id}">💳 ${c.name}</option>`).join('');
+      html += '</optgroup>';
+    }
+    selAcc.innerHTML = html;
     selAcc.value = s ? (s.account_id || '') : '';
   }
   g('sub-modal-acts').innerHTML = id

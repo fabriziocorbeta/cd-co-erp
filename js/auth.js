@@ -168,6 +168,7 @@ async function loadAllUserData() {
       recomputeBalances();
       swrSave();
       if (typeof renderAll === 'function') renderAll();
+      if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
     });
     return; // UI ya renderizada con datos del caché
   }
@@ -187,6 +188,7 @@ async function loadAllUserData() {
     recomputeBalances();
     swrSave(); // guardar caché completo para próximas visitas
     if (typeof renderAll === 'function') renderAll();
+    if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
   });
 }
 // ── AUDIT-FIRST: balance = SUM(amount) — gastos son negativos en DB ─────────
