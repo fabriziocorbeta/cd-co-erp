@@ -464,7 +464,7 @@ async function saveCardPayment() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          accountId: fromId,
+          account_id: fromId,
           amount: amt,
           currency: currency === '$' ? 'USD' : currency === '₲' ? 'PYG' : currency,
           description: `Pago de tarjeta: ${c.name}`,
@@ -497,7 +497,7 @@ async function saveCardPayment() {
         currency: currency,
         category: 'Pago de Tarjeta',
         date: date,
-        accountId: fromId
+        account_id: fromId
       };
       S.txs.unshift(newTx);
       renderAll();
@@ -511,7 +511,7 @@ async function saveCardPayment() {
   } else {
     // Offline: actualizar local
     if (fromAcc) fromAcc.balance -= amt;
-    const tx = { id: 'tx-offline-' + uid(), type: 'expense', description: `Pago de tarjeta: ${c.name}`, amount: -amt, cur: currency, cat: 'Pago de Tarjeta', date, accountId: fromId };
+    const tx = { id: 'tx-offline-' + uid(), type: 'expense', description: `Pago de tarjeta: ${c.name}`, amount: -amt, cur: currency, cat: 'Pago de Tarjeta', date, account_id: fromId };
     S.txs.push(tx);
     lsave();
     renderAll();
@@ -640,7 +640,7 @@ async function saveDebtPay() {
   if (registerTx) {
     const cat = g('debtp-cat')?.value || 'Deudas';
     const tx = { id: uid(), type: 'expense', desc: 'Pago Deuda: ' + d.creditor, amount: amt, cur: d.cur || '$', cat, date };
-    if (accId) tx.accountId = accId;
+    if (accId) tx.account_id = accId;
     if (SB_ON) {
       const saved = await sbUpsert('txs', tx);
       if (saved) S.txs.unshift(saved);

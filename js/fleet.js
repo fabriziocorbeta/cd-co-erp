@@ -253,7 +253,7 @@ function saveFuelLog() {
     _sale_id: vId // Leveraging _sale_id to link the expense to the specific vehicle natively!
   };
   
-  if (accId) tx.accountId = accId;
+  if (accId) tx.account_id = accId;
 
   if (!S.txs) S.txs = [];
   S.txs.push(tx);

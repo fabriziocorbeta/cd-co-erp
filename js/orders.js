@@ -151,7 +151,7 @@ function syncOrderPayment(orderId) {
     const txData = {
       type: 'expense',
       amount: total,
-      accountId: o.payAccountId,
+      account_id: o.payAccountId,
       cat: 'Stock / Compras',
       desc: 'Pago de pedido a ' + (sup?.name || 'proveedor'),
       date: o.date || today(),

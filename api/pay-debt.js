@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Body inválido — JSON requerido' });
   }
 
-  const { accountId, amount, currency, description, date } = body || {};
+  const { account_id: accountId, amount, currency, description, date } = body || {};
 
   if (!accountId) return res.status(400).json({ error: 'account_id es requerido' });
   if (!amount || amount <= 0) return res.status(400).json({ error: 'amount debe ser > 0' });

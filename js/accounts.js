@@ -262,7 +262,7 @@ async function saveAccount() {
           desc: '⚖ Ajuste de saldo — ' + name,
           amount: Math.abs(diff),
           cur, cat: diff > 0 ? 'Otros Ingresos' : 'Otros Gastos',
-          date: today(), accountId: editAccountId, isBalanceAdj: true
+          date: today(), account_id: editAccountId, isBalanceAdj: true
         };
         if (SB_ON) {
           const saved = await sbUpsert('txs', adjTx);
@@ -288,7 +288,7 @@ async function delAccount(id) {
   if (!confirm('¿Eliminar esta cuenta? Los movimientos vinculados quedarán sin cuenta.')) return;
   if (SB_ON) { const ok = await sbDelete('accounts', id); if (!ok) return; }
   S.accounts = (S.accounts || []).filter(a => a.id !== id);
-  S.txs.forEach(tx => { if (tx.accountId === id) delete tx.accountId; });
+  S.txs.forEach(tx => { if (tx.account_id === id) delete tx.account_id; });
   if (!SB_ON) lsave();
   renderAll(); toast('Cuenta eliminada');
   populateTxAccountSelect();
@@ -340,8 +340,8 @@ async function saveTransfer() {
   const toAcc   = (S.accounts || []).find(a => a.id === toId) || (S.cards||[]).find(c=>c.id===toId);
   // Create two mirrored transactions
   const baseId = uid();
-  const txOut = { id: 'tout-' + baseId, type: 'transfer-out', desc: `⇄ Transferencia a ${toAcc ? toAcc.name : 'cuenta'}: ${note}`, amount: amt, cur, cat: 'Transferencia', date, accountId: fromId, transferPairId: baseId };
-  const txIn  = { id: 'tin-'  + baseId, type: 'transfer-in',  desc: `⇄ Transferencia de ${fromAcc ? fromAcc.name : 'cuenta'}: ${note}`, amount: amt, cur, cat: 'Transferencia', date, accountId: toId,   transferPairId: baseId };
+  const txOut = { id: 'tout-' + baseId, type: 'transfer-out', desc: `⇄ Transferencia a ${toAcc ? toAcc.name : 'cuenta'}: ${note}`, amount: amt, cur, cat: 'Transferencia', date, account_id: fromId, transferPairId: baseId };
+  const txIn  = { id: 'tin-'  + baseId, type: 'transfer-in',  desc: `⇄ Transferencia de ${fromAcc ? fromAcc.name : 'cuenta'}: ${note}`, amount: amt, cur, cat: 'Transferencia', date, account_id: toId,   transferPairId: baseId };
   if (SB_ON) {
     const [s1, s2] = await Promise.all([sbUpsert('txs', txOut), sbUpsert('txs', txIn)]);
     if (!s1 || !s2) return;
