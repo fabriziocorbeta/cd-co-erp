@@ -196,6 +196,7 @@ async function sbUpsert(table, row) {
   const userId = S.user?.id;
   if (!userId) { toast('Sesión expirada'); return null; }
   const payload = { ...row, user_id: userId };
+  console.log(`[sbUpsert] ENVIANDO DATA a '${table}':`, JSON.stringify(payload));
   const { data, error } = await sb.from(table).upsert(payload, { onConflict: 'id' }).select().single();
   if (error) { console.error(`❌ sbUpsert(${table}):`, error.message); toast('Error al guardar'); return null; }
   return data;
@@ -226,6 +227,7 @@ async function sbSaveTransaction(tx) {
     icon:       tx.icon || null,
     account_id: tx.account_id || null
   };
+  console.log('[sbSaveTransaction] ENVIANDO DATA:', JSON.stringify(payload));
   const { data, error } = await sb
     .from('txs')
     .upsert(payload, { onConflict: 'id' })
@@ -659,3 +661,5 @@ async function sbDeleteFuelLog(fuelLogId) {
   }
 }
 
+
+// v1.0.99-FINAL-FIX — account_id correcto, tabla txs confirmada — 2026-04-05

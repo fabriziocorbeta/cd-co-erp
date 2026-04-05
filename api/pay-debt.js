@@ -133,24 +133,25 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Error interno al actualizar saldo', detail: e.message });
   }
 
-  // ── 6. Registrar transacción en tabla transactions ────────────────
+  // ── 6. Registrar transacción en tabla txs (columnas reales: desc, cur, cat, account_id) ──
   const txId = 'tx-' + Math.random().toString(36).substr(2, 9);
   const txData = {
-    id: txId,
-    user_id: user.id,
-    type: 'expense',
-    description: description || `Pago de deuda`,
-    amount: -amount,  // Negativo = gasto
-    currency: cur,
-    category: 'Pago de Tarjeta',
-    date: date || new Date().toISOString().split('T')[0],
-    account_id: accountId,  // ✅ Nombre correcto de columna: account_id (no accountId)
-    created_at: new Date().toISOString()
+    id:         txId,
+    user_id:    user.id,
+    type:       'expense',
+    desc:       description || 'Pago de tarjeta',  // ✅ columna real: desc
+    amount:     -amount,
+    cur:        cur,                                // ✅ columna real: cur
+    cat:        'Pago de Tarjeta',                  // ✅ columna real: cat
+    date:       date || new Date().toISOString().split('T')[0],
+    account_id: accountId                           // ✅ columna real: account_id
   };
+
+  console.log('[PayDebt] ENVIANDO TX DATA:', JSON.stringify(txData));
 
   try {
     const txRes = await fetch(
-      `${SB_URL}/rest/v1/transactions`,
+      `${SB_URL}/rest/v1/txs`,                      // ✅ tabla real: txs
       {
         method: 'POST',
         headers: {
