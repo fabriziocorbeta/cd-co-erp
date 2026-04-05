@@ -452,19 +452,72 @@ async function saveCardPayment() {
 
   const c = S.cards.find(x => x.id === payingCardId);
   const fromAcc = S.accounts.find(a => a.id === fromId);
-  const baseId = uid();
-  const txOut = { id:'tout-'+baseId, type:'transfer-out', desc:`Pago de tarjeta: ${c.name}`, amount:amt, cur:c.cur||'$', cat:'Pago de Tarjeta', date, accountId:fromId, transferPairId:baseId };
-  const txIn  = { id:'tin-' +baseId, type:'transfer-in',  desc:`Pago recibido desde: ${fromAcc?fromAcc.name:'Cuenta'}`, amount:amt, cur:c.cur||'$', cat:'Pago de Tarjeta', date, accountId:payingCardId, transferPairId:baseId };
+  const currency = c.cur || '$';
 
   if(SB_ON){
-    const [s1,s2]=await Promise.all([sbUpsert('txs',txOut),sbUpsert('txs',txIn)]);
-    if(!s1||!s2)return;
-    S.txs.unshift(s2); S.txs.unshift(s1);
+    // Llamar al endpoint /api/pay-debt que actualiza balance + registra transacción
+    try {
+      const res = await fetch('/api/pay-debt', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${S.user.session?.access_token || ''}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          accountId: fromId,
+          amount: amt,
+          currency: currency === '$' ? 'USD' : currency === '₲' ? 'PYG' : currency,
+          description: `Pago de tarjeta: ${c.name}`,
+          date: date
+        })
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error('[PayDebt Error]', error);
+        toast(`❌ Error: ${error.error || 'No se pudo procesar el pago'}`);
+        if (error.detail) console.error('Detalle:', error.detail);
+        return;
+      }
+
+      const result = await res.json();
+      console.log('[PayDebt Success]', result);
+
+      // Actualizar estado local
+      if (fromAcc) {
+        fromAcc.balance = result.account.balanceAfter;
+      }
+
+      // Agregar transacción al estado
+      const newTx = {
+        id: result.transaction,
+        type: 'expense',
+        description: `Pago de tarjeta: ${c.name}`,
+        amount: -amt,
+        currency: currency,
+        category: 'Pago de Tarjeta',
+        date: date,
+        accountId: fromId
+      };
+      S.txs.unshift(newTx);
+      renderAll();
+      cm('pay-card-modal');
+      toast(`✅ Pago de ₲${amt.toLocaleString('es-PY')} registrado. Saldo: ₲${result.account.balanceAfter.toLocaleString('es-PY')}`);
+
+    } catch (e) {
+      console.error('[PayDebt Exception]', e.message);
+      toast(`❌ Error de red: ${e.message}`);
+    }
   } else {
-    S.txs.push(txOut); S.txs.push(txIn); lsave();
+    // Offline: actualizar local
+    if (fromAcc) fromAcc.balance -= amt;
+    const tx = { id: 'tx-offline-' + uid(), type: 'expense', description: `Pago de tarjeta: ${c.name}`, amount: -amt, cur: currency, cat: 'Pago de Tarjeta', date, accountId: fromId };
+    S.txs.push(tx);
+    lsave();
+    renderAll();
+    cm('pay-card-modal');
+    toast('✅ Pago de tarjeta registrado (offline)');
   }
-  renderAll(); cm('pay-card-modal');
-  toast('Pago de tarjeta registrado');
 }
 
 // ══════════════════════════════════════════
