@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
   const { accountId, amount, currency, description, date } = body || {};
 
-  if (!accountId) return res.status(400).json({ error: 'accountId es requerido' });
+  if (!accountId) return res.status(400).json({ error: 'account_id es requerido' });
   if (!amount || amount <= 0) return res.status(400).json({ error: 'amount debe ser > 0' });
   if (!currency || !['USD', 'PYG', '$', '₲'].includes(currency)) {
     return res.status(400).json({ error: 'currency inválida (USD/PYG/$/ ₲)' });
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
     currency: cur,
     category: 'Pago de Tarjeta',
     date: date || new Date().toISOString().split('T')[0],
-    account_id: accountId,
+    account_id: accountId,  // ✅ Nombre correcto de columna: account_id (no accountId)
     created_at: new Date().toISOString()
   };
 
