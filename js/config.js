@@ -208,26 +208,26 @@ async function sbDelete(table, id) {
   return true;
 }
 
-// Guarda/actualiza una transacción en Supabase usando los nombres de columna reales
-// El modelo local usa {desc, cur, cat} pero la tabla DB usa {description, currency, category}
+// Guarda/actualiza una transacción en la tabla 'txs'
+// Las columnas reales son: desc, cur, cat, account_id (coinciden con el modelo local)
 async function sbSaveTransaction(tx) {
   if (!SB_ON || !sb) return tx; // offline: retornar tal cual
   const userId = S.user?.id;
   if (!userId) { toast('Sesión expirada'); return null; }
   const payload = {
-    id:          tx.id,
-    user_id:     userId,
-    type:        tx.type,
-    description: tx.desc,
-    amount:      tx.amount,
-    currency:    tx.cur || '$',
-    category:    tx.cat || '',
-    date:        tx.date,
-    icon:        tx.icon || null,
-    account_id:  tx.account_id || null
+    id:         tx.id,
+    user_id:    userId,
+    type:       tx.type,
+    desc:       tx.desc,
+    amount:     tx.amount,
+    cur:        tx.cur || '$',
+    cat:        tx.cat || '',
+    date:       tx.date,
+    icon:       tx.icon || null,
+    account_id: tx.account_id || null
   };
   const { data, error } = await sb
-    .from('transactions')
+    .from('txs')
     .upsert(payload, { onConflict: 'id' })
     .select()
     .single();
@@ -236,18 +236,7 @@ async function sbSaveTransaction(tx) {
     toast('Error al guardar');
     return null;
   }
-  // Mapear de vuelta al formato local
-  return {
-    id:         data.id,
-    type:       data.type,
-    desc:       data.description,
-    amount:     data.amount,
-    cur:        data.currency || '$',
-    cat:        data.category,
-    date:       data.date,
-    icon:       data.icon,
-    account_id: data.account_id
-  };
+  return data;
 }
 // ────────────────────────────────────────────────────────────────
 
