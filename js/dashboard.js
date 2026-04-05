@@ -334,8 +334,9 @@ function renderEtherealCharts() {
     }
     
     if(dRevChart) dRevChart.destroy();
-    const ctxR = document.getElementById('d-revenue-chart').getContext('2d');
-    dRevChart = new Chart(ctxR, {
+    const ctxR = document.getElementById('d-revenue-chart');
+    const orphanR = Chart.getChart(ctxR); if(orphanR) orphanR.destroy();
+    dRevChart = new Chart(ctxR.getContext('2d'), {
       type: 'bar',
       data: { labels: lbs, datasets: [
         { label: 'Ingresos', data: incs, backgroundColor: colorG2, borderRadius: 4 },
@@ -372,13 +373,14 @@ function renderEtherealCharts() {
     }
 
     if(dExpChart) dExpChart.destroy();
-    const ctxE = document.getElementById('d-expense-donut').getContext('2d');
+    const ctxE = document.getElementById('d-expense-donut');
+    const orphanE = Chart.getChart(ctxE); if(orphanE) orphanE.destroy();
 
     // Dynamic palette that scales with category count
     const baseHues = [colorG2, '#a37a0a', '#7d5d08', '#574005', '#302402', colorBG5, '#8b6914', '#5c4a0e', '#3d3109', '#1f1905'];
     const donutPalette = sorted.map((_, i) => baseHues[i % baseHues.length]);
 
-    dExpChart = new Chart(ctxE, {
+    dExpChart = new Chart(ctxE.getContext('2d'), {
       type: 'doughnut',
       data: { labels: sorted.map(c=>c[0]), datasets: [{ data: sorted.map(c=>c[1]), backgroundColor: donutPalette, borderWidth:0 }] },
       options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }

@@ -221,6 +221,9 @@ function renderCardsDashboard() {
               chartData = [1];
            }
            
+           // Destruir instancia huérfana si el canvas ya estaba en uso
+           const existing = window.Chart && Chart.getChart(ctx);
+           if (existing) existing.destroy();
            const ch = new Chart(ctx.getContext('2d'), {
              type: 'doughnut',
              data: {
@@ -457,10 +460,15 @@ async function saveCardPayment() {
   if(SB_ON){
     // Llamar al endpoint /api/pay-debt que actualiza balance + registra transacción
     try {
+      // Obtener token fresco de Supabase (S.user no contiene access_token)
+      const { data: { session: activeSession } } = await sb.auth.getSession();
+      const token = activeSession?.access_token || '';
+      if (!token) { toast('❌ Sesión expirada — volvé a iniciar sesión'); return; }
+
       const res = await fetch('/api/pay-debt', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${S.user.session?.access_token || ''}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
