@@ -45,62 +45,120 @@
   --fm:  'DM Mono', 'SF Mono', 'Fira Code', monospace;
   --sh:  0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
 }
+/* ═══════════════ FINTECH LIGHT MODE ═══════════════ */
 body.light-mode {
-  --bg: #FFFFFF !important;
-  --bg2: #F1F5F9 !important;
-  --bg3: #E2E8F0 !important;
-  --bg4: #CBD5E1 !important;
-  --bg5: #94A3B8 !important;
-  --cr: #0F172A !important;   /* texto principal oscuro */
-  --so: #1E293B !important;
-  --mu: #475569 !important;   /* texto muted — gris medio, legible */
-  --m2: #334155 !important;
-  --m3: #1E293B !important;
-  --rs: 12px !important;      /* restaurar border-radius */
-  --lm-bc: #CBD5E1;           /* border-color para light mode */
-  --g1: #856404 !important;   /* dorado oscuro para fondos claros */
-  --g2: #b45309 !important;   /* acento dorado oscuro */
-  --nb: rgba(220,38,38,.08) !important;
-  --pb: rgba(22,163,74,.08) !important;
+  /* Superficies */
+  --bg:  #eef1f6  !important;   /* canvas — gris perla */
+  --bg2: #ffffff  !important;   /* tarjetas blancas */
+  --bg3: #f4f7fc  !important;   /* fondos secundarios */
+  --bg4: #e4e9f2  !important;   /* hover, muted fills */
+  --bg5: rgba(15,27,62,0.07) !important; /* divisores */
+
+  /* Texto */
+  --cr:  #0d1b3e  !important;   /* navy — texto principal */
+  --so:  #1e3059  !important;
+  --mu:  #6b7a99  !important;   /* muted labels */
+  --m2:  #8896b3  !important;
+  --m3:  #a8b5cc  !important;
+
+  /* Acento dorado CD & Co */
+  --g:   #c49a3a  !important;
+  --g2:  #d4aa52  !important;
+  --g3:  #e8c87a  !important;
+  --gd:  rgba(196,154,58,0.09) !important;
+  --gb:  rgba(196,154,58,0.20) !important;
+
+  /* Semántica financiera — vívidos */
+  --pos: #059669  !important;   /* emerald-600 */
+  --pb:  rgba(5,150,105,0.10) !important;
+  --neg: #dc2626  !important;   /* red-600 */
+  --nb:  rgba(220,38,38,0.10)  !important;
+
+  /* Design tokens */
+  --r:   14px !important;
+  --rs:  10px !important;
+  --sh:  0 2px 16px rgba(15,27,62,0.07), 0 1px 4px rgba(15,27,62,0.04) !important;
   color-scheme: light;
 }
 
-body.light-mode * {
-  border-color: #CBD5E1 !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
-}
+/* Reset del box-shadow global ultra-restrictivo anterior */
+body.light-mode * { border-color: unset; box-shadow: unset; }
 
-/* Tarjetas y paneles — bordes y fondos definidos en modo claro */
+/* Cards y paneles — elevación suave */
 body.light-mode .panel,
-body.light-mode .pp,
 body.light-mode .stat,
-body.light-mode .card {
-  background: var(--bg2) !important;
-  border: 1px solid #CBD5E1 !important;
+body.light-mode .glass-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(15,27,62,0.07) !important;
+  box-shadow: 0 2px 16px rgba(15,27,62,0.07), 0 1px 4px rgba(15,27,62,0.03) !important;
+}
+body.light-mode .panel:hover,
+body.light-mode .stat:hover {
+  box-shadow: 0 8px 32px rgba(15,27,62,0.11), 0 2px 8px rgba(15,27,62,0.05) !important;
 }
 
-/* Inputs y selects legibles en modo claro */
+/* Inputs */
 body.light-mode input,
 body.light-mode select,
 body.light-mode textarea {
-  background: #FFFFFF !important;
-  color: #0F172A !important;
-  border: 1px solid #94A3B8 !important;
+  background: #ffffff !important;
+  color: #0d1b3e !important;
+  border: 1px solid rgba(15,27,62,0.14) !important;
+  box-shadow: none !important;
 }
-body.light-mode input::placeholder { color: #94A3B8 !important; }
+body.light-mode input::placeholder { color: #a8b5cc !important; }
+body.light-mode input:focus,
+body.light-mode select:focus { border-color: #4361ee !important; box-shadow: 0 0 0 3px rgba(67,97,238,0.12) !important; }
 
-/* Sidebar y navbar en modo claro */
-body.light-mode .sidebar { background: #F8FAFC !important; }
-body.light-mode .ni { color: #334155 !important; }
-body.light-mode .ni.on, body.light-mode .ni:hover { background: #E2E8F0 !important; color: #0F172A !important; }
+/* Sidebar fintech */
+body.light-mode .sb {
+  background: #ffffff !important;
+  border-right: 1px solid rgba(15,27,62,0.07) !important;
+  box-shadow: 2px 0 16px rgba(15,27,62,0.05) !important;
+}
+body.light-mode .ni { color: #6b7a99 !important; }
+body.light-mode .ni:hover { background: #f0f4fb !important; color: #0d1b3e !important; box-shadow: none !important; }
+body.light-mode .ni.on { background: rgba(67,97,238,0.08) !important; color: #4361ee !important; box-shadow: none !important; }
+body.light-mode .ni.on .ic-sq { background: #4361ee !important; }
+body.light-mode .ni.on .ic { color: #fff !important; }
 
-/* Tablas legibles */
-body.light-mode .tbl th { background: #E2E8F0 !important; color: #334155 !important; }
-body.light-mode .tbl tr:hover td { background: #F1F5F9 !important; }
+/* Tablas */
+body.light-mode .tbl th { background: rgba(15,27,62,0.03) !important; color: #8896b3 !important; border-bottom: 1px solid rgba(15,27,62,0.08) !important; box-shadow: none !important; }
+body.light-mode .tbl td { border-bottom: 1px solid rgba(15,27,62,0.05) !important; color: #0d1b3e !important; }
+body.light-mode .tbl tr:hover td { background: rgba(67,97,238,0.03) !important; box-shadow: none !important; }
 
-/* Botones en modo claro */
-body.light-mode .btn { background: #E2E8F0 !important; color: #1E293B !important; border-color: #94A3B8 !important; }
-body.light-mode .btn-g { background: #b45309 !important; color: #fff !important; border-color: #b45309 !important; }
+/* Botones */
+body.light-mode .btn { background: #f0f4fb !important; color: #0d1b3e !important; border: 1px solid rgba(15,27,62,0.10) !important; box-shadow: none !important; }
+body.light-mode .btn:hover { background: #e4e9f2 !important; }
+body.light-mode .btn-g { background: #4361ee !important; color: #fff !important; border-color: #4361ee !important; }
+body.light-mode .btn-g:hover { background: #3451d1 !important; }
+body.light-mode .btn-o { background: transparent !important; border-color: rgba(67,97,238,0.3) !important; color: #4361ee !important; }
+body.light-mode .btn-s { background: #f0f4fb !important; color: #6b7a99 !important; border-color: rgba(15,27,62,0.10) !important; }
+body.light-mode .btn-danger { background: rgba(220,38,38,0.07) !important; color: #dc2626 !important; border-color: rgba(220,38,38,0.18) !important; }
+
+/* Modal */
+body.light-mode .overlay { background: rgba(13,27,62,0.55) !important; }
+body.light-mode .modal { background: #ffffff !important; border: 1px solid rgba(15,27,62,0.08) !important; box-shadow: 0 32px 80px rgba(15,27,62,0.18) !important; }
+body.light-mode .mttl { border-bottom-color: rgba(15,27,62,0.07) !important; color: #0d1b3e !important; }
+body.light-mode .mb-g { background: #4361ee !important; color: #fff !important; }
+body.light-mode .mb-gh { background: #f0f4fb !important; color: #6b7a99 !important; border-color: rgba(15,27,62,0.10) !important; }
+body.light-mode .mb-gh:hover { color: #0d1b3e !important; }
+
+/* Pills */
+body.light-mode .pill-pos { background: rgba(5,150,105,0.10) !important; color: #059669 !important; }
+body.light-mode .pill-neg { background: rgba(220,38,38,0.10) !important; color: #dc2626 !important; }
+
+/* Misc */
+body.light-mode .sf-inp { background: #ffffff !important; border-color: rgba(15,27,62,0.12) !important; box-shadow: none !important; }
+body.light-mode .flt { border-color: rgba(15,27,62,0.12) !important; color: #6b7a99 !important; box-shadow: none !important; }
+body.light-mode .flt.on { background: rgba(67,97,238,0.08) !important; color: #4361ee !important; border-color: rgba(67,97,238,0.25) !important; }
+body.light-mode .dtag { border-color: rgba(15,27,62,0.10) !important; color: #8896b3 !important; box-shadow: none !important; }
+body.light-mode .ib { background: #f0f4fb !important; border-color: rgba(15,27,62,0.08) !important; color: #6b7a99 !important; box-shadow: none !important; }
+body.light-mode .ib:hover { border-color: #4361ee !important; color: #4361ee !important; }
+body.light-mode .toast { background: #fff !important; border: 1px solid rgba(15,27,62,0.10) !important; color: #0d1b3e !important; box-shadow: 0 8px 32px rgba(15,27,62,0.14) !important; }
+body.light-mode .fx-w { background: #fff !important; border-color: rgba(15,27,62,0.08) !important; box-shadow: 0 2px 16px rgba(15,27,62,0.07) !important; }
+body.light-mode .fx-side { background: #f4f7fc !important; }
+body.light-mode .fx-brand { color: #0d1b3e !important; }
 
 /* ═══════════════ THEMES ═══════════════ */
 /* Default (Gold) is defined in :root */
@@ -4476,5 +4534,175 @@ body.light-mode .fi, body.light-mode .fs {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* ─────────────────────────────────────
+   FINTECH HERO HEADER — dashboard
+───────────────────────────────────── */
+.ft-hero {
+  padding: 28px 36px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+body.light-mode .ft-hero {
+  padding: 28px 36px 20px;
+  border-bottom: 1px solid rgba(15,27,62,0.06) !important;
+  background: transparent !important;
+}
+
+.ft-hero-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ft-hero-greeting {
+  font-family: var(--fb);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cr);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+body.light-mode .ft-hero-greeting { color: #0d1b3e !important; }
+
+.ft-hero-date {
+  font-family: var(--fb);
+  font-size: .75rem;
+  color: var(--mu);
+  margin-top: 4px;
+  font-weight: 400;
+}
+body.light-mode .ft-hero-date { color: #8896b3 !important; }
+
+.ft-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────
+   FINTECH DASHBOARD CARDS — light mode
+───────────────────────────────────── */
+/* Patrimonio card — principal */
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child {
+  background: linear-gradient(135deg, #0d1b3e 0%, #1a3366 100%) !important;
+  border: none !important;
+  box-shadow: 0 8px 32px rgba(13,27,62,0.25) !important;
+}
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child #d-total-balance {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: none !important;
+}
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child [style*="Patrimonio"] {
+  color: rgba(255,255,255,0.65) !important;
+}
+
+/* Botones dentro de la Patrimonio card */
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child .btn-g {
+  background: rgba(255,255,255,0.18) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
+  backdrop-filter: blur(4px);
+}
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child .btn-g:hover {
+  background: rgba(255,255,255,0.28) !important;
+}
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child .btn-o {
+  background: transparent !important;
+  color: rgba(255,255,255,0.85) !important;
+  border: 1px solid rgba(255,255,255,0.30) !important;
+}
+
+/* KPI cards Ingresos/Gastos */
+body.light-mode .eth-week-metrics .glass-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(15,27,62,0.07) !important;
+  box-shadow: 0 2px 16px rgba(15,27,62,0.07) !important;
+}
+
+/* Revenue Flow chart card */
+body.light-mode #page-dashboard .panel.glass-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(15,27,62,0.07) !important;
+  box-shadow: 0 2px 16px rgba(15,27,62,0.07) !important;
+}
+
+/* FX Widget en light */
+body.light-mode .fx-w {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+body.light-mode .fx-h { border-bottom-color: rgba(15,27,62,0.07) !important; }
+body.light-mode .fx-sv.buy { color: #059669 !important; }
+body.light-mode .fx-sv.sell { color: #dc2626 !important; }
+
+/* ─────────────────────────────────────
+   FINTECH TRANSACTION ROWS — light
+───────────────────────────────────── */
+body.light-mode .ft-tx-row {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15,27,62,0.06);
+  box-shadow: 0 1px 4px rgba(15,27,62,0.04);
+}
+body.light-mode .ft-tx-row:hover { box-shadow: 0 4px 14px rgba(15,27,62,0.08); }
+
+/* ─────────────────────────────────────
+   FINTECH FILTERS / TABS — light
+───────────────────────────────────── */
+body.light-mode .tabs { border-bottom-color: rgba(15,27,62,0.08) !important; }
+body.light-mode .tab { color: #8896b3 !important; border-bottom-color: transparent !important; }
+body.light-mode .tab.on { color: #4361ee !important; border-bottom-color: #4361ee !important; }
+
+/* ─────────────────────────────────────
+   SBADGE fintech colors
+───────────────────────────────────── */
+body.light-mode .sbadge.pos { background: rgba(5,150,105,0.10) !important; color: #059669 !important; }
+body.light-mode .sbadge.neg { background: rgba(220,38,38,0.10) !important; color: #dc2626 !important; }
+
+/* ─────────────────────────────────────
+   GOLD GRADIENT TEXT — light mode
+   reemplaza gradiente por navy sólido
+───────────────────────────────────── */
+body.light-mode .gold-gradient-text {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* ─────────────────────────────────────
+   SUBSCRIPTION CARDS — light mode
+───────────────────────────────────── */
+body.light-mode .sub-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(15,27,62,0.07) !important;
+  box-shadow: 0 2px 10px rgba(15,27,62,0.05) !important;
+}
+body.light-mode .sub-card:hover { box-shadow: 0 6px 20px rgba(15,27,62,0.10) !important; }
+
+/* ─────────────────────────────────────
+   NAV BADGE — light mode
+───────────────────────────────────── */
+body.light-mode .ni .badge {
+  background: #4361ee !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+body.light-mode .ni.on .badge { background: #fff !important; color: #4361ee !important; }
+
+/* ─────────────────────────────────────
+   SIDEBAR brand — light
+───────────────────────────────────── */
+body.light-mode .sb-brand { border-bottom-color: rgba(15,27,62,0.07) !important; }
+body.light-mode .sb-logo em { color: #4361ee !important; }
+body.light-mode .sb-sec { color: #c8d0e0 !important; }
+body.light-mode .sb-un { color: #0d1b3e !important; }
+body.light-mode .sb-up { color: #4361ee !important; }
+body.light-mode .sb-user { background: #f4f7fc !important; border-color: rgba(15,27,62,0.08) !important; }
 
 /* ── END REDESIGN 2026 ── */

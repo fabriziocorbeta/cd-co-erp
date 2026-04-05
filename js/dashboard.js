@@ -393,19 +393,45 @@ function renderEtherealRecentTxs() {
   if(!el) return;
   const recent = [...S.txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   if(!recent.length){ el.innerHTML='<div style="font-size:.7rem;color:var(--mu);padding:10px 0">Sin transacciones recientes</div>'; return; }
-  el.innerHTML = recent.map(tx=>`
-    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg5)">
-      <div style="width:36px;height:36px;border-radius:10px;background:${tx.type==='income'?'var(--pb)':'var(--bg4)'};display:flex;align-items:center;justify-content:center;color:${tx.type==='income'?'var(--pos)':'var(--mu)'};flex-shrink:0">
-        <span class="material-symbols-rounded" style="font-size:20px">${tx.type==='income'?'trending_up':'shopping_bag'}</span>
+  const isLight = document.body.classList.contains('light-mode');
+  el.innerHTML = recent.map(tx => {
+    const isIncome  = tx.type === 'income';
+    const isTransfer = tx.type === 'transfer-in' || tx.type === 'transfer-out';
+    const icon = isIncome ? 'trending_up' : isTransfer ? 'swap_horiz' : 'shopping_bag';
+    const iconBg = isIncome
+      ? (isLight ? 'rgba(5,150,105,0.10)'  : 'rgba(22,163,74,0.12)')
+      : isTransfer
+        ? (isLight ? 'rgba(67,97,238,0.10)' : 'rgba(99,102,241,0.12)')
+        : (isLight ? 'rgba(220,38,38,0.08)' : 'rgba(255,255,255,0.05)');
+    const iconColor = isIncome
+      ? 'var(--pos)'
+      : isTransfer ? (isLight ? '#4361ee' : '#818cf8')
+      : 'var(--neg)';
+    const amtColor  = isIncome ? 'var(--pos)' : 'var(--neg)';
+    const amtPrefix = isIncome ? '+' : '-';
+    const cat = tx.cat || tx.category || 'General';
+    const pillBg   = isIncome
+      ? (isLight ? 'rgba(5,150,105,0.10)'  : 'rgba(22,163,74,0.12)')
+      : (isLight ? 'rgba(220,38,38,0.08)'  : 'rgba(255,255,255,0.05)');
+    const pillColor = isIncome ? 'var(--pos)' : (isLight ? '#dc2626' : '#f87171');
+    const pillLabel = isIncome ? 'Ingreso' : isTransfer ? 'Transfer' : 'Gasto';
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg5)">
+      <div style="width:38px;height:38px;border-radius:50%;background:${iconBg};display:flex;align-items:center;justify-content:center;color:${iconColor};flex-shrink:0;border:1px solid ${iconBg}">
+        <span class="material-symbols-rounded" style="font-size:18px">${icon}</span>
       </div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:.74rem;color:var(--cr);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">${tx.desc}</div>
-        <div style="font-size:.6rem;color:var(--mu);font-family:var(--fm)">${fmtDate(tx.date)} • ${(tx.cat||'General').toUpperCase()}</div>
+        <div style="font-size:.78rem;color:var(--cr);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600">${tx.desc}</div>
+        <div style="font-size:.62rem;color:var(--mu);margin-top:2px">${fmtDate(tx.date)}</div>
       </div>
-      <div style="font-family:var(--fm);font-size:.82rem;font-weight:600;color:${tx.type==='income'?'var(--pos)':'var(--cr)'}">
-        ${tx.type==='income'?'+':'-'}${fmt(Math.abs(tx.amount),tx.cur)}
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <div style="font-family:var(--fm);font-size:.82rem;font-weight:700;color:${amtColor}">
+          ${amtPrefix}${fmt(Math.abs(tx.amount), tx.cur)}
+        </div>
+        <div style="font-size:.56rem;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:99px;background:${pillBg};color:${pillColor}">${pillLabel}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderEtherealCardsStock() {

@@ -25,7 +25,7 @@
 <!-- Styles -->
 <link rel="stylesheet" href="css/app.css"/>
 </head>
-<body>
+<body class="light-mode">
 
 <!-- ── SYSTEM BANNERS ── -->
 <div class="off-bar" id="off-bar">⚡ Sin conexión — modo offline activo</div>
@@ -153,9 +153,19 @@
 
       <!-- DASHBOARD -->
       <div class="page on" id="page-dashboard">
-        <div class="tb">
-          <div class="tb-l"><div class="tb-ey">CD & Co · Dashboard</div><div class="tb-t">Bienvenido, <span id="gr-nm">Fabri</span></div></div>
-          <div class="tb-r"><button class="btn btn-o" onclick="document.body.classList.toggle('presentation-mode')" style="font-size:.65rem;padding:4px 8px;border-color:var(--bg5);color:var(--mu);cursor:pointer" title="Modo Presentación">👁 Ocultar Datos Sensibles</button><div class="dtag" id="top-date">—</div><div class="ib" onclick="exportCSV()" title="Exportar CSV">⬇</div><div class="ib" onclick="toggleMode()">◑</div></div>
+        <!-- Fintech Hero Header -->
+        <div class="ft-hero">
+          <div class="ft-hero-inner">
+            <div>
+              <div class="ft-hero-greeting">Bienvenido de vuelta, <span id="gr-nm">Fabri</span> 👋</div>
+              <div class="ft-hero-date" id="top-date">—</div>
+            </div>
+            <div class="ft-hero-actions">
+              <button class="btn btn-s" onclick="document.body.classList.toggle('presentation-mode')" style="font-size:.65rem;padding:5px 10px" title="Modo Presentación">👁 Ocultar datos</button>
+              <div class="ib" onclick="exportCSV()" title="Exportar CSV" style="font-size:13px">⬇</div>
+              <div class="ib" onclick="toggleMode()" title="Cambiar tema" style="font-size:13px">◑</div>
+            </div>
+          </div>
         </div>
         <div class="pg-body">
           <div class="eth-dash-grid">
