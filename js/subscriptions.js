@@ -146,26 +146,93 @@ function renderSubsAlerts() {
 // ══════════════════════════════════════════
 // MARK AS PAID
 // ══════════════════════════════════════════
-function markSubPaid(id) {
+async function markSubPaid(id) {
   const s = (S.subscriptions || []).find(x => x.id === id);
   if (!s) return;
-  const amt = parseFloat(s.amount) || 0;
-  const cur = s.currency || '$';
-  // Register expense in transactions
-  S.txs.push({
-    id: uid(),
-    type: 'expense',
-    desc: `${s.icon||'🔄'} ${s.name}`,
-    amount: amt,
+
+  const amt    = parseFloat(s.amount) || 0;
+  const cur    = s.cur || s.currency || '$';
+  const accId  = s.account_id || null;
+
+  // Determinar si está vinculada a tarjeta o cuenta bancaria
+  const linkedCard = accId ? (S.cards    || []).find(c => c.id === accId) : null;
+  const linkedAcc  = accId ? (S.accounts || []).find(a => a.id === accId) : null;
+
+  const txData = {
+    id:         uid(),
+    type:       'expense',
+    desc:       `${s.icon || '🔄'} ${s.name}`,
+    amount:     -amt,          // negativo = gasto
     cur,
-    cat: 'Servicios',
-    date: today(),
-  });
-  // Advance next billing date
-  const i = S.subscriptions.findIndex(x => x.id === id);
-  S.subscriptions[i].nextDate = nextBillingDate(s.nextDate, s.frequency);
-  lsave(); renderAll();
-  toast(`◆ ${s.name} cobrada — gasto de ${fmt(amt,cur)} registrado`);
+    cat:        'Servicios',
+    date:       today(),
+    account_id: accId || null
+  };
+
+  if (SB_ON) {
+    try {
+      // ── Token fresco ──
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session?.access_token) { toast('❌ Sesión expirada — reiniciá sesión'); return; }
+
+      // ── 1. Guardar transacción en tabla txs ──
+      const saved = await sbSaveTransaction(txData);
+      if (!saved) {
+        toast('❌ No se pudo registrar el gasto en la BD');
+        return;
+      }
+      S.txs.unshift({ ...txData, id: saved.id || txData.id });
+
+      // ── 2a. Si es tarjeta: SUMAR al monto utilizado (el cargo cayó en la tarjeta) ──
+      if (linkedCard) {
+        const newUsed = Math.max(0, (parseFloat(linkedCard.used) || 0) + amt);
+        const { error: cardErr } = await sb.from('cards').update({ used: newUsed }).eq('id', accId);
+        if (!cardErr) {
+          linkedCard.used = newUsed;
+          console.log(`[markSubPaid] ✓ Card used actualizado: ${newUsed}`);
+        } else {
+          console.warn('[markSubPaid] No se pudo actualizar card.used:', cardErr.message);
+        }
+      }
+
+      // ── 2b. Si es cuenta bancaria: RESTAR del saldo ──
+      if (linkedAcc) {
+        const newBal = (parseFloat(linkedAcc.balance) || 0) - amt;
+        const { error: accErr } = await sb.from('accounts').update({ balance: newBal }).eq('id', accId);
+        if (!accErr) {
+          linkedAcc.balance = newBal;
+          console.log(`[markSubPaid] ✓ Account balance actualizado: ${newBal}`);
+        } else {
+          console.warn('[markSubPaid] No se pudo actualizar account.balance:', accErr.message);
+        }
+      }
+
+      // ── 3. Avanzar nextDate en Supabase (falla silenciosamente si tabla no existe) ──
+      const newNext = nextBillingDate(s.nextDate, s.frequency);
+      try { await sbUpsert('subscriptions', { ...s, nextDate: newNext }); } catch (_) {}
+
+      toast(`✅ ${s.name} cobrada — gasto de ${fmt(amt, cur)} registrado`);
+
+    } catch (e) {
+      console.error('[markSubPaid] Excepción:', e.message);
+      toast(`❌ Error al procesar: ${e.message}`);
+      return;
+    }
+
+  } else {
+    // ── Modo offline ──
+    S.txs.unshift({ ...txData });
+    if (linkedCard) linkedCard.used = Math.max(0, (parseFloat(linkedCard.used) || 0) + amt);
+    if (linkedAcc)  linkedAcc.balance = (parseFloat(linkedAcc.balance) || 0) - amt;
+    toast(`✅ ${s.name} cobrada (offline) — gasto de ${fmt(amt, cur)} registrado`);
+  }
+
+  // ── Avanzar nextDate localmente ──
+  const idx = S.subscriptions.findIndex(x => x.id === id);
+  if (idx >= 0) S.subscriptions[idx].nextDate = nextBillingDate(s.nextDate, s.frequency);
+
+  lsave();
+  renderAll();
 }
 
 // ══════════════════════════════════════════
@@ -184,6 +251,14 @@ function openSubModal(id) {
   g('sub-cur').value     = s ? (s.cur || s.currency || '$') : '$';
   g('sub-freq').value    = s ? (s.frequency || 'monthly') : 'monthly';
   g('sub-next').value    = s ? (s.nextDate || '') : '';
+  // Poblar selector de cuenta/tarjeta
+  const selAcc = g('sub-account');
+  if (selAcc) {
+    const accs = (S.accounts || []).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    const cards = (S.cards || []).map(c => `<option value="${c.id}">💳 ${c.name}</option>`).join('');
+    selAcc.innerHTML = `<option value="">Sin vincular</option>${accs}${cards}`;
+    selAcc.value = s ? (s.account_id || '') : '';
+  }
   g('sub-modal-acts').innerHTML = id
     ? `<button class="mb mb-d" onclick="delSub('${id}');cm('sub-modal')">Eliminar</button><button class="mb mb-gh" onclick="cm('sub-modal')">Cancelar</button><button class="mb mb-g" onclick="saveSub()">Guardar</button>`
     : `<button class="mb mb-gh" onclick="cm('sub-modal')">Cancelar</button><button class="mb mb-g" onclick="saveSub()">Guardar</button>`;
@@ -191,17 +266,18 @@ function openSubModal(id) {
 }
 
 function saveSub() {
-  const name = g('sub-name').value.trim();
-  const amt  = parseFloat(g('sub-amt').value);
-  const cur  = g('sub-cur').value;
-  const freq = g('sub-freq').value;
-  const next = g('sub-next').value;
-  const icon = g('sub-icon').value.trim() || '🔄';
-  const desc = g('sub-desc').value.trim();
+  const name      = g('sub-name').value.trim();
+  const amt       = parseFloat(g('sub-amt').value);
+  const cur       = g('sub-cur').value;
+  const freq      = g('sub-freq').value;
+  const next      = g('sub-next').value;
+  const icon      = g('sub-icon').value.trim() || '🔄';
+  const desc      = g('sub-desc').value.trim();
+  const accountId = g('sub-account')?.value || null;
   if (!name)          { toast('Ingresá el nombre'); return; }
   if (!amt || amt<=0) { toast('Ingresá un monto válido'); return; }
   if (!next)          { toast('Seleccioná la fecha del próximo cobro'); return; }
-  const sub = { name, description: desc, icon, amount: amt, cur, frequency: freq, nextDate: next, active: true };
+  const sub = { name, description: desc, icon, amount: amt, cur, currency: cur, frequency: freq, nextDate: next, active: true, account_id: accountId || null };
   if (!S.subscriptions) S.subscriptions = [];
   if (editSubId) {
     const i = S.subscriptions.findIndex(s => s.id === editSubId);
