@@ -19,14 +19,43 @@ function checkStockAlert(product) {
 function renderInventory(){
   const q=(g('inv-search')?.value||'').toLowerCase();
   const cat=g('inv-cat-flt')?.value||'';
-  let prods=[...S.products];
-  if(invFlt==='low')prods=prods.filter(p=>p.stock>0&&p.stock<=p.minStock);
-  else if(invFlt==='out')prods=prods.filter(p=>p.stock<=0);
-  if(q)prods=prods.filter(p=>p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
+  let prods=[...(S.products||[])];
+  if(invFlt==='low')prods=prods.filter(p=>p.stock>0&&p.stock<=(p.minStock||0));
+  else if(invFlt==='out')prods=prods.filter(p=>(p.stock||0)<=0);
+  if(q)prods=prods.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.sku||'').toLowerCase().includes(q)||(p.cat||'').toLowerCase().includes(q));
   if(cat)prods=prods.filter(p=>p.cat===cat);
   const grid=g('inv-grid');
+  if(!grid)return;
+
+  // ── Actualizar panel resumen de valor total ──
+  const fxS = (FX && FX.sell) ? FX.sell : 7200;
+  const allProds = S.products || [];
+  const totalValPYG = allProds.reduce((s,p)=>{
+    const bp = parseFloat(p.buyPrice)||0, sk = parseInt(p.stock)||0;
+    return s + (p.cur==='$' ? bp*sk*fxS : bp*sk);
+  },0);
+  const totalValUSD = allProds.reduce((s,p)=>{
+    const sp = parseFloat(p.sellPrice)||0, sk = parseInt(p.stock)||0;
+    return s + (p.cur==='$' ? sp*sk : sp*sk/fxS);
+  },0);
+  const elTotPYG = g('inv-total-pyg');
+  const elTotUSD = g('inv-total-usd');
+  const elTotCnt = g('inv-total-cnt');
+  if(elTotPYG) elTotPYG.textContent = fmt(totalValPYG,'₲');
+  if(elTotUSD) elTotUSD.textContent = fmt(totalValUSD,'$');
+  if(elTotCnt) elTotCnt.textContent = allProds.length + ' productos';
+
   if(!prods.length){grid.innerHTML='<div class="tbl-empty" style="grid-column:1/-1;padding:32px">Sin productos. Agregá el primero.</div>';return}
   grid.innerHTML=prods.map(p=>{
+    // Normalizar campos nulos para evitar errores de render
+    p.name     = p.name     || '(sin nombre)';
+    p.sku      = p.sku      || '—';
+    p.cat      = p.cat      || 'Otros';
+    p.buyPrice = parseFloat(p.buyPrice)  || 0;
+    p.sellPrice= parseFloat(p.sellPrice) || 0;
+    p.stock    = parseInt(p.stock)       || 0;
+    p.minStock = parseInt(p.minStock)    || 2;
+
     const sup=S.contacts.find(c=>c.id===p.sup);
     const stockClass=p.stock<=0?'stock-out':p.stock<=p.minStock?'stock-low':'stock-ok';
     const margin=p.buyPrice>0?Math.round((p.sellPrice-p.buyPrice)/p.buyPrice*100):0;

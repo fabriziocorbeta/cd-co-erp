@@ -37,10 +37,10 @@ async function renderPageData(pg){
   else if(pg==='receivables')renderReceivables();
   else if(pg==='patrimonio')renderPatrimonio();
   else if(pg==='profitability')renderProfitability();
-  // fleet: desactivado temporalmente
-  else if(pg==='plan'){buildPlanCards();loadEmpresaForm();}
+  else if(pg==='fleet'){if(typeof renderFleet==='function')renderFleet();}
+  else if(pg==='plan'){buildPlanCards();loadEmpresaForm();if(typeof loadAdminUsers==='function')loadAdminUsers();}
 }
-function renderAll(){renderDashboard();renderTxs();renderInventory();renderSales();renderOrders();renderInvoices();renderContacts();renderAccounts();renderBudgets();renderSubscriptions();renderGoals();renderAdvice();renderDebtsPage();if(typeof renderHistoryPage==='function')renderHistoryPage();if(typeof renderReceivables==='function')renderReceivables();if(typeof renderPatrimonio==='function'&&S.curPage==='patrimonio')renderPatrimonio();if(typeof renderProfitability==='function')renderProfitability();/* renderFleet desactivado */updateBadges();if(typeof populateTxAccountSelect==='function')populateTxAccountSelect();}
+function renderAll(){renderDashboard();renderTxs();renderInventory();renderSales();renderOrders();renderInvoices();renderContacts();renderAccounts();renderBudgets();renderSubscriptions();renderGoals();renderAdvice();renderDebtsPage();if(typeof renderHistoryPage==='function')renderHistoryPage();if(typeof renderReceivables==='function')renderReceivables();if(typeof renderPatrimonio==='function'&&S.curPage==='patrimonio')renderPatrimonio();if(typeof renderProfitability==='function')renderProfitability();if(typeof renderFleet==='function'&&S.curPage==='fleet')renderFleet();updateBadges();if(typeof populateTxAccountSelect==='function')populateTxAccountSelect();}
 
 function mnA(el){document.querySelectorAll('.mn').forEach(b=>b.classList.remove('on'));el.classList.add('on')}
 function openQuickAdd(){document.getElementById('qa-modal').style.display='flex'}

@@ -286,18 +286,20 @@ async function sbLoadProducts() {
   }
 }
 
-// 🔄 SYNC all data from Supabase on app init
+// 🔄 SYNC all data from Supabase on app init (LEGACY — auth.js usa loadAllUserData con SWR)
+// Mantenido como fallback. Carga en paralelo con Promise.all().
 async function initSupabase() {
   if (!SB_ON) { return; }
 
-  const sbProducts = await sbLoadProducts();
-  if (sbProducts.length > 0) S.products = sbProducts;
+  const [sbProducts, sbTransactions, sbSales] = await Promise.all([
+    sbLoadProducts(),
+    sbLoadTransactions(),
+    sbLoadSales()
+  ]);
 
-  const sbTransactions = await sbLoadTransactions();
-  if (sbTransactions.length > 0) S.txs = sbTransactions;
-
-  const sbSales = await sbLoadSales();
-  if (sbSales.length > 0) S.sales = sbSales;
+  if (sbProducts.length > 0)     S.products = sbProducts;
+  if (sbTransactions.length > 0) S.txs      = sbTransactions;
+  if (sbSales.length > 0)        S.sales    = sbSales;
 }
 
 // ══════════════════════════════════════════

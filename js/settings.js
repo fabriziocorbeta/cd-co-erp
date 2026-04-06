@@ -76,6 +76,85 @@ function selPl(el,k){document.querySelectorAll('#plan-cards .pchip').forEach(c=>
 function goStripe(){if(selPK==='free'){toast('Ya estás en plan gratuito');return}const u=STRIPE[selPK];if(u.includes('TU_')){toast('⚙ Configurá tu link de Stripe');return}window.open(u,'_blank')}
 
 // ══════════════════════════════════════════
+// ADMIN — GESTIÓN DE PLANES DE USUARIO
+// Solo accesible para el usuario owner (fabriziocorbeta@gmail.com)
+// ══════════════════════════════════════════
+const ADMIN_EMAILS = ['fabriziocorbeta@gmail.com'];
+
+function isAdmin() {
+  return ADMIN_EMAILS.includes(S.user?.email || '');
+}
+
+async function loadAdminUsers() {
+  const panel = g('admin-panel');
+  if (!panel) return;
+
+  // Solo mostrar panel si es admin
+  if (!isAdmin()) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  if (!SB_ON || !sb) {
+    g('admin-users-list').innerHTML = '<div style="color:var(--mu);font-size:.78rem">⚠ Requiere conexión a Supabase</div>';
+    return;
+  }
+
+  try {
+    // Leer todos los perfiles desde la tabla profiles
+    const { data: profiles, error } = await sb.from('profiles').select('id, full_name, email, plan, created_at').order('created_at', { ascending: false });
+    if (error) throw error;
+
+    const list = g('admin-users-list');
+    if (!profiles || !profiles.length) {
+      list.innerHTML = '<div style="color:var(--mu);font-size:.78rem">Sin usuarios registrados.</div>';
+      return;
+    }
+
+    list.innerHTML = profiles.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--gb)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.8rem;font-weight:500;color:var(--cr);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.full_name || u.email || u.id}</div>
+          <div style="font-size:.65rem;color:var(--mu);font-family:var(--fm)">${u.email || '—'}</div>
+        </div>
+        <select class="fi" style="width:110px;padding:5px 8px;font-size:.72rem" id="plan-sel-${u.id}" onchange="updateUserPlan('${u.id}', this.value)">
+          <option value="free"  ${u.plan==='free'   ?'selected':''}>Free</option>
+          <option value="pro"   ${u.plan==='pro'    ?'selected':''}>Pro ◆</option>
+          <option value="business" ${u.plan==='business'?'selected':''}>Business</option>
+        </select>
+        <span style="font-size:.65rem;padding:3px 8px;border-radius:10px;background:${u.plan==='pro'?'var(--g)':u.plan==='business'?'var(--pos)':'var(--bg5)'};color:var(--cr);flex-shrink:0">${u.plan||'free'}</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('[Admin] Error cargando usuarios:', e.message);
+    g('admin-users-list').innerHTML = `<div style="color:var(--neg);font-size:.78rem">❌ Error: ${e.message}</div>`;
+  }
+}
+
+async function updateUserPlan(userId, newPlan) {
+  if (!SB_ON || !sb) { toast('❌ Requiere Supabase'); return; }
+  if (!isAdmin()) { toast('❌ Sin permisos'); return; }
+
+  try {
+    const { error } = await sb.from('profiles').update({ plan: newPlan }).eq('id', userId);
+    if (error) throw error;
+
+    // Actualizar badge visual
+    const sel = g(`plan-sel-${userId}`);
+    if (sel) {
+      const badge = sel.nextElementSibling;
+      if (badge) {
+        badge.textContent = newPlan;
+        badge.style.background = newPlan==='pro' ? 'var(--g)' : newPlan==='business' ? 'var(--pos)' : 'var(--bg5)';
+      }
+    }
+    toast(`✅ Plan actualizado a ${newPlan.toUpperCase()}`);
+    console.log(`[Admin] Plan de ${userId} actualizado a ${newPlan}`);
+  } catch (e) {
+    console.error('[Admin] Error actualizando plan:', e.message);
+    toast(`❌ Error: ${e.message}`);
+  }
+}
+
+// ══════════════════════════════════════════
 // EXPORT CSV
 // ══════════════════════════════════════════
 function exportCSV(){

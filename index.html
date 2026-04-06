@@ -130,9 +130,7 @@
       <button class="ni" id="nav-receivables" onclick="goPage('receivables')"><div class="ic-sq"><span class="ic">🤝</span></div> <span class="ni-t">A Cobrar</span> <span class="badge" id="badge-receivables" style="display:none">0</span> <div class="ni-dot"></div></button>
       <button class="ni" id="nav-history" onclick="goPage('history')"><div class="ic-sq"><span class="ic">🗓</span></div> <span class="ni-t">Histórico</span> <div class="ni-dot"></div></button>
       <div class="sb-sec">Negocio</div>
-      <!-- FLOTA: desactivado temporalmente — módulo en pausa
       <button class="ni" id="nav-fleet" onclick="goPage('fleet')"><div class="ic-sq"><span class="ic">🚙</span></div> <span class="ni-t">Flota</span> <div class="ni-dot"></div></button>
-      -->
       <button class="ni" id="nav-inventory" onclick="goPage('inventory')"><div class="ic-sq"><span class="ic">📦</span></div> <span class="ni-t">Inventario</span> <div class="ni-dot"></div></button>
       <button class="ni" id="nav-sales" onclick="goPage('sales')"><div class="ic-sq"><span class="ic">🛒</span></div> <span class="ni-t">Ventas</span> <div class="ni-dot"></div></button>
       <button class="ni" id="nav-orders" onclick="goPage('orders')"><div class="ic-sq"><span class="ic">📋</span></div> <span class="ni-t">Pedidos</span> <span class="badge" id="badge-orders" style="display:none">0</span> <div class="ni-dot"></div></button>
@@ -379,6 +377,21 @@
             <select class="fi" id="inv-cat-flt" style="width:auto;padding:6px 10px;font-size:.74rem" onchange="renderInventory()"><option value="">Todas las categorías</option><option>Relojes</option><option>Accesorios</option><option>Perfumes</option><option>Otros</option></select>
             <button class="btn btn-o" id="btn-sync-shopify" style="margin-left:auto;white-space:nowrap" onclick="syncShopify()">🔄 Sync Shopify</button>
             <button class="btn btn-o" style="white-space:nowrap" onclick="exportInventoryCSV()">📥 Exportar CSV</button>
+          </div>
+          <!-- Panel resumen de valor de inventario -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+            <div class="panel pp" style="padding:14px">
+              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Total Productos</div>
+              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--cr)" id="inv-total-cnt">0 productos</div>
+            </div>
+            <div class="panel pp" style="padding:14px">
+              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Valor Inventario (Costo ₲)</div>
+              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--g2)" id="inv-total-pyg">₲0</div>
+            </div>
+            <div class="panel pp" style="padding:14px">
+              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Valor a Precio Venta ($)</div>
+              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--pos)" id="inv-total-usd">$0.00</div>
+            </div>
           </div>
           <div class="card-grid" id="inv-grid"></div>
         </div>
@@ -763,6 +776,15 @@
               <li style="font-size:.78rem;color:var(--mu);display:flex;align-items:center;gap:8px"><span style="color:var(--g2)">◆</span> Business: Multi-usuario (5) + API + reportes + soporte</li>
             </ul>
             <div style="display:flex;gap:9px"><button class="btn btn-s" onclick="goPage('dashboard')">← Volver</button><button class="btn btn-g" onclick="goStripe()">Suscribirse con Stripe →</button></div>
+          </div>
+
+          <!-- PANEL ADMIN — visible solo para el owner -->
+          <div class="panel pp" style="max-width:600px;margin-top:16px;border-left:3px solid var(--g2)" id="admin-panel" style="display:none">
+            <div class="sh-t" style="font-family:var(--fd);font-size:1.1rem;margin-bottom:4px">🔑 Administración de Usuarios</div>
+            <p style="font-size:.72rem;color:var(--mu);margin-bottom:16px">Gestioná los planes de todos los usuarios de la plataforma.</p>
+            <div id="admin-users-list" style="display:flex;flex-direction:column;gap:10px">
+              <div style="color:var(--mu);font-size:.78rem">Cargando usuarios...</div>
+            </div>
           </div>
         </div>
       </div>
