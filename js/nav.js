@@ -5,13 +5,26 @@
 // NAVIGATION
 // ══════════════════════════════════════════
 function goPage(pg){
+  if(pg==='fleet') console.log('[NAV] ✅ Cargando ítem Flota — page-fleet activada');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
-  document.getElementById('page-'+pg).classList.add('on');
+  const pageEl = document.getElementById('page-'+pg);
+  if(!pageEl){ console.error('[NAV] ❌ No se encontró la página: page-'+pg); return; }
+  pageEl.classList.add('on');
   const nav=document.getElementById('nav-'+pg);if(nav)nav.classList.add('on');
   S.curPage=pg;
   renderPageData(pg);
 }
+
+// ── Boot check: verificar que el botón Flota existe en el DOM ──
+document.addEventListener('DOMContentLoaded', function() {
+  const fleetBtn = document.getElementById('nav-fleet');
+  if(fleetBtn){
+    console.log('[NAV] ✅ Botón Flota encontrado en DOM:', fleetBtn.offsetParent !== null ? 'VISIBLE' : 'OCULTO (revisar CSS/overflow)');
+  } else {
+    console.error('[NAV] ❌ Botón Flota NO encontrado — verificar index.html');
+  }
+});
 async function renderPageData(pg){
   if(pg==='dashboard')renderDashboard();
   else if(pg==='txs'){

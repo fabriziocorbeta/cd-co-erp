@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0c0b09"/>
+<meta name="app-version" content="20260405-flota-fix"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -130,7 +131,8 @@
       <button class="ni" id="nav-receivables" onclick="goPage('receivables')"><div class="ic-sq"><span class="ic">🤝</span></div> <span class="ni-t">A Cobrar</span> <span class="badge" id="badge-receivables" style="display:none">0</span> <div class="ni-dot"></div></button>
       <button class="ni" id="nav-history" onclick="goPage('history')"><div class="ic-sq"><span class="ic">🗓</span></div> <span class="ni-t">Histórico</span> <div class="ni-dot"></div></button>
       <div class="sb-sec">Negocio</div>
-      <button class="ni" id="nav-fleet" onclick="goPage('fleet')"><div class="ic-sq"><span class="ic">🚙</span></div> <span class="ni-t">Flota</span> <div class="ni-dot"></div></button>
+      <!-- FLOTA: activo — v20260405 -->
+      <button class="ni" id="nav-fleet" onclick="goPage('fleet')" style="display:flex!important;visibility:visible!important;opacity:1!important"><div class="ic-sq"><span class="ic">🚙</span></div> <span class="ni-t">Flota</span> <div class="ni-dot"></div></button>
       <button class="ni" id="nav-inventory" onclick="goPage('inventory')"><div class="ic-sq"><span class="ic">📦</span></div> <span class="ni-t">Inventario</span> <div class="ni-dot"></div></button>
       <button class="ni" id="nav-sales" onclick="goPage('sales')"><div class="ic-sq"><span class="ic">🛒</span></div> <span class="ni-t">Ventas</span> <div class="ni-dot"></div></button>
       <button class="ni" id="nav-orders" onclick="goPage('orders')"><div class="ic-sq"><span class="ic">📋</span></div> <span class="ni-t">Pedidos</span> <span class="badge" id="badge-orders" style="display:none">0</span> <div class="ni-dot"></div></button>
