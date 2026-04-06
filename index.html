@@ -14,7 +14,8 @@
 <title>CD & Co — ERP</title>
 
 <!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
 <!-- Chart.js -->
@@ -109,8 +110,13 @@
     <!-- SIDEBAR -->
     <nav class="sb" id="sidebar">
       <div class="sb-brand">
-        <div class="sb-ey">CD & Co · ERP</div>
-        <div class="sb-logo">CD <em>&</em> Co</div>
+        <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#d4af37,#f9e79f);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(212,175,55,.2);flex-shrink:0">
+          <span style="color:#0b1326;font-weight:800;font-size:1.1rem">CD</span>
+        </div>
+        <div>
+          <div class="sb-logo">CD & Co.</div>
+          <div class="sb-ey">Luxury Financial</div>
+        </div>
       </div>
       <div class="sb-user" onclick="goPage('plan')">
         <div class="sb-av" id="s-av">FB</div>
@@ -118,34 +124,34 @@
         <span style="color:var(--g);font-size:9px;opacity:.6">▲</span>
       </div>
       <div class="sb-sec">Finanzas</div>
-      <button class="ni" id="nav-dashboard" onclick="goPage('dashboard')"><div class="ic-sq"><span class="ic">◈</span></div> <span class="ni-t">Dashboard</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-patrimonio" onclick="goPage('patrimonio')"><div class="ic-sq"><span class="ic">⚖️</span></div> <span class="ni-t">Patrimonio</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-notifs" onclick="goPage('notifs')"><div class="ic-sq"><span class="ic">🔔</span></div> <span class="ni-t">Notificaciones</span> <span class="badge" id="badge-notifs" style="display:none">0</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-accounts" onclick="goPage('accounts')"><div class="ic-sq"><span class="ic">🏦</span></div> <span class="ni-t">Mis cuentas</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-budgets" onclick="goPage('budgets')"><div class="ic-sq"><span class="ic">📊</span></div> <span class="ni-t">Presupuestos</span> <span class="badge" id="badge-budgets" style="display:none">0</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-goals" onclick="goPage('goals')"><div class="ic-sq"><span class="ic">🎯</span></div> <span class="ni-t">Metas</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-subs" onclick="goPage('subscriptions')"><div class="ic-sq"><span class="ic">🔄</span></div> <span class="ni-t">Suscripciones</span> <span class="badge" id="badge-subs" style="display:none">0</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-profitability" onclick="goPage('profitability')"><div class="ic-sq"><span class="ic">💹</span></div> <span class="ni-t">Rentabilidad</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-txs" onclick="goPage('txs')"><div class="ic-sq"><span class="ic">↕</span></div> <span class="ni-t">Movimientos</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-debts" onclick="goPage('debts')"><div class="ic-sq"><span class="ic">💳</span></div> <span class="ni-t">Deudas</span> <span class="badge" id="badge-debts" style="display:none">0</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-receivables" onclick="goPage('receivables')"><div class="ic-sq"><span class="ic">🤝</span></div> <span class="ni-t">A Cobrar</span> <span class="badge" id="badge-receivables" style="display:none">0</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-history" onclick="goPage('history')"><div class="ic-sq"><span class="ic">🗓</span></div> <span class="ni-t">Histórico</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-dashboard" onclick="goPage('dashboard')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">dashboard</span></div> <span class="ni-t">Dashboard</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-patrimonio" onclick="goPage('patrimonio')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">account_balance_wallet</span></div> <span class="ni-t">Patrimonio</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-notifs" onclick="goPage('notifs')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">notifications</span></div> <span class="ni-t">Notificaciones</span> <span class="badge" id="badge-notifs" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-accounts" onclick="goPage('accounts')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">payments</span></div> <span class="ni-t">Mis cuentas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-budgets" onclick="goPage('budgets')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">donut_small</span></div> <span class="ni-t">Presupuestos</span> <span class="badge" id="badge-budgets" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-goals" onclick="goPage('goals')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">savings</span></div> <span class="ni-t">Metas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-subs" onclick="goPage('subscriptions')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">sync</span></div> <span class="ni-t">Suscripciones</span> <span class="badge" id="badge-subs" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-profitability" onclick="goPage('profitability')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">query_stats</span></div> <span class="ni-t">Rentabilidad</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-txs" onclick="goPage('txs')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">swap_vert</span></div> <span class="ni-t">Movimientos</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-debts" onclick="goPage('debts')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">credit_card</span></div> <span class="ni-t">Deudas</span> <span class="badge" id="badge-debts" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-receivables" onclick="goPage('receivables')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">handshake</span></div> <span class="ni-t">A Cobrar</span> <span class="badge" id="badge-receivables" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-history" onclick="goPage('history')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">calendar_month</span></div> <span class="ni-t">Histórico</span> <div class="ni-dot"></div></button>
       <div class="sb-sec">Negocio</div>
       <!-- FLOTA: activo — v20260405 -->
-      <button class="ni" id="nav-fleet" onclick="goPage('fleet')" style="display:flex!important;visibility:visible!important;opacity:1!important"><div class="ic-sq"><span class="ic">🚙</span></div> <span class="ni-t">Flota</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-inventory" onclick="goPage('inventory')"><div class="ic-sq"><span class="ic">📦</span></div> <span class="ni-t">Inventario</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-sales" onclick="goPage('sales')"><div class="ic-sq"><span class="ic">🛒</span></div> <span class="ni-t">Ventas</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-orders" onclick="goPage('orders')"><div class="ic-sq"><span class="ic">📋</span></div> <span class="ni-t">Pedidos</span> <span class="badge" id="badge-orders" style="display:none">0</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-invoices" onclick="goPage('invoices')"><div class="ic-sq"><span class="ic">🧾</span></div> <span class="ni-t">Facturas</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-contacts" onclick="goPage('contacts')"><div class="ic-sq"><span class="ic">👥</span></div> <span class="ni-t">Contactos</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-fleet" onclick="goPage('fleet')" style="display:flex!important;visibility:visible!important;opacity:1!important"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">directions_car</span></div> <span class="ni-t">Flota</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-inventory" onclick="goPage('inventory')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">inventory_2</span></div> <span class="ni-t">Inventario</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-sales" onclick="goPage('sales')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">shopping_cart</span></div> <span class="ni-t">Ventas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-orders" onclick="goPage('orders')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">assignment</span></div> <span class="ni-t">Pedidos</span> <span class="badge" id="badge-orders" style="display:none">0</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-invoices" onclick="goPage('invoices')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">receipt_long</span></div> <span class="ni-t">Facturas</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-contacts" onclick="goPage('contacts')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">people</span></div> <span class="ni-t">Contactos</span> <div class="ni-dot"></div></button>
       <div class="sb-sec">Análisis</div>
-      <button class="ni" id="nav-reports" onclick="goPage('reports')"><div class="ic-sq"><span class="ic">📈</span></div> <span class="ni-t">Reportes</span> <div class="ni-dot"></div></button>
-      <button class="ni" id="nav-advice" onclick="goPage('advice')"><div class="ic-sq"><span class="ic">💡</span></div> <span class="ni-t">Consejos</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-reports" onclick="goPage('reports')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">leaderboard</span></div> <span class="ni-t">Reportes</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-advice" onclick="goPage('advice')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">lightbulb</span></div> <span class="ni-t">Consejos</span> <div class="ni-dot"></div></button>
       <div class="sb-sec">Ajustes</div>
-      <button class="ni" id="nav-plan" onclick="goPage('plan')"><div class="ic-sq"><span class="ic">◆</span></div> <span class="ni-t">Plan &amp; Config</span> <div class="ni-dot"></div></button>
+      <button class="ni" id="nav-plan" onclick="goPage('plan')"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">settings</span></div> <span class="ni-t">Plan &amp; Config</span> <div class="ni-dot"></div></button>
       <div class="sb-foot">
-        <button class="ni" onclick="toggleMode()"><div class="ic-sq"><span class="ic">◑</span></div> <span class="ni-t">Modo claro</span> <div class="ni-dot"></div></button>
-        <button class="ni" onclick="doLogout()"><div class="ic-sq"><span class="ic">⏻</span></div> <span class="ni-t">Salir</span> <div class="ni-dot"></div></button>
+        <button class="ni" onclick="toggleMode()"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">light_mode</span></div> <span class="ni-t">Modo claro</span> <div class="ni-dot"></div></button>
+        <button class="ni" onclick="doLogout()"><div class="ic-sq"><span class="material-symbols-outlined" style="font-size:18px">logout</span></div> <span class="ni-t">Salir</span> <div class="ni-dot"></div></button>
       </div>
     </nav>
 
@@ -927,13 +933,37 @@
   </div><!-- /wrap -->
 </div><!-- /app -->
 
-<!-- MOBILE NAV -->
-<nav class="mob-nav" id="mob-nav">
+<!-- MOBILE NAV (original, hidden) -->
+<nav class="mob-nav" id="mob-nav" style="display:none!important">
   <button class="mn on" onclick="goPage('dashboard');mnA(this)"><span class="mi">◈</span>Inicio</button>
   <button class="mn" onclick="goPage('inventory');mnA(this)"><span class="mi">📦</span>Stock</button>
   <button class="mn-fab" onclick="openQuickAdd()">＋</button>
   <button class="mn" onclick="goPage('sales');mnA(this)"><span class="mi">🛒</span>Ventas</button>
   <button class="mn" onclick="goPage('contacts');mnA(this)"><span class="mi">👥</span>Más</button>
+</nav>
+
+<!-- MOBILE BOTTOM NAV (Stitch design) -->
+<nav class="mob-nav-stitch" id="mob-nav-stitch">
+  <a onclick="goPage('dashboard')" id="mob-home" class="mob-nav-item active">
+    <span class="material-symbols-outlined">precision_manufacturing</span>
+    <span>Home</span>
+  </a>
+  <a onclick="goPage('inventory')" id="mob-inv" class="mob-nav-item">
+    <span class="material-symbols-outlined">inventory_2</span>
+    <span>Inventario</span>
+  </a>
+  <a onclick="goPage('sales')" id="mob-sales" class="mob-nav-item">
+    <span class="material-symbols-outlined">payments</span>
+    <span>Ventas</span>
+  </a>
+  <a onclick="goPage('txs')" id="mob-txs" class="mob-nav-item">
+    <span class="material-symbols-outlined">leaderboard</span>
+    <span>Movimientos</span>
+  </a>
+  <a onclick="goPage('plan')" id="mob-plan" class="mob-nav-item">
+    <span class="material-symbols-outlined">settings</span>
+    <span>Config</span>
+  </a>
 </nav>
 
 <!-- ══ MODALS (kept inline for DOM simplicity) ══ -->
