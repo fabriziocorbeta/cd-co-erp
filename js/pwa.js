@@ -12,7 +12,7 @@
   document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
 })();
 if('serviceWorker' in navigator){
-  const SW=`const V='cdco-erp-v1';self.addEventListener('install',e=>{e.waitUntil(self.skipWaiting())});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;if(e.request.url.includes('supabase.co')){e.respondWith(fetch(e.request).catch(()=>new Response('{}',{headers:{'Content-Type':'application/json'}})));return;}e.respondWith(caches.match(e.request).then(c=>{const f=fetch(e.request).then(r=>{if(r.ok){const cl=r.clone();caches.open(V).then(ca=>ca.put(e.request,cl))}return r}).catch(()=>c);return c||f;}));});`;
+  const SW=`const V='cdco-erp-v2-stitch';self.addEventListener('install',e=>{e.waitUntil(self.skipWaiting())});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;if(e.request.url.includes('supabase.co')){e.respondWith(fetch(e.request).catch(()=>new Response('{}',{headers:{'Content-Type':'application/json'}})));return;}e.respondWith(caches.match(e.request).then(c=>{const f=fetch(e.request).then(r=>{if(r.ok){const cl=r.clone();caches.open(V).then(ca=>ca.put(e.request,cl))}return r}).catch(()=>c);return c||f;}));});`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([SW],{type:'application/javascript'})),{scope:'./'}).catch(e=>console.warn('SW:',e));
 }
 window.addEventListener('offline',()=>{g('off-bar').classList.add('show');toast('⚡ Sin conexión')});

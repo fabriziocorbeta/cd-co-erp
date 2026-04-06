@@ -164,12 +164,28 @@ function exportCSV(){
 }
 
 // ══════════════════════════════════════════
-// LIGHT MODE
+// LIGHT MODE — con persistencia localStorage
 // ══════════════════════════════════════════
+
+// Inicializar modo desde preferencia guardada (default: dark)
+(function initTheme() {
+  const saved = localStorage.getItem('cdco_theme');
+  if (saved === 'light') {
+    lm = true;
+    document.body.classList.add('light-mode');
+    document.documentElement.classList.remove('dark');
+  } else {
+    lm = false;
+    document.body.classList.remove('light-mode');
+    document.documentElement.classList.add('dark');
+  }
+})();
+
 function toggleMode(){
-  lm=!lm;
+  lm = !lm;
   document.body.classList.toggle('light-mode', lm);
   document.documentElement.classList.toggle('dark', !lm);
+  localStorage.setItem('cdco_theme', lm ? 'light' : 'dark');
   if(lm){
     toast('☀ Modo claro');
   } else {
