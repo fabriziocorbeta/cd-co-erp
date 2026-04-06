@@ -4746,4 +4746,159 @@ body.light-mode .sb-user { background: #f4f7fc !important; border-color: rgba(15
 
 /* ── END STITCH DESIGN 2026 ── */
 
+/* ════════════════════════════════════════════════════════════
+   NUCLEAR DARK MODE LOCK — V2.0.0-STITCH-FINAL
+   Fuerza el tema oscuro Stitch cuando body NO tiene .light-mode
+   Estas reglas ganan sobre todo lo anterior.
+════════════════════════════════════════════════════════════ */
+body:not(.light-mode) {
+  background-color: #0b1326 !important;
+  color: #dae2fd !important;
+}
+
+/* Superficies principales */
+body:not(.light-mode) .main,
+body:not(.light-mode) #app,
+body:not(.light-mode) .wrap {
+  background-color: #0b1326 !important;
+}
+
+/* Sidebar */
+body:not(.light-mode) .sb {
+  background: #0b1326 !important;
+  border-right: 1px solid rgba(218,226,253,0.10) !important;
+}
+
+/* Nav items */
+body:not(.light-mode) .ni {
+  color: rgba(218,226,253,0.60) !important;
+}
+body:not(.light-mode) .ni:hover {
+  color: #dae2fd !important;
+  background: rgba(49,57,77,0.20) !important;
+}
+body:not(.light-mode) .ni.on {
+  color: #c1c1ff !important;
+  background: rgba(49,57,77,0.30) !important;
+  border-right: 2px solid #c1c1ff !important;
+}
+body:not(.light-mode) .ni.on .material-symbols-outlined {
+  color: #c1c1ff !important;
+}
+body:not(.light-mode) .sb-sec {
+  color: rgba(218,226,253,0.35) !important;
+}
+body:not(.light-mode) .sb-logo {
+  color: #dae2fd !important;
+}
+body:not(.light-mode) .sb-ey {
+  color: rgba(218,226,253,0.38) !important;
+}
+
+/* Paneles y tarjetas — soft-UI neumorphism */
+body:not(.light-mode) .panel,
+body:not(.light-mode) .stat,
+body:not(.light-mode) .glass-card {
+  background: linear-gradient(145deg, #131b2e, #0b1326) !important;
+  border: 1px solid rgba(218,226,253,0.07) !important;
+  box-shadow: 10px 10px 20px #060e20, -10px -10px 20px #1a253c !important;
+  border-radius: 24px !important;
+  color: #dae2fd !important;
+}
+
+/* Inputs y selects */
+body:not(.light-mode) .fi,
+body:not(.light-mode) .fs,
+body:not(.light-mode) input,
+body:not(.light-mode) select,
+body:not(.light-mode) textarea {
+  background: #131b2e !important;
+  border: 1px solid rgba(218,226,253,0.10) !important;
+  color: #dae2fd !important;
+}
+body:not(.light-mode) input::placeholder,
+body:not(.light-mode) textarea::placeholder {
+  color: rgba(218,226,253,0.35) !important;
+}
+
+/* Tablas */
+body:not(.light-mode) .tbl th {
+  background: rgba(255,255,255,0.02) !important;
+  color: rgba(218,226,253,0.50) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+body:not(.light-mode) .tbl td {
+  color: #dae2fd !important;
+  border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+}
+body:not(.light-mode) .tbl tr:hover td {
+  background: rgba(255,255,255,0.02) !important;
+}
+
+/* Page topbar */
+body:not(.light-mode) .tb {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(218,226,253,0.08) !important;
+}
+body:not(.light-mode) .tb-ey { color: #c1c1ff !important; }
+body:not(.light-mode) .tb-t  { color: #dae2fd !important; }
+
+/* Modals */
+body:not(.light-mode) .overlay {
+  background: rgba(6,14,32,0.80) !important;
+}
+body:not(.light-mode) .modal {
+  background: #131b2e !important;
+  border: 1px solid rgba(218,226,253,0.10) !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.50) !important;
+}
+body:not(.light-mode) .mttl {
+  border-bottom: 1px solid rgba(218,226,253,0.08) !important;
+  color: #dae2fd !important;
+}
+
+/* Section headers */
+body:not(.light-mode) .sh-t { color: #dae2fd !important; }
+body:not(.light-mode) .sh-s { color: rgba(218,226,253,0.55) !important; }
+
+/* Buttons */
+body:not(.light-mode) .btn {
+  background: #222a3d !important;
+  color: #dae2fd !important;
+  border: 1px solid rgba(218,226,253,0.10) !important;
+}
+body:not(.light-mode) .btn:hover {
+  background: #2d3449 !important;
+}
+body:not(.light-mode) .btn-g {
+  background: #c1c1ff !important;
+  color: #060060 !important;
+  border-color: #c1c1ff !important;
+}
+body:not(.light-mode) .btn-g:hover {
+  background: #e1e0ff !important;
+}
+body:not(.light-mode) .btn-o {
+  background: transparent !important;
+  border-color: rgba(193,193,255,0.30) !important;
+  color: #c1c1ff !important;
+}
+body:not(.light-mode) .btn-danger {
+  background: rgba(255,180,171,0.08) !important;
+  color: #ffb4ab !important;
+  border-color: rgba(255,180,171,0.20) !important;
+}
+
+/* Sidebar footer */
+body:not(.light-mode) .sb-foot {
+  border-top-color: rgba(218,226,253,0.08) !important;
+}
+body:not(.light-mode) .sb-user {
+  background: rgba(49,57,77,0.30) !important;
+  border: 1px solid rgba(218,226,253,0.08) !important;
+}
+body:not(.light-mode) .sb-un { color: #dae2fd !important; }
+body:not(.light-mode) .sb-up { color: #d4af37 !important; }
+
+/* ── END NUCLEAR DARK MODE ── */
 /* ── END REDESIGN 2026 ── */
