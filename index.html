@@ -241,25 +241,93 @@
                <div style="font-size:.8rem;font-weight:600;color:var(--g2);margin-bottom:12px;margin-left:4px;margin-top:32px;display:flex;justify-content:space-between"><span>Subscriptions</span><span style="color:var(--c9960c);cursor:pointer;font-size:.7rem;font-weight:400" onclick="goPage('subscriptions')">Ver todas</span></div>
                <div class="panel pp" style="padding:14px;background:var(--bg2);border:none"><div id="d-active-subs" style="display:flex;flex-direction:column;gap:12px"></div></div>
 
+               <!-- ── PIZARRA DE CAMBIOS MULTI-DIVISA ── -->
                <div style="margin-top:24px" class="fx-w">
-                 <div class="fx-h"><div><div class="fx-brand">Cambios Chaco</div><div class="fx-src">Tipo de cambio USD/PYG</div></div><button class="fx-rb" id="fx-rb" onclick="fetchRate()"><span class="fx-ri">↻</span><span>Actualizar</span></button></div>
-                 <div class="fx-b">
-                   <div class="fx-m">
-                     <div class="fx-side">
-                       <div class="fx-sl">Compra</div>
-                       <div class="fx-sv buy" id="fx-buy" contenteditable="true" onblur="onFxEdit(this, 'buy')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">—</div>
-                       <div class="fx-ss">₲ por $1</div>
+                 <!-- Header -->
+                 <div class="fx-h">
+                   <div>
+                     <div class="fx-brand">Pizarra de Cambios</div>
+                     <div class="fx-src">Cambios Chaco · Open ER API</div>
+                   </div>
+                   <button class="fx-rb" id="fx-rb" onclick="fetchRate()"><span class="fx-ri">↻</span><span>Actualizar</span></button>
+                 </div>
+
+                 <!-- Grid 2×2: USD · EUR · ARS · BRL -->
+                 <div class="fx-grid">
+                   <!-- USD (editable manualmente) -->
+                   <div class="fx-ccard" id="fxcard-USD">
+                     <div class="fx-ccard-hd">
+                       <span class="fx-flag">🇺🇸</span>
+                       <span class="fx-cname">USD</span>
+                       <span class="fx-csub">Dólar</span>
                      </div>
-                     <div class="fx-side">
-                       <div class="fx-sl">Venta</div>
-                       <div class="fx-sv sell" id="fx-sell" contenteditable="true" onblur="onFxEdit(this, 'sell')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">—</div>
-                       <div class="fx-ss">₲ por $1</div>
+                     <div class="fx-crates">
+                       <div class="fx-crate-row">
+                         <span class="fx-cl">C</span>
+                         <span class="fx-cv buy" id="fxb-USD" contenteditable="true" onblur="onFxEdit(this,'buy')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">—</span>
+                       </div>
+                       <div class="fx-crate-row">
+                         <span class="fx-cl">V</span>
+                         <span class="fx-cv sell" id="fxs-USD" contenteditable="true" onblur="onFxEdit(this,'sell')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">—</span>
+                       </div>
                      </div>
                    </div>
-                   <div class="fx-div"></div>
-                   <div class="fx-conv"><input class="fx-inp" id="fx-inp" type="number" inputmode="decimal" placeholder="100" oninput="convertFx()"/><div class="fx-dir-btn" id="fx-dir" onclick="toggleFxDir()">⇄</div><div class="fx-res" id="fx-res">—</div></div>
-                   <div class="fx-err" id="fx-err"></div>
-                   <div class="fx-ft"><div class="fx-up" id="fx-up">Sin actualizar</div><div class="fx-dot" id="fx-dot"></div></div>
+                   <!-- EUR -->
+                   <div class="fx-ccard" id="fxcard-EUR">
+                     <div class="fx-ccard-hd">
+                       <span class="fx-flag">🇪🇺</span>
+                       <span class="fx-cname">EUR</span>
+                       <span class="fx-csub">Euro</span>
+                     </div>
+                     <div class="fx-crates">
+                       <div class="fx-crate-row"><span class="fx-cl">C</span><span class="fx-cv buy" id="fxb-EUR">—</span></div>
+                       <div class="fx-crate-row"><span class="fx-cl">V</span><span class="fx-cv sell" id="fxs-EUR">—</span></div>
+                     </div>
+                   </div>
+                   <!-- ARS -->
+                   <div class="fx-ccard" id="fxcard-ARS">
+                     <div class="fx-ccard-hd">
+                       <span class="fx-flag">🇦🇷</span>
+                       <span class="fx-cname">ARS</span>
+                       <span class="fx-csub">Peso Arg.</span>
+                     </div>
+                     <div class="fx-crates">
+                       <div class="fx-crate-row"><span class="fx-cl">C</span><span class="fx-cv buy" id="fxb-ARS">—</span></div>
+                       <div class="fx-crate-row"><span class="fx-cl">V</span><span class="fx-cv sell" id="fxs-ARS">—</span></div>
+                     </div>
+                   </div>
+                   <!-- BRL -->
+                   <div class="fx-ccard" id="fxcard-BRL">
+                     <div class="fx-ccard-hd">
+                       <span class="fx-flag">🇧🇷</span>
+                       <span class="fx-cname">BRL</span>
+                       <span class="fx-csub">Real</span>
+                     </div>
+                     <div class="fx-crates">
+                       <div class="fx-crate-row"><span class="fx-cl">C</span><span class="fx-cv buy" id="fxb-BRL">—</span></div>
+                       <div class="fx-crate-row"><span class="fx-cl">V</span><span class="fx-cv sell" id="fxs-BRL">—</span></div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Conversor con selector de moneda -->
+                 <div class="fx-div"></div>
+                 <div class="fx-conv">
+                   <select class="fx-cur-sel" id="fx-cur-sel" onchange="convertFx()">
+                     <option value="USD">$ USD</option>
+                     <option value="EUR">€ EUR</option>
+                     <option value="ARS">$ ARS</option>
+                     <option value="BRL">R$ BRL</option>
+                   </select>
+                   <input class="fx-inp" id="fx-inp" type="number" inputmode="decimal" placeholder="100" oninput="convertFx()"/>
+                   <div style="font-size:.65rem;color:var(--mu)">→ ₲</div>
+                   <div class="fx-res" id="fx-res">—</div>
+                 </div>
+
+                 <div class="fx-err" id="fx-err"></div>
+                 <div class="fx-ft">
+                   <div class="fx-up" id="fx-up">Sin actualizar</div>
+                   <div class="fx-dot" id="fx-dot"></div>
                  </div>
                </div>
             </div>

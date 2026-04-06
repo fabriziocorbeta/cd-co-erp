@@ -4901,4 +4901,126 @@ body:not(.light-mode) .sb-un { color: #dae2fd !important; }
 body:not(.light-mode) .sb-up { color: #d4af37 !important; }
 
 /* ── END NUCLEAR DARK MODE ── */
+
+/* ═══════════════════════════════════════════════
+   PIZARRA DE CAMBIOS MULTI-DIVISA — Stitch style
+   ═══════════════════════════════════════════════ */
+
+/* Grid 2×2 de tarjetas de moneda */
+.fx-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.fx-ccard {
+  background: rgba(49,57,77,0.30);
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(218,226,253,0.06);
+  transition: border-color .15s;
+}
+.fx-ccard:hover {
+  border-color: rgba(193,193,255,0.15);
+}
+
+.fx-ccard-hd {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.fx-flag {
+  font-size: 14px;
+  line-height: 1;
+}
+.fx-cname {
+  font-size: .7rem;
+  font-weight: 700;
+  color: #dae2fd;
+  letter-spacing: .05em;
+}
+.fx-csub {
+  font-size: .58rem;
+  color: rgba(218,226,253,0.40);
+  margin-left: 2px;
+}
+
+.fx-crates {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.fx-crate-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.fx-cl {
+  font-size: .55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: rgba(218,226,253,0.38);
+  width: 10px;
+  flex-shrink: 0;
+}
+.fx-cv {
+  font-family: var(--fm);
+  font-size: .78rem;
+  font-weight: 600;
+  outline: none;
+  border-radius: 4px;
+  padding: 0 2px;
+}
+.fx-cv.buy  { color: #4edea3; }
+.fx-cv.sell { color: #ffb4ab; }
+.fx-cv[contenteditable="true"]:focus {
+  background: rgba(193,193,255,0.08);
+  color: #c1c1ff;
+}
+
+/* Conversor multi-moneda */
+.fx-conv {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.fx-cur-sel {
+  padding: 6px 8px;
+  background: rgba(49,57,77,0.35);
+  border: 1px solid rgba(218,226,253,0.10);
+  border-radius: 10px;
+  color: #c1c1ff;
+  font-size: .72rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fx-cur-sel:focus {
+  border-color: rgba(193,193,255,0.30);
+}
+
+/* Ajustes heredados para modo claro */
+body.light-mode .fx-ccard {
+  background: rgba(67,97,238,0.04) !important;
+  border-color: rgba(15,27,62,0.08) !important;
+}
+body.light-mode .fx-cname { color: #0d1b3e !important; }
+body.light-mode .fx-csub  { color: #8896b3 !important; }
+body.light-mode .fx-cv.buy  { color: #059669 !important; }
+body.light-mode .fx-cv.sell { color: #dc2626 !important; }
+body.light-mode .fx-cur-sel {
+  background: #f4f7fc !important;
+  border-color: rgba(15,27,62,0.12) !important;
+  color: #4361ee !important;
+}
+body.light-mode .fx-cl { color: #8896b3 !important; }
+
+/* ── END PIZARRA DE CAMBIOS ── */
 /* ── END REDESIGN 2026 ── */

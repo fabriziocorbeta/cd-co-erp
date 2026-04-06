@@ -76,7 +76,16 @@ let txType='income';
 let saleLines=[], orderLines=[], stockProdId=null;
 let recvOrderId=null;
 let lm=false, lc2=null, dnc=null;
-let FX={buy:0,sell:0,ts:null,dir:'usd2pyg',manual:false};
+let FX={
+  buy:0, sell:0, ts:null, dir:'usd2pyg', manual:false, // USD legacy (Cambios Chaco)
+  cur:'USD', // moneda activa en el conversor
+  currencies:{
+    USD:{ buy:0, sell:0, symbol:'$',   flag:'🇺🇸', name:'Dólar'    },
+    EUR:{ buy:0, sell:0, symbol:'€',   flag:'🇪🇺', name:'Euro'     },
+    ARS:{ buy:0, sell:0, symbol:'$AR', flag:'🇦🇷', name:'Peso Arg.' },
+    BRL:{ buy:0, sell:0, symbol:'R$',  flag:'🇧🇷', name:'Real'     }
+  }
+};
 let selPK='pro';
 
 // Helpers
