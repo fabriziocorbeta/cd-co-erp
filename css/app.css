@@ -220,9 +220,9 @@ body[data-theme="ruby"]:not(.light-mode) {
 }
 
 .glass-card {
-  background: #131b2e;
-  border: 1px solid rgba(69,70,77,.5);
-  border-radius: 16px;
+  background: linear-gradient(145deg, #131b2e, #0b1326);
+  border: 1px solid rgba(218,226,253,0.07);
+  border-radius: 24px;
   box-shadow: 10px 10px 20px #060e20, -10px -10px 20px #1a253c;
 }
 
@@ -4181,17 +4181,17 @@ body {
 }
 
 /* ─────────────────────────────────────
-   PANEL — sombra sutil, sin hover jump
+   PANEL — Banca Privada, 24px radius
 ───────────────────────────────────── */
 .panel {
-  border-radius: 10px !important;
-  border: 1px solid rgba(255,255,255,0.05) !important;
-  box-shadow: none !important;
-  transition: border-color .15s !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(218,226,253,0.07) !important;
+  box-shadow: 10px 10px 20px #060e20, -10px -10px 20px #1a253c !important;
+  transition: border-color .15s, box-shadow .15s !important;
 }
 .panel:hover {
-  border-color: rgba(255,255,255,0.09) !important;
-  box-shadow: none !important;
+  border-color: rgba(193,193,255,0.15) !important;
+  box-shadow: 14px 14px 28px #060e20, -14px -14px 28px #1a253c !important;
   transform: none !important;
 }
 .panel-gt::before { display: none !important; }
@@ -4201,17 +4201,17 @@ body {
    STAT CARDS — datos al frente
 ───────────────────────────────────── */
 .stat {
-  border-radius: 10px !important;
+  border-radius: 24px !important;
   padding: 20px 22px !important;
-  border: 1px solid rgba(255,255,255,0.05) !important;
-  box-shadow: none !important;
-  transition: border-color .15s !important;
+  border: 1px solid rgba(218,226,253,0.07) !important;
+  box-shadow: 10px 10px 20px #060e20, -10px -10px 20px #1a253c !important;
+  transition: border-color .15s, box-shadow .15s !important;
   overflow: visible !important;
 }
 .stat:hover {
   transform: none !important;
-  box-shadow: none !important;
-  border-color: rgba(255,255,255,0.09) !important;
+  box-shadow: 14px 14px 28px #060e20, -14px -14px 28px #1a253c !important;
+  border-color: rgba(193,193,255,0.15) !important;
 }
 .stat::after { display: none !important; }  /* eliminar gradiente decorativo */
 
