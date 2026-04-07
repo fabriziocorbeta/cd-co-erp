@@ -5023,4 +5023,139 @@ body.light-mode .fx-cur-sel {
 body.light-mode .fx-cl { color: #8896b3 !important; }
 
 /* ── END PIZARRA DE CAMBIOS ── */
+
+/* ════════════════════════════════════════
+   FLEET v2 — KPI GLASSMORPHISM CARDS
+   ════════════════════════════════════════ */
+.fleet-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.fleet-kpi-card.glass-kpi {
+  background: linear-gradient(135deg, rgba(193,193,255,0.10) 0%, rgba(78,222,163,0.06) 100%);
+  border: 1px solid rgba(193,193,255,0.18);
+  border-radius: 24px !important;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.fleet-kpi-card.glass-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.fleet-kpi-icon { font-size: 1.5rem; margin-bottom: 6px; }
+.fleet-kpi-val  {
+  font-family: var(--fm);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--cr);
+  letter-spacing: -0.01em;
+}
+.fleet-kpi-lbl  { font-size: .68rem; color: var(--mu); text-transform: uppercase; letter-spacing: .07em; }
+.fleet-kpi-sub  { font-size: .7rem; color: var(--g2); font-family: var(--fm); margin-top: 4px; }
+
+/* Maintenance Alert Banner */
+.fleet-alert-banner {
+  background: rgba(246,194,62,0.12);
+  border: 1px solid rgba(246,194,62,0.3);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: .8rem;
+  color: #f6c23e;
+  line-height: 1.5;
+}
+
+/* ════════════════════════════════════════
+   INVENTORY — BADGES DE STOCK
+   ════════════════════════════════════════ */
+.badge-stock-low {
+  display: inline-block;
+  background: rgba(255,180,171,0.18);
+  color: var(--neg);
+  border: 1px solid rgba(255,180,171,0.35);
+  border-radius: 20px;
+  padding: 1px 8px;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.badge-stock-out {
+  display: inline-block;
+  background: rgba(220,38,38,0.18);
+  color: #f87171;
+  border: 1px solid rgba(220,38,38,0.30);
+  border-radius: 20px;
+  padding: 1px 8px;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.badge-liquidation {
+  display: inline-block;
+  background: rgba(246,194,62,0.15);
+  color: #f6c23e;
+  border: 1px solid rgba(246,194,62,0.30);
+  border-radius: 20px;
+  padding: 1px 8px;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+/* ════════════════════════════════════════
+   CONCILIACIÓN BANCARIA — MODAL ROWS
+   ════════════════════════════════════════ */
+.recon-row {
+  background: var(--bg3);
+  border: 1px solid var(--bg5);
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: background 0.15s;
+}
+.recon-row:hover { background: var(--bg4); }
+.recon-exists { opacity: 0.55; }
+
+/* ════════════════════════════════════════
+   COMMAND BAR (Ctrl+K)
+   ════════════════════════════════════════ */
+.cmd-item {
+  padding: 11px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: .86rem;
+  color: var(--cr);
+  transition: background 0.12s;
+  user-select: none;
+}
+.cmd-item:hover,
+.cmd-item-active {
+  background: var(--pb);
+  color: var(--g3);
+}
+
+/* Light mode overrides */
+body.light-mode .fleet-kpi-card.glass-kpi {
+  background: linear-gradient(135deg, rgba(67,97,238,0.07) 0%, rgba(5,150,105,0.04) 100%) !important;
+  border-color: rgba(67,97,238,0.14) !important;
+  box-shadow: 0 2px 16px rgba(15,27,62,0.08) !important;
+}
+body.light-mode .fleet-kpi-lbl { color: #8896b3 !important; }
+body.light-mode .badge-stock-low  { background: rgba(220,38,38,0.08) !important; color: #dc2626 !important; }
+body.light-mode .badge-liquidation { background: rgba(196,154,58,0.10) !important; color: #c49a3a !important; }
+body.light-mode .recon-row { background: #fff !important; border-color: rgba(15,27,62,0.08) !important; }
+body.light-mode .cmd-item { color: #0d1b3e !important; }
+body.light-mode .cmd-item-active { background: rgba(67,97,238,0.08) !important; color: #4361ee !important; }
+
+/* ── END SPRINT 2026-04-06 ── */
 /* ── END REDESIGN 2026 ── */

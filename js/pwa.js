@@ -24,6 +24,87 @@ g('ib-close')?.addEventListener('click',()=>{g('inst-bar').classList.remove('sho
 function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight*.01+'px')}setVH();window.addEventListener('resize',setVH);
 
 // ══════════════════════════════════════════
+// COMMAND BAR (Ctrl+K)
+// ══════════════════════════════════════════
+const CMD_ACTIONS = [
+  { label: '⇄ Transferir entre cuentas',    keys: ['transferir','transfer','mover'],       action: () => openTransferModal() },
+  { label: '＋ Nueva Venta',                 keys: ['venta','sale','cobrar','factura'],     action: () => openSaleModal() },
+  { label: '⛽ Carga de Combustible',        keys: ['combustible','nafta','gasolina','km'], action: () => openFuelModal() },
+  { label: '＋ Nuevo Movimiento',            keys: ['movimiento','ingreso','egreso','gasto'],action: () => openTxModal?.() },
+  { label: '📦 Nuevo Pedido',               keys: ['pedido','compra','proveedor','order'], action: () => openOrderModal() },
+  { label: '🚗 Ver Flota',                  keys: ['flota','vehiculo','auto','fleet'],     action: () => goPage('fleet') },
+  { label: '📊 Dashboard',                  keys: ['dashboard','inicio','home'],           action: () => goPage('dashboard') },
+  { label: '💼 Inventario',                 keys: ['inventario','producto','stock'],       action: () => goPage('inventory') },
+  { label: '🏦 Mis Cuentas',               keys: ['cuentas','cuenta','bancaria','banco'], action: () => goPage('accounts') },
+  { label: '🏦 Conciliación Bancaria',      keys: ['conciliar','extracto','bancario'],     action: () => { goPage('accounts'); setTimeout(()=>openReconcileModal(),200); } },
+  { label: '🎯 Metas de Ahorro',            keys: ['metas','ahorro','objetivo'],           action: () => goPage('goals') },
+  { label: '💳 Presupuestos',              keys: ['presupuesto','budget','limite'],        action: () => goPage('budgets') },
+  { label: '🔄 Suscripciones',             keys: ['suscripcion','subscription','recurrente'], action: () => goPage('subscriptions') },
+  { label: '⚙️ Configuración',              keys: ['configuracion','settings','empresa'],  action: () => goPage('settings') },
+  { label: '🌙 Alternar Modo Claro/Oscuro', keys: ['modo','dark','light','tema'],          action: () => toggleMode() },
+];
+
+let _cmdIdx = 0;
+
+function openCmdBar() {
+  const el = g('cmd-bar');
+  if (!el) return;
+  g('cmd-input').value = '';
+  _cmdIdx = 0;
+  renderCmdList('');
+  el.style.display = 'flex';
+  setTimeout(() => g('cmd-input')?.focus(), 50);
+}
+
+function renderCmdList(q) {
+  const el = g('cmd-list');
+  if (!el) return;
+  const filtered = q
+    ? CMD_ACTIONS.filter(a => a.label.toLowerCase().includes(q.toLowerCase()) || a.keys.some(k => k.includes(q.toLowerCase())))
+    : CMD_ACTIONS;
+
+  el.innerHTML = filtered.length
+    ? filtered.map((a, i) => `
+        <div class="cmd-item ${i === _cmdIdx ? 'cmd-item-active' : ''}" id="cmd-item-${i}" onclick="execCmd(${i})" onmouseenter="_cmdIdx=${i};renderCmdList(document.getElementById('cmd-input').value)">
+          ${a.label}
+        </div>
+      `).join('')
+    : '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">Sin resultados</div>';
+
+  window._cmdFiltered = filtered;
+}
+
+function filterCmdBar() {
+  _cmdIdx = 0;
+  renderCmdList(g('cmd-input')?.value || '');
+}
+
+function handleCmdKey(e) {
+  const filtered = window._cmdFiltered || CMD_ACTIONS;
+  if (e.key === 'ArrowDown') { e.preventDefault(); _cmdIdx = Math.min(_cmdIdx + 1, filtered.length - 1); renderCmdList(g('cmd-input').value); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _cmdIdx = Math.max(_cmdIdx - 1, 0); renderCmdList(g('cmd-input').value); }
+  else if (e.key === 'Enter') { e.preventDefault(); execCmd(_cmdIdx); }
+  else if (e.key === 'Escape') { cm('cmd-bar'); }
+}
+
+function execCmd(idx) {
+  const filtered = window._cmdFiltered || CMD_ACTIONS;
+  const action = filtered[idx];
+  if (!action) return;
+  cm('cmd-bar');
+  setTimeout(() => action.action(), 80);
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    const el = g('cmd-bar');
+    if (el && el.style.display !== 'none') cm('cmd-bar');
+    else openCmdBar();
+  }
+});
+
+// ══════════════════════════════════════════
 // URL SHORTCUTS
 // ══════════════════════════════════════════
 const UP=new URLSearchParams(location.search);

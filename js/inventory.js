@@ -10,10 +10,26 @@ function setInvFlt(f,btn){invFlt=f;document.querySelectorAll('#page-inventory .f
 // ── ALERT LOGIC ──
 function checkStockAlert(product) {
   if (!product) return '';
-  if (product.stock <= product.minStock) {
-    return 'low-stock-alert';
-  }
+  if (product.stock <= product.minStock) return 'low-stock-alert';
   return '';
+}
+
+// ── DÍAS EN STOCK ──
+// Usa la fecha de la última transacción de stock entrada (compra) del producto,
+// o la fecha de created_at si no hay txs de entrada
+function daysInStock(p) {
+  // Buscar la última tx de entrada de stock ligada al producto
+  const entryTxs = (S.txs || []).filter(t =>
+    t._product_id === p.id && t.type === 'expense' && (t.cat || '').toLowerCase().includes('stock')
+  );
+  let refDate = null;
+  if (entryTxs.length > 0) {
+    refDate = entryTxs.map(t => new Date(t.date)).sort((a, b) => b - a)[0];
+  } else if (p.created_at) {
+    refDate = new Date(p.created_at);
+  }
+  if (!refDate) return null;
+  return Math.floor((Date.now() - refDate.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function renderInventory(){
@@ -60,6 +76,9 @@ function renderInventory(){
     const stockClass=p.stock<=0?'stock-out':p.stock<=p.minStock?'stock-low':'stock-ok';
     const margin=p.buyPrice>0?Math.round((p.sellPrice-p.buyPrice)/p.buyPrice*100):0;
     const alertClass=checkStockAlert(p);
+    const dias = daysInStock(p);
+    const isCriticalStock = p.stock < 2;
+    const isLiquidation = dias !== null && dias > 60 && p.stock > 0;
 
     // Dual currency calculation
     const cur = p.cur || '₲';
@@ -73,7 +92,12 @@ function renderInventory(){
     const sellConv = cur === '$' ? p.sellPrice * fxBuy : p.sellPrice / fxSell;
 
     return `<div class="pcard ${alertClass}">
-      <div class="pcard-cat">${p.cat} · ${p.sku}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+        <div class="pcard-cat">${p.cat} · ${p.sku}</div>
+        ${isCriticalStock && p.stock > 0 ? '<span class="badge-stock-low">⚠ STOCK BAJO</span>' : ''}
+        ${p.stock <= 0 ? '<span class="badge-stock-out">✕ SIN STOCK</span>' : ''}
+        ${isLiquidation ? '<span class="badge-liquidation">💸 LIQUIDACIÓN</span>' : ''}
+      </div>
       <div class="pcard-name">${p.name}</div>
       ${p.variant?`<div style="font-size:.68rem;color:var(--m3);margin-top:2px">🎨 ${p.variant}</div>`:''}
       ${p.serialNumber?`<div style="font-size:.68rem;color:var(--mu);margin-top:2px;font-family:var(--fm)">🔖 ${p.serialNumber}</div>`:''}
@@ -101,7 +125,10 @@ function renderInventory(){
           <span class="mono ${stockClass}" style="font-size:.8rem;font-weight:600">${p.stock} u.</span>
           <span style="font-size:.6rem;color:var(--m3);font-family:var(--fm);margin-left:5px">mín: ${p.minStock}</span>
         </div>
-        ${p.stock<=0?'<span class="pill pill-neg">Sin stock</span>':p.stock<=p.minStock?'<span class="pill pill-warn">Stock bajo</span>':'<span class="pill pill-pos">En stock</span>'}
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+          ${p.stock<=0?'<span class="pill pill-neg">Sin stock</span>':p.stock<=p.minStock?'<span class="pill pill-warn">Stock bajo</span>':'<span class="pill pill-pos">En stock</span>'}
+          ${dias !== null ? `<span class="pill" style="background:var(--bg4);color:var(--mu);font-size:.6rem">${dias}d en stock${isLiquidation?' · Liquidar':''}</span>` : ''}
+        </div>
       </div>
       <div style="padding:12px;background:var(--bg2);border-radius:var(--rs);margin-top:8px;border-left:3px solid var(--g)">
         <div style="font-size:.7rem;color:var(--m3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">💰 Valor Acumulado</div>

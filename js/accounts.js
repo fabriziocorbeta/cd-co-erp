@@ -60,6 +60,8 @@ function getTotalBalancesByCurrency() {
 function renderAccounts() {
   const grid = g('accounts-grid');
   if (!grid) return;
+  // Render cash flow chart after a tick (canvas needs to be visible)
+  setTimeout(() => renderCashFlow(), 80);
 
   const pw = g('acc-networth-panel');
   if(pw) {
@@ -377,4 +379,190 @@ function populateTxAccountSelect() {
   }
   
   el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+// CONCILIACIÓN BANCARIA (Importador Rápido)
+// ══════════════════════════════════════════
+function openReconcileModal() {
+  const el = g('recon-modal');
+  if (!el) return;
+  g('recon-input').value = '';
+  g('recon-results').innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">Pegá el texto del extracto bancario arriba y presioná Analizar.</div>';
+  el.style.display = 'flex';
+}
+
+function parseReconciliation() {
+  const raw = (g('recon-input')?.value || '').trim();
+  if (!raw) { toast('Pegá el texto del extracto primero'); return; }
+
+  const resultsEl = g('recon-results');
+  if (!resultsEl) return;
+
+  // Patrones para detectar líneas de movimiento bancario
+  // Soporta formatos: "15/03 TRANSFERENCIA ENTRANTE 500.000" / "2026-03-15 -250000 Pago servicios"
+  const datePatterns = [
+    /(\d{2}[\/\-]\d{2}[\/\-]?\d{0,4})/,  // dd/mm o dd/mm/yyyy
+    /(\d{4}[\/\-]\d{2}[\/\-]\d{2})/        // yyyy-mm-dd
+  ];
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const suggestions = [];
+
+  lines.forEach(line => {
+    // Buscar monto (número con puntos o comas, positivo o negativo)
+    const amtMatch = line.match(/([+-]?\s*[\d.,]+(?:\.?\d{3})*(?:,\d{2})?)/g);
+    if (!amtMatch) return;
+
+    // Tomar el número más significativo
+    let amtStr = amtMatch.map(m => m.replace(/\s/g, '')).sort((a, b) => b.length - a.length)[0];
+    const isNeg = amtStr.startsWith('-');
+    amtStr = amtStr.replace(/[^0-9.,]/g, '');
+
+    // Normalizar separadores PY/BR (punto como miles, coma como decimal)
+    if (amtStr.includes('.') && amtStr.includes(',')) {
+      amtStr = amtStr.replace(/\./g, '').replace(',', '.');
+    } else if (amtStr.includes('.') && amtStr.split('.').pop().length !== 2) {
+      amtStr = amtStr.replace(/\./g, '');
+    }
+    const amount = parseFloat(amtStr);
+    if (!amount || amount < 100) return; // filtrar números pequeños (ej. fechas)
+
+    // Detectar descripción (todo lo que no sea fecha/monto)
+    const desc = line.replace(/[0-9\/\-.,+]/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 60);
+    const type = isNeg ? 'expense' : 'income';
+
+    // Verificar si ya existe una tx similar en S.txs
+    const exists = (S.txs || []).some(t => Math.abs(t.amount - amount) < 10 && t.type === type);
+
+    suggestions.push({ line, amount, desc: desc || 'Movimiento bancario', type, exists });
+  });
+
+  if (suggestions.length === 0) {
+    resultsEl.innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">No se detectaron movimientos. Verificá el formato del extracto.</div>';
+    return;
+  }
+
+  resultsEl.innerHTML = suggestions.map((s, i) => `
+    <div class="recon-row ${s.exists ? 'recon-exists' : ''}">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <span style="font-size:.75rem;padding:2px 8px;border-radius:20px;font-weight:600;background:${s.type==='income'?'rgba(78,222,163,0.15)':'rgba(255,180,171,0.15)'};color:${s.type==='income'?'var(--pos)':'var(--neg)'}">${s.type==='income'?'INGRESO':'EGRESO'}</span>
+        <div style="flex:1">
+          <div style="font-size:.8rem;color:var(--cr);font-weight:500">${s.desc}</div>
+          <div style="font-family:var(--fm);font-weight:600;color:${s.type==='income'?'var(--pos)':'var(--neg)'};margin-top:2px">₲ ${s.amount.toLocaleString()}</div>
+          ${s.exists ? '<div style="font-size:.68rem;color:var(--mu);margin-top:2px">✓ Ya registrado</div>' : ''}
+        </div>
+        ${!s.exists ? `<button class="btn btn-o" style="font-size:.7rem;padding:4px 10px;white-space:nowrap" onclick="importReconTx(${i})">＋ Importar</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  // Guardar en window para importar
+  window._reconSuggestions = suggestions;
+
+  const newCount = suggestions.filter(s => !s.exists).length;
+  toast(`◆ ${suggestions.length} movimientos detectados — ${newCount} nuevos`);
+}
+
+function importReconTx(idx) {
+  const s = (window._reconSuggestions || [])[idx];
+  if (!s) return;
+  const tx = {
+    id: uid(),
+    type: s.type,
+    desc: s.desc,
+    amount: s.amount,
+    cur: '₲',
+    cat: s.type === 'income' ? 'Ingresos' : 'Gastos',
+    date: today(),
+    icon: s.type === 'income' ? '🏦' : '🏦'
+  };
+  S.txs.unshift(tx);
+  if (SB_ON) sbUpsert('txs', { ...tx, user_id: S.user?.id });
+  lsave();
+  renderAll();
+  // Marcar como importado
+  const btn = document.querySelectorAll('#recon-results .btn')[idx];
+  if (btn) { btn.textContent = '✓'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  toast('◆ Movimiento importado');
+}
+
+// ══════════════════════════════════════════
+// CASH FLOW PROYECTADO (30 días)
+// ══════════════════════════════════════════
+let _cashFlowChart = null;
+
+function renderCashFlow() {
+  const el = g('cashflow-chart');
+  if (!el) return;
+
+  const txs = S.txs || [];
+  const now = new Date();
+  const msDay = 1000 * 60 * 60 * 24;
+
+  // Calcular promedio diario de ingresos y gastos (últimos 60 días)
+  const recent = txs.filter(t => {
+    const d = new Date(t.date);
+    return (now - d) / msDay <= 60;
+  });
+
+  const avgDailyInc = recent.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0) / 60;
+  const avgDailyExp = recent.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0) / 60;
+
+  // Saldo inicial (suma de cuentas)
+  const initBalance = (S.accounts || []).reduce((s, a) => s + (a.balance || 0), 0);
+
+  // Proyectar 30 días
+  const labels = [];
+  const projData = [];
+  let balance = initBalance;
+
+  for (let d = 0; d <= 30; d++) {
+    const date = new Date(now.getTime() + d * msDay);
+    labels.push(d === 0 ? 'Hoy' : date.toLocaleDateString('es-PY', { day: '2-digit', month: 'short' }));
+    balance += (avgDailyInc - avgDailyExp);
+    projData.push(Math.round(balance));
+  }
+
+  if (_cashFlowChart) _cashFlowChart.destroy();
+
+  _cashFlowChart = new Chart(el, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Saldo Proyectado',
+        data: projData,
+        borderColor: '#4edea3',
+        backgroundColor: 'rgba(78,222,163,0.08)',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true,
+        pointRadius: 0,
+        pointHoverRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '₲ ' + ctx.parsed.y.toLocaleString()
+          }
+        }
+      },
+      scales: {
+        y: {
+          grid: { color: 'rgba(255,255,255,0.03)' },
+          ticks: { color: 'var(--mu)', font: { size: 10 }, callback: v => '₲' + (v/1e6).toFixed(1)+'M' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: 'var(--mu)', font: { size: 9 }, maxTicksLimit: 8 }
+        }
+      }
+    }
+  });
 }
