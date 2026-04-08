@@ -159,10 +159,10 @@ function renderDashboardSummary() {
     S.inventory = data.inventario_kpis;
     _saveDashboardSummary(data);
 
-    renderStats();
-    renderCharts();
-    renderRecentTransactions();
-    renderCardsStock();
+    renderEtherealStats();
+    renderEtherealCharts();
+    renderEtherealRecentTxs();
+    renderEtherealCardsStock();
   }
 }
 

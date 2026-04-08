@@ -33,7 +33,7 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   // Ignorar peticiones a Supabase RPC o APIs externas
-  if (event.request.url.includes('supabase.co') || event.request.url.includes('/rest/v1/') || event.request.url.includes('/rpc/')) {
+  if (event.request.url.includes('supabase.co') || event.request.url.includes('/rest/v1/') || event.request.url.includes('/rpc/') || event.request.method !== 'GET') {
     return;
   }
 
