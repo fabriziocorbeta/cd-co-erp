@@ -28,9 +28,10 @@ document.addEventListener('DOMContentLoaded', function() {
 async function renderPageData(pg){
   if(pg==='dashboard')renderDashboard();
   else if(pg==='txs'){
-    // Always pull fresh txs from Supabase before rendering
     if(SB_ON && sb){
-      const {data, error} = await sb.from('txs').select('*').order('date', {ascending: false});
+      const {data, error} = await sb.from('txs')
+        .select('id,type,amount,cur,cat,date,desc,account_id,transferPairId')
+        .order('date', {ascending: false});
       if(!error && data) S.txs = data;
     }
     renderTxs();
@@ -53,7 +54,73 @@ async function renderPageData(pg){
   else if(pg==='fleet'){if(typeof renderFleet==='function')renderFleet();}
   else if(pg==='plan'){buildPlanCards();loadEmpresaForm();if(typeof loadAdminUsers==='function')loadAdminUsers();}
 }
-function renderAll(){renderDashboard();renderTxs();renderInventory();renderSales();renderOrders();renderInvoices();renderContacts();renderAccounts();renderBudgets();renderSubscriptions();renderGoals();renderAdvice();renderDebtsPage();if(typeof renderHistoryPage==='function')renderHistoryPage();if(typeof renderReceivables==='function')renderReceivables();if(typeof renderPatrimonio==='function'&&S.curPage==='patrimonio')renderPatrimonio();if(typeof renderProfitability==='function')renderProfitability();if(typeof renderFleet==='function'&&S.curPage==='fleet')renderFleet();updateBadges();if(typeof populateTxAccountSelect==='function')populateTxAccountSelect();}
+// ── Dirty-flag render guard ──────────────────────────────────────────────────
+// Compute a lightweight fingerprint of the data that drives each module.
+// If the fingerprint hasn't changed since last render, skip that module.
+let _renderHash = {};
+function _hash(arr) {
+  if (!arr || !arr.length) return '0';
+  // Use length + first/last id + last record's key field as cheap fingerprint
+  const first = arr[0]; const last = arr[arr.length - 1];
+  return `${arr.length}|${first?.id||''}|${last?.id||''}`;
+}
+function _changed(key, arr) {
+  const h = _hash(arr);
+  if (_renderHash[key] === h) return false;
+  _renderHash[key] = h;
+  return true;
+}
+
+function renderAll() {
+  const txChanged  = _changed('txs', S.txs);
+  const accChanged = _changed('acc', S.accounts);
+  const prdChanged = _changed('prd', S.products);
+  const salChanged = _changed('sal', S.sales);
+  const ordChanged = _changed('ord', S.orders);
+  const conChanged = _changed('con', S.contacts);
+  const debChanged = _changed('deb', S.debts);
+  const subChanged = _changed('sub', S.subscriptions);
+  const recChanged = _changed('rec', S.receivables);
+  const golChanged = _changed('gol', S.goals);
+
+  // Dashboard depends on txs + accounts
+  if (txChanged || accChanged) renderDashboard();
+  // Transactions page
+  if (txChanged) renderTxs();
+  // Inventory
+  if (prdChanged) renderInventory();
+  // Sales
+  if (salChanged || prdChanged) renderSales();
+  // Orders
+  if (ordChanged) renderOrders();
+  // Contacts
+  if (conChanged) renderContacts();
+  // Accounts (depends on txs for balance + cashflow)
+  if (accChanged || txChanged) renderAccounts();
+  // Budgets
+  if (txChanged || _changed('bgt', S.budgets)) renderBudgets();
+  // Subscriptions
+  if (subChanged) renderSubscriptions();
+  // Goals
+  if (golChanged) renderGoals();
+  // Debts
+  if (debChanged) renderDebtsPage();
+  // Receivables
+  if (recChanged && typeof renderReceivables === 'function') renderReceivables();
+  // Advice (depends on everything, run if any changed)
+  if (txChanged || accChanged || prdChanged) renderAdvice();
+  // History — only if on that page
+  if (txChanged && typeof renderHistoryPage === 'function') renderHistoryPage();
+  // Heavy pages — only render if currently visible
+  if (S.curPage === 'patrimonio' && (txChanged || accChanged) && typeof renderPatrimonio === 'function') renderPatrimonio();
+  if (S.curPage === 'profitability' && (prdChanged || txChanged) && typeof renderProfitability === 'function') renderProfitability();
+  if (S.curPage === 'fleet' && typeof renderFleet === 'function') renderFleet();
+  // Invoices (rarely changes)
+  if (salChanged) renderInvoices();
+
+  updateBadges();
+  if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
+}
 
 function mnA(el){document.querySelectorAll('.mn').forEach(b=>b.classList.remove('on'));el.classList.add('on')}
 function openQuickAdd(){document.getElementById('qa-modal').style.display='flex'}
@@ -230,4 +297,65 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeSidebar();
   });
+
+  // ── HOVER PREFETCH ──────────────────────────────────────────────────────
+  // Prefetch heavy tables when user hovers sidebar nav items (desktop only)
+  const PREFETCH_MAP = {
+    'nav-fleet':       () => _prefetchTables(['vehicles'], ['fuel_logs']),
+    'nav-inventory':   () => _prefetchTables(['products']),
+    'nav-reports':     () => _prefetchTables(['txs','accounts']),
+    'nav-profitability': () => _prefetchTables(['products','txs']),
+  };
+  Object.keys(PREFETCH_MAP).forEach(navId => {
+    const el = document.getElementById(navId);
+    if (!el) return;
+    let _fired = false;
+    el.addEventListener('mouseenter', () => {
+      if (_fired || !SB_ON) return;
+      _fired = true;
+      PREFETCH_MAP[navId]();
+    });
+  });
 });
+
+// Prefetch helper: fetches tables in background and merges into S only if still empty
+const _prefetchInflight = new Set();
+function _prefetchTables(tables, extraTables) {
+  if (!SB_ON || !sb) return;
+  tables.forEach(t => {
+    if (_prefetchInflight.has(t)) return;
+    _prefetchInflight.add(t);
+    const cols = typeof TABLE_COLS !== 'undefined' && TABLE_COLS[t] ? TABLE_COLS[t] : '*';
+    sb.from(t).select(cols).order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data && (!S[t] || !S[t].length)) S[t] = data;
+      }).finally(() => _prefetchInflight.delete(t));
+  });
+  (extraTables || []).forEach(t => {
+    if (_prefetchInflight.has(t)) return;
+    _prefetchInflight.add(t);
+    const cols = t === 'fuel_logs' ? 'id,vehicle_id,date,liters,cost,km' : '*';
+    sb.from(t).select(cols).order('date', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data && t === 'fuel_logs' && (!S.fuelLogs || !S.fuelLogs.length))
+          S.fuelLogs = data;
+      }).finally(() => _prefetchInflight.delete(t));
+  });
+}
+
+// ── CONNECTION WARM-UP PING ─────────────────────────────────────────────────
+// Fires a single lightweight query (1 row) on first user interaction or
+// on tab becoming visible — "wakes up" the Supabase connection pool so the
+// first real query doesn't pay cold-connection latency.
+let _pingDone = false;
+function _sbPing() {
+  if (_pingDone || !SB_ON || !sb || !S.user) return;
+  _pingDone = true;
+  sb.from('accounts').select('id').limit(1).then(() => {}).catch(() => {});
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') _sbPing();
+}, { once: true });
+['mousedown','keydown','touchstart'].forEach(evt =>
+  document.addEventListener(evt, _sbPing, { once: true, passive: true })
+);

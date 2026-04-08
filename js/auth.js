@@ -76,17 +76,21 @@ function swrSave() {
   } catch(e) {}
 }
 
+// swrLoad returns: 'fresh' | 'stale' | 'miss'
+// 'fresh' = data loaded, within TTL  (skip background refresh)
+// 'stale' = data loaded, expired TTL (trigger background refresh)
+// 'miss'  = no usable cache           (cold start with skeletons)
 function swrLoad() {
   try {
     const d = JSON.parse(localStorage.getItem(SWR_KEY) || '{}');
-    if (!d.ts || !d.accounts || !d.txs) return false;
-    if (Date.now() - d.ts > SWR_TTL) return false; // caché vencido
+    if (!d.ts || !d.accounts || !d.txs) return 'miss';
+    // Always hydrate S from cache — even if stale, show data immediately
     ['txs','accounts','products','sales','orders','contacts',
      'cards','debts','budgets','subscriptions','receivables','goals',
      'vehicles','fuelLogs']
       .forEach(k => { if (d[k] !== undefined) S[k] = d[k]; });
-    return true; // cache hit
-  } catch(e) { return false; }
+    return (Date.now() - d.ts <= SWR_TTL) ? 'fresh' : 'stale';
+  } catch(e) { return 'miss'; }
 }
 
 function defaults(){
@@ -132,12 +136,28 @@ function defaults(){
     };
   }
 }
+// ── Minimal column maps — only what each module actually renders ─────────────
+const TABLE_COLS = {
+  txs:           'id,type,amount,cur,cat,date,desc,account_id,transferPairId,user_id',
+  accounts:      'id,name,type,bank,cur,balance,initialBalance,notes,user_id',
+  products:      'id,name,sku,cat,buyPrice,sellPrice,stock,minStock,cur,created_at,variant,serial,desc',
+  sales:         'id,date,total,cur,items,contact_id,status,num,nro_factura,condicion',
+  orders:        'id,date,status,supplier_id,items,num,eta,notes',
+  contacts:      'id,name,type,phone,email,ruc,notes',
+  cards:         'id,name,limit,used,cur,bank,dueDate,color',
+  debts:         'id,creditor,description,total,paid,cur,dueDate,installments,paidInstallments',
+  budgets:       'id,category,amount,cur,month',
+  subscriptions: 'id,name,amount,cur,frequency,nextDate,active,icon,description',
+  receivables:   'id,contact,total,paid,cur,dueDate,completed,desc',
+  goals:         'id,name,target_amount,current_amount,deadline,cur,icon',
+};
+
 async function loadAllUserData() {
   const qTimeout = ms => new Promise(res => setTimeout(() => res({data:[], error:{message:'timeout'}}), ms));
 
-  // Helper: fetch one table with timeout
+  // Helper: fetch one table with specific columns + timeout
   const fetchTable = (t, ms) => Promise.race([
-    sb.from(t).select('*').order('created_at', { ascending: false }),
+    sb.from(t).select(TABLE_COLS[t] || '*').order('created_at', { ascending: false }),
     qTimeout(ms)
   ]);
 
@@ -157,13 +177,13 @@ async function loadAllUserData() {
     }
   };
 
-  // Helper para fetch de fuel_logs (nombre de tabla ≠ clave en S)
+  // Helper para fetch de fuel_logs y vehicles con columnas mínimas
   const fetchFuelLogs = (ms) => Promise.race([
-    sb.from('fuel_logs').select('*').order('date', { ascending: false }),
+    sb.from('fuel_logs').select('id,vehicle_id,date,liters,cost,km').order('date', { ascending: false }),
     qTimeout(ms)
   ]);
   const fetchVehicles = (ms) => Promise.race([
-    sb.from('vehicles').select('*').order('created_at', { ascending: false }),
+    sb.from('vehicles').select('id,nickname,brand,model,year,engine_type,user_id').order('created_at', { ascending: false }),
     qTimeout(ms)
   ]);
   const applyFleet = async () => {
@@ -174,47 +194,51 @@ async function loadAllUserData() {
       S.fuelLogs = fRes.value.data;
   };
 
-  // ── SWR: cache hit → render inmediato, revalidar en background ──────────
-  if (swrLoad()) {
-    recomputeBalances();
-    if (typeof renderAll === 'function') renderAll();
+  const ALL  = ['accounts','txs','products','sales','orders','contacts',
+                'cards','debts','budgets','subscriptions','receivables','goals'];
 
-    // Revalidar todas las tablas en paralelo (sin bloquear UI)
-    const ALL = ['accounts','txs','products','sales','orders','contacts',
-                 'cards','debts','budgets','subscriptions','receivables','goals'];
-    Promise.allSettled([
-      ...ALL.map(t => fetchTable(t, 12000)),
-    ]).then(results => {
+  const _bgRefresh = () => {
+    // All tables in parallel, then fleet, then save + re-render
+    Promise.allSettled(ALL.map(t => fetchTable(t, 12000))).then(results => {
       applyResults(ALL, results);
       recomputeBalances();
     });
-    // Fleet en paralelo, no bloquea
     applyFleet().then(() => {
       swrSave();
       if (typeof renderAll === 'function') renderAll();
       if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
     });
-    return; // UI ya renderizada con datos del caché
+  };
+
+  // ── SWR tri-state ────────────────────────────────────────────────────────
+  const swrState = swrLoad(); // 'fresh' | 'stale' | 'miss'
+
+  if (swrState !== 'miss') {
+    // Cache hit (fresh or stale) → render immediately from localStorage
+    recomputeBalances();
+    if (typeof renderAll === 'function') renderAll();
+    if (swrState === 'stale') _bgRefresh(); // stale: silently revalidate
+    // fresh: skip network entirely until next TTL expiry
+    return;
   }
 
-  // ── Cold start: no hay caché o expiró ───────────────────────────────────
-  // FASE 1 — tablas críticas (bloqueante, necesarias para el dashboard)
-  const critical = ['accounts', 'txs'];
-  const critResults = await Promise.allSettled(critical.map(t => fetchTable(t, 8000)));
-  applyResults(critical, critResults);
+  // ── Cold start: no cache ─────────────────────────────────────────────────
+  // FASE 1 — accounts + txs (critical for dashboard, await these only)
+  const critResults = await Promise.allSettled(
+    ['accounts', 'txs'].map(t => fetchTable(t, 8000))
+  );
+  applyResults(['accounts', 'txs'], critResults);
   recomputeBalances();
 
-  // FASE 2 — resto en background (no bloquea la UI), incluye fleet
+  // FASE 2 — everything else in background (no await)
   const rest = ['products','sales','orders','contacts','cards','debts',
                 'budgets','subscriptions','receivables','goals'];
-  Promise.allSettled([
-    ...rest.map(t => fetchTable(t, 12000)),
-  ]).then(results => {
+  Promise.allSettled(rest.map(t => fetchTable(t, 12000))).then(results => {
     applyResults(rest, results);
     recomputeBalances();
   });
   applyFleet().then(() => {
-    swrSave(); // guardar caché completo para próximas visitas
+    swrSave();
     if (typeof renderAll === 'function') renderAll();
     if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
   });
@@ -377,10 +401,11 @@ async function enterApp(name, plan) {
     `${DNS[nd.getDay()]} ${nd.getDate()} ${MNS[nd.getMonth()]} ${nd.getFullYear()}`;
 
   if (SB_ON) {
-    const cacheHit = swrLoad();
+    // Pre-check cache before loadAllUserData so we can decide path
+    const swrState = swrLoad(); // 'fresh' | 'stale' | 'miss'
 
-    if (cacheHit) {
-      // ── FAST PATH: cache hit → render inmediato ────────────────────────
+    if (swrState !== 'miss') {
+      // ── FAST PATH: data already in S from swrLoad() ───────────────────
       recomputeBalances();
       _fillSidebarStats();
       buildPlanCards();
@@ -391,14 +416,14 @@ async function enterApp(name, plan) {
       if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
       initFx();
       if (typeof applySavedTheme === 'function') applySavedTheme();
-      // Background revalidation (silent, no blocking)
+      // loadAllUserData will skip network if 'fresh', or silently refresh if 'stale'
       loadAllUserData().catch(() => {});
     } else {
-      // ── COLD START: skeletons → cargar datos críticos → render ─────────
+      // ── COLD START: skeletons → accounts+txs → render ─────────────────
       _injectSkeletons();
       buildPlanCards();
       if (typeof applySavedTheme === 'function') applySavedTheme();
-      await loadAllUserData(); // critical + accounts+txs are loaded first internally
+      await loadAllUserData(); // fetches accounts+txs first, rest in background
       _clearSkeletons();
       recomputeBalances();
       _fillSidebarStats();
