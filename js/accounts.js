@@ -11,20 +11,42 @@ let acctDetailOpen = null; // id of account showing history inline
 // HELPERS
 // ══════════════════════════════════════════
 function acctTypeLabel(type) {
-  return type === 'bank' ? 'Banco' : type === 'cash' ? 'Efectivo' : 'Billetera Digital';
+  if (type === 'bank')       return 'Banco';
+  if (type === 'cash')       return 'Efectivo';
+  if (type === 'investment') return 'Inversión';
+  return 'Billetera Digital';
 }
 function acctTypeIcon(type) {
-  return type === 'bank' ? '🏦' : type === 'cash' ? '💵' : '📱';
+  if (type === 'bank')       return '🏦';
+  if (type === 'cash')       return '💵';
+  if (type === 'investment') return '📈';
+  return '📱';
 }
 function acctTypeGradient(type) {
-  if (type === 'bank')    return 'linear-gradient(135deg,#071828,#0a2840)';
-  if (type === 'cash')    return 'linear-gradient(135deg,#081a10,#0d2a18)';
+  if (type === 'bank')       return 'linear-gradient(135deg,#071828,#0a2840)';
+  if (type === 'cash')       return 'linear-gradient(135deg,#081a10,#0d2a18)';
+  if (type === 'investment') return 'linear-gradient(135deg,#1a1408,#2a1f04)';
   return 'linear-gradient(135deg,#1a0828,#281040)';
 }
 function acctTypeBorder(type) {
-  if (type === 'bank')    return 'rgba(74,122,181,.45)';
-  if (type === 'cash')    return 'rgba(74,155,111,.45)';
+  if (type === 'bank')       return 'rgba(74,122,181,.45)';
+  if (type === 'cash')       return 'rgba(74,155,111,.45)';
+  if (type === 'investment') return 'rgba(232,177,36,.45)';
   return 'rgba(122,90,181,.45)';
+}
+
+// Investment: total interests acredited (income txs linked to this account with cat 'Interés')
+function getInvestmentInterests(accountId) {
+  return (S.txs || [])
+    .filter(t => t.account_id === accountId && t.type === 'income' && (t.cat === 'Interés' || t.cat === 'Dividendo'))
+    .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+}
+// ROI % = (saldo actual - capital inicial) / capital inicial * 100
+function getInvestmentROI(acc) {
+  const capital = parseFloat(acc.initialBalance || 0);
+  if (!capital) return 0;
+  const current = getAccountBalance(acc.id);
+  return ((current - capital) / capital * 100);
 }
 
 // Calculate real balance: initial balance ± all linked transactions
@@ -121,6 +143,38 @@ function renderAccounts() {
     const cur = acc.cur || acc.currency || '$';
     const isOpen = acctDetailOpen === acc.id;
     const txs = isOpen ? getAccountTxs(acc.id) : [];
+    const isInvestment = acc.type === 'investment';
+
+    // Investment-specific metrics
+    const interests = isInvestment ? getInvestmentInterests(acc.id) : 0;
+    const roi       = isInvestment ? getInvestmentROI(acc) : 0;
+    const roiColor  = roi >= 0 ? 'var(--pos)' : '#d47a7a';
+
+    const investmentPanel = isInvestment ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 0;border-top:1px solid rgba(232,177,36,.2);border-bottom:1px solid rgba(232,177,36,.2);margin:8px 0">
+        <div>
+          <div class="acc-bal-lbl">Capital Inicial</div>
+          <div style="font-family:var(--fm);font-size:.82rem;color:var(--mu)">${fmt(acc.initialBalance || 0, cur)}</div>
+        </div>
+        <div>
+          <div class="acc-bal-lbl">Intereses</div>
+          <div style="font-family:var(--fm);font-size:.82rem;color:var(--pos)">+${fmt(interests, cur)}</div>
+        </div>
+        <div>
+          <div class="acc-bal-lbl">Rendimiento</div>
+          <div style="font-family:var(--fm);font-size:.9rem;font-weight:700;color:${roiColor}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</div>
+        </div>
+      </div>` : `
+      <div class="acc-balance-row">
+        <div>
+          <div class="acc-bal-lbl">Saldo actual</div>
+          <div class="acc-balance" style="color:${bal < 0 ? '#d47a7a' : 'var(--g3)'}">${fmt(bal, cur)}</div>
+        </div>
+        <div>
+          <div class="acc-bal-lbl">Saldo inicial</div>
+          <div class="acc-balance-init">${fmt(acc.initialBalance || 0, cur)}</div>
+        </div>
+      </div>`;
 
     return `
     <div class="account-card" style="background:${gradient};border-color:${border}">
@@ -131,22 +185,19 @@ function renderAccounts() {
           <div class="acc-name">${acc.name}</div>
         </div>
         <div class="acc-actions-top">
+          ${isInvestment ? `<button class="btn btn-o" style="font-size:.58rem;padding:3px 10px" onclick="openInterestModal('${acc.id}')">＋ Interés</button>` : ''}
           <button class="btn btn-s" style="font-size:.58rem;padding:3px 8px" onclick="openAccountModal('${acc.id}')">✏</button>
           <button class="btn btn-danger" style="font-size:.58rem;padding:3px 8px" onclick="delAccount('${acc.id}')">✕</button>
         </div>
       </div>
-      <div class="acc-balance-row">
-        <div>
-          <div class="acc-bal-lbl">Saldo actual</div>
-          <div class="acc-balance" style="color:${bal < 0 ? '#d47a7a' : 'var(--g3)'}">${fmt(bal, cur)}</div>
-        </div>
-        <div>
-          <div class="acc-bal-lbl">Saldo inicial</div>
-          <div class="acc-balance-init">${fmt(acc.initialBalance || 0, cur)}</div>
-        </div>
-      </div>
+      ${isInvestment ? `
+        <div style="margin-top:6px">
+          <div class="acc-bal-lbl">Valor actual</div>
+          <div class="acc-balance" style="color:var(--g2)">${fmt(bal, cur)}</div>
+        </div>` : ''}
+      ${investmentPanel}
       <div class="acc-foot">
-        <span class="pill ${acc.type==='bank'?'pill-blue':acc.type==='cash'?'pill-pos':'pill-pur'}">${cur}</span>
+        <span class="pill ${acc.type==='bank'?'pill-blue':acc.type==='cash'?'pill-pos':acc.type==='investment'?'pill-g':'pill-pur'}">${cur}</span>
         <button class="acc-hist-btn" onclick="toggleAcctDetail('${acc.id}')">
           ${isOpen ? '▲ Ocultar historial' : '▼ Ver historial'}
         </button>
@@ -356,6 +407,75 @@ async function saveTransfer() {
 }
 
 // ══════════════════════════════════════════
+// INVESTMENT — ACREDITAR INTERÉS
+// ══════════════════════════════════════════
+let _investmentAccId = null;
+
+function openInterestModal(accId) {
+  const acc = (S.accounts || []).find(a => a.id === accId);
+  if (!acc) return;
+  _investmentAccId = accId;
+  const cur = acc.cur || acc.currency || '$';
+  const bal = getAccountBalance(accId);
+  const capital = parseFloat(acc.initialBalance || 0);
+  const roi = getInvestmentROI(acc);
+
+  g('inv-acc-name').textContent = acc.name + (acc.bank ? ' · ' + acc.bank : '');
+  g('inv-capital-disp').textContent = fmt(capital, cur);
+  g('inv-balance-disp').textContent = fmt(bal, cur);
+  g('inv-roi-disp').textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + '%';
+  g('inv-interest-amt').value = '';
+  g('inv-interest-cur').value = cur;
+  g('inv-interest-date').value = today();
+  g('inv-interest-desc').value = '';
+  g('interest-modal').style.display = 'flex';
+}
+
+async function saveInvestmentInterest() {
+  const acc = (S.accounts || []).find(a => a.id === _investmentAccId);
+  if (!acc) return;
+
+  const amt  = parseFloat(g('inv-interest-amt').value);
+  const cur  = g('inv-interest-cur').value;
+  const date = g('inv-interest-date').value;
+  const desc = g('inv-interest-desc').value.trim() || 'Rendimiento / Interés acreditado';
+
+  if (!amt || amt <= 0) { toast('Ingresá un monto válido'); return; }
+  if (!date)            { toast('Seleccioná una fecha'); return; }
+
+  // 1. Create income tx linked to this account
+  const tx = {
+    id: uid(),
+    type: 'income',
+    desc: `📈 ${desc} — ${acc.name}`,
+    amount: amt,
+    cur,
+    cat: 'Interés',
+    date,
+    account_id: _investmentAccId
+  };
+
+  // 2. Update account balance
+  const newBal = getAccountBalance(_investmentAccId) + amt;
+  const accIdx = (S.accounts || []).findIndex(a => a.id === _investmentAccId);
+  if (accIdx >= 0) S.accounts[accIdx].balance = newBal;
+
+  if (SB_ON) {
+    const saved = await sbUpsert('txs', { ...tx, user_id: S.user?.id });
+    if (saved) S.txs.unshift(saved); else S.txs.unshift(tx);
+    await sbUpsert('accounts', { ...S.accounts[accIdx] });
+  } else {
+    S.txs.unshift(tx);
+    lsave();
+  }
+
+  renderAll();
+  cm('interest-modal');
+  const roi = getInvestmentROI(S.accounts[accIdx]);
+  toast(`◆ ${fmt(amt, cur)} acreditado — Rendimiento total: ${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%`);
+}
+
+// ══════════════════════════════════════════
 // TX ACCOUNT SELECT POPULATOR
 // ══════════════════════════════════════════
 function populateTxAccountSelect() {
@@ -382,64 +502,119 @@ function populateTxAccountSelect() {
 }
 
 // ══════════════════════════════════════════
-// CONCILIACIÓN BANCARIA (Importador Rápido)
+// CONCILIACIÓN BANCARIA — PDF LOADER
 // ══════════════════════════════════════════
-function openReconcileModal() {
-  const el = g('recon-modal');
-  if (!el) return;
-  g('recon-input').value = '';
-  g('recon-results').innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">Pegá el texto del extracto bancario arriba y presioná Analizar.</div>';
-  el.style.display = 'flex';
+function reconHandleDrop(event) {
+  event.preventDefault();
+  const dz = document.getElementById('recon-drop-zone');
+  if (dz) dz.style.borderColor = 'var(--gb)';
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf') { toast('Solo se aceptan archivos PDF'); return; }
+  reconLoadPdf(file);
 }
 
-function parseReconciliation() {
-  const raw = (g('recon-input')?.value || '').trim();
-  if (!raw) { toast('Pegá el texto del extracto primero'); return; }
+async function reconLoadPdf(file) {
+  if (!file) return;
 
-  const resultsEl = g('recon-results');
+  const statusEl = document.getElementById('recon-status');
+  const dropEl   = document.getElementById('recon-drop-zone');
+
+  // Show loading state
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = '⏳ Procesando documento…'; }
+  if (dropEl)   { dropEl.style.opacity = '0.5'; dropEl.style.pointerEvents = 'none'; }
+
+  try {
+    if (!window.pdfjsLib) {
+      // Fallback: try dynamic import
+      const lib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.mjs');
+      lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs';
+      window.pdfjsLib = lib;
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    let fullText = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page    = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      // Join items preserving line breaks (items on same y → same line)
+      let lastY = null;
+      content.items.forEach(item => {
+        const y = item.transform?.[5];
+        if (lastY !== null && Math.abs(y - lastY) > 3) fullText += '\n';
+        fullText += item.str + ' ';
+        lastY = y;
+      });
+      fullText += '\n';
+    }
+
+    // Inject into recon-input (fallback textarea) and trigger parse
+    const textarea = document.getElementById('recon-input');
+    if (textarea) textarea.value = fullText.trim();
+
+    if (statusEl) statusEl.textContent = `✓ PDF leído (${pdf.numPages} pág.) — analizando movimientos…`;
+
+    // Run the existing regex parser on extracted text
+    _reconParseText(fullText);
+
+  } catch (err) {
+    console.error('reconLoadPdf error:', err);
+    if (statusEl) statusEl.textContent = '⚠ No se pudo leer el PDF. Pegá el texto manualmente.';
+    toast('Error al leer PDF: ' + (err.message || err));
+  } finally {
+    if (dropEl) { dropEl.style.opacity = '1'; dropEl.style.pointerEvents = ''; }
+  }
+}
+
+// Internal: shared parse logic (used by both PDF path and manual textarea)
+function _reconParseText(raw) {
+  const statusEl  = document.getElementById('recon-status');
+  const resultsEl = document.getElementById('recon-results');
   if (!resultsEl) return;
 
-  // Patrones para detectar líneas de movimiento bancario
-  // Soporta formatos: "15/03 TRANSFERENCIA ENTRANTE 500.000" / "2026-03-15 -250000 Pago servicios"
-  const datePatterns = [
-    /(\d{2}[\/\-]\d{2}[\/\-]?\d{0,4})/,  // dd/mm o dd/mm/yyyy
-    /(\d{4}[\/\-]\d{2}[\/\-]\d{2})/        // yyyy-mm-dd
-  ];
+  if (!raw || !raw.trim()) {
+    if (statusEl) statusEl.style.display = 'none';
+    resultsEl.innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">No se detectaron movimientos. Verificá el formato del extracto.</div>';
+    return;
+  }
 
   const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const suggestions = [];
 
   lines.forEach(line => {
-    // Buscar monto (número con puntos o comas, positivo o negativo)
     const amtMatch = line.match(/([+-]?\s*[\d.,]+(?:\.?\d{3})*(?:,\d{2})?)/g);
     if (!amtMatch) return;
 
-    // Tomar el número más significativo
     let amtStr = amtMatch.map(m => m.replace(/\s/g, '')).sort((a, b) => b.length - a.length)[0];
     const isNeg = amtStr.startsWith('-');
     amtStr = amtStr.replace(/[^0-9.,]/g, '');
 
-    // Normalizar separadores PY/BR (punto como miles, coma como decimal)
     if (amtStr.includes('.') && amtStr.includes(',')) {
       amtStr = amtStr.replace(/\./g, '').replace(',', '.');
     } else if (amtStr.includes('.') && amtStr.split('.').pop().length !== 2) {
       amtStr = amtStr.replace(/\./g, '');
     }
     const amount = parseFloat(amtStr);
-    if (!amount || amount < 100) return; // filtrar números pequeños (ej. fechas)
+    if (!amount || amount < 100) return;
 
-    // Detectar descripción (todo lo que no sea fecha/monto)
     const desc = line.replace(/[0-9\/\-.,+]/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 60);
     const type = isNeg ? 'expense' : 'income';
-
-    // Verificar si ya existe una tx similar en S.txs
     const exists = (S.txs || []).some(t => Math.abs(t.amount - amount) < 10 && t.type === type);
-
     suggestions.push({ line, amount, desc: desc || 'Movimiento bancario', type, exists });
   });
 
+  if (statusEl) {
+    if (suggestions.length > 0) {
+      statusEl.textContent = `✓ ${suggestions.length} movimientos detectados — ${suggestions.filter(s => !s.exists).length} nuevos`;
+    } else {
+      statusEl.textContent = '⚠ No se detectaron movimientos. Verificá el formato del PDF.';
+    }
+  }
+
   if (suggestions.length === 0) {
-    resultsEl.innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">No se detectaron movimientos. Verificá el formato del extracto.</div>';
+    resultsEl.innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">No se detectaron movimientos. Intentá pegar el texto manualmente.</div>';
     return;
   }
 
@@ -457,11 +632,27 @@ function parseReconciliation() {
     </div>
   `).join('');
 
-  // Guardar en window para importar
   window._reconSuggestions = suggestions;
+}
 
-  const newCount = suggestions.filter(s => !s.exists).length;
-  toast(`◆ ${suggestions.length} movimientos detectados — ${newCount} nuevos`);
+// ══════════════════════════════════════════
+// CONCILIACIÓN BANCARIA (Importador Rápido)
+// ══════════════════════════════════════════
+function openReconcileModal() {
+  const el = g('recon-modal');
+  if (!el) return;
+  g('recon-input').value = '';
+  g('recon-results').innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">Pegá el texto del extracto bancario arriba y presioná Analizar.</div>';
+  el.style.display = 'flex';
+}
+
+function parseReconciliation() {
+  const raw = (g('recon-input')?.value || '').trim();
+  if (!raw) { toast('Pegá el texto del extracto primero'); return; }
+  _reconParseText(raw);
+  const count = (window._reconSuggestions || []).length;
+  const newCount = (window._reconSuggestions || []).filter(s => !s.exists).length;
+  if (count) toast(`◆ ${count} movimientos detectados — ${newCount} nuevos`);
 }
 
 function importReconTx(idx) {

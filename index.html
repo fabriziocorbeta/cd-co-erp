@@ -21,6 +21,19 @@
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
+<!-- PDF.js (extracto bancario) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.mjs" type="module" id="pdfjs-script"></script>
+<script>
+  // Load PDF.js as a module and expose globally for accounts.js
+  (async () => {
+    try {
+      const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.mjs');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs';
+      window.pdfjsLib = pdfjsLib;
+    } catch(e) { console.warn('PDF.js no cargó:', e); }
+  })();
+</script>
+
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -909,7 +922,10 @@
       <div class="page" id="page-reports">
         <div class="tb">
           <div class="tb-l"><div class="tb-ey">Análisis</div><div class="tb-t">Reportes</div></div>
-          <div class="tb-r"><button class="btn btn-o" onclick="generatePdfReport()">📄 Exportar PDF Mensual</button></div>
+          <div class="tb-r" style="display:flex;gap:8px;align-items:center">
+            <input type="month" class="fi" id="rep-month-picker" style="padding:6px 10px;font-size:.78rem;max-width:160px" onchange="onRepMonthChange()"/>
+            <button class="btn btn-o" onclick="generatePdfReport()">📄 Exportar PDF</button>
+          </div>
         </div>
         
         <div class="pg-body">
@@ -1148,7 +1164,7 @@
   <div class="mttl"><span id="acc-mttl">Nueva cuenta</span><button class="mx" onclick="cm('account-modal')">✕</button></div>
   <div class="fg"><label class="fl">Nombre de la cuenta</label><input class="fi" id="acc-name" placeholder="Ej: Efectivo Caja, Itaú Corriente..."/></div>
   <div class="fr2">
-    <div><label class="fl">Tipo de cuenta</label><select class="fs" id="acc-type"><option value="bank">🏦 Banco</option><option value="cash">💵 Efectivo</option><option value="digital">📱 Billetera Digital</option></select></div>
+    <div><label class="fl">Tipo de cuenta</label><select class="fs" id="acc-type"><option value="bank">🏦 Banco</option><option value="cash">💵 Efectivo</option><option value="digital">📱 Billetera Digital</option><option value="investment">📈 Inversión (Fondo/Capital)</option></select></div>
     <div><label class="fl">Banco / Entidad</label><input class="fi" id="acc-bank" placeholder="Itaú, Tigo, BCP..."/></div>
   </div>
   <div class="fr2">
@@ -1164,6 +1180,31 @@
     <div class="fg"><label class="fl">Nuevo saldo real (ajuste directo)</label><input class="fi" id="acc-new-balance" type="number" inputmode="decimal" placeholder="Dejá vacío para no ajustar"/></div>
   </div>
   <div class="macts" id="acc-modal-acts"></div>
+</div></div>
+<!-- Acreditar Interés Modal (Investment Accounts) -->
+<div id="interest-modal" class="overlay" style="display:none" onclick="oco(event,'interest-modal')"><div class="modal">
+  <div class="mttl">📈 Acreditar Interés / Dividendo<button class="mx" onclick="cm('interest-modal')">✕</button></div>
+  <div style="background:var(--bg3);border:1px solid var(--gb);border-radius:var(--rs);padding:12px 16px;margin-bottom:14px">
+    <div style="font-size:.65rem;color:var(--mu);margin-bottom:4px">Cuenta de inversión</div>
+    <div style="font-weight:600;color:var(--g2)" id="inv-acc-name">—</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:10px">
+      <div><div style="font-size:.6rem;color:var(--mu)">Capital Inicial</div><div style="font-family:var(--fm);font-size:.9rem;color:var(--cr)" id="inv-capital-disp">—</div></div>
+      <div><div style="font-size:.6rem;color:var(--mu)">Saldo Actual</div><div style="font-family:var(--fm);font-size:.9rem;color:var(--pos)" id="inv-balance-disp">—</div></div>
+      <div><div style="font-size:.6rem;color:var(--mu)">Rendimiento</div><div style="font-family:var(--fm);font-size:.9rem;color:var(--g2)" id="inv-roi-disp">—</div></div>
+    </div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Interés / Dividendo recibido</label><input class="fi" id="inv-interest-amt" type="number" inputmode="decimal" min="0" placeholder="0.00"/></div>
+    <div><label class="fl">Moneda</label><select class="fs" id="inv-interest-cur"><option value="$">Dólares ($)</option><option value="₲">Guaraníes (₲)</option></select></div>
+  </div>
+  <div class="fr2">
+    <div><label class="fl">Fecha de acreditación</label><input class="fi" id="inv-interest-date" type="date"/></div>
+    <div><label class="fl">Concepto</label><input class="fi" id="inv-interest-desc" placeholder="Rendimiento mensual Basa..."/></div>
+  </div>
+  <div class="macts">
+    <button class="mb mb-gh" onclick="cm('interest-modal')">Cancelar</button>
+    <button class="mb mb-g" onclick="saveInvestmentInterest()">💾 Acreditar</button>
+  </div>
 </div></div>
 <!-- Transfer Modal -->
 <div id="transfer-modal" class="overlay" style="display:none" onclick="oco(event,'transfer-modal')"><div class="modal">
@@ -1182,12 +1223,34 @@
   <div class="macts"><button class="mb mb-gh" onclick="cm('transfer-modal')">Cancelar</button><button class="mb mb-g" onclick="saveTransfer()">Confirmar transferencia</button></div>
 </div></div>
 <!-- Reconciliation Modal -->
-<div id="recon-modal" class="overlay" style="display:none" onclick="oco(event,'recon-modal')"><div class="modal" style="max-width:560px;width:95%">
+<div id="recon-modal" class="overlay" style="display:none" onclick="oco(event,'recon-modal')"><div class="modal" style="max-width:580px;width:95%">
   <div class="mttl">🏦 Conciliación Bancaria<button class="mx" onclick="cm('recon-modal')">✕</button></div>
-  <div style="font-size:.76rem;color:var(--mu);margin-bottom:10px">Pegá el texto de tu extracto bancario. El sistema detectará los movimientos automáticamente.</div>
-  <textarea id="recon-input" class="fi" style="min-height:120px;resize:vertical;font-family:var(--fm);font-size:.75rem;line-height:1.5" placeholder="Ej:&#10;15/03 TRANSFERENCIA RECIBIDA 1.500.000&#10;16/03 PAGO SERVICIOS -250.000&#10;17/03 DEPOSITO EN EFECTIVO 500.000"></textarea>
-  <button class="mb mb-g" style="width:100%;margin-top:10px" onclick="parseReconciliation()">🔍 Analizar extracto</button>
-  <div id="recon-results" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto"></div>
+
+  <!-- PDF Drop Zone -->
+  <div id="recon-drop-zone" style="border:2px dashed var(--gb);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:12px"
+    onclick="document.getElementById('recon-pdf-input').click()"
+    ondragover="event.preventDefault();this.style.borderColor='var(--g)'"
+    ondragleave="this.style.borderColor='var(--gb)'"
+    ondrop="reconHandleDrop(event)">
+    <div style="font-size:2rem;margin-bottom:8px">📄</div>
+    <div style="font-size:.82rem;color:var(--cr);font-weight:500">Arrastrá tu extracto PDF aquí</div>
+    <div style="font-size:.72rem;color:var(--mu);margin-top:4px">o hacé click para seleccionar archivo</div>
+    <input type="file" id="recon-pdf-input" accept="application/pdf" style="display:none" onchange="reconLoadPdf(this.files[0])"/>
+  </div>
+
+  <!-- Status / Loading -->
+  <div id="recon-status" style="display:none;text-align:center;padding:12px;font-size:.8rem;color:var(--mu)">
+    ⏳ Procesando documento...
+  </div>
+
+  <!-- Fallback: manual text -->
+  <details style="margin-bottom:10px">
+    <summary style="font-size:.72rem;color:var(--mu);cursor:pointer">O pegá el texto manualmente</summary>
+    <textarea id="recon-input" class="fi" style="min-height:90px;resize:vertical;font-family:var(--fm);font-size:.74rem;line-height:1.5;margin-top:8px" placeholder="15/03 TRANSFERENCIA RECIBIDA 1.500.000&#10;16/03 PAGO SERVICIOS -250.000"></textarea>
+    <button class="mb mb-g" style="width:100%;margin-top:8px" onclick="parseReconciliation()">🔍 Analizar texto</button>
+  </details>
+
+  <div id="recon-results" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto"></div>
   <div class="macts" style="margin-top:10px"><button class="mb mb-gh" onclick="cm('recon-modal')">Cerrar</button></div>
 </div></div>
 
