@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
 <!-- Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 
 <!-- PDF.js: cargado LAZY en accounts.js solo cuando el usuario abre Conciliación -->
 
@@ -1612,7 +1612,18 @@
 <script src="js/history.js?v=20260405"></script>
 <script src="js/reports.js?v=20260405"></script>
 <script src="js/notifs.js?v=20260405"></script>
-<!-- ⚠️ PWA desactivado — archivo no existe <script src="js/pwa.js?v=20260405"></script> -->
+<!-- Service Worker Init -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('Service Worker registrado', reg.scope);
+      }).catch(err => {
+        console.log('Service Worker error:', err);
+      });
+    });
+  }
+</script>
 <script src="js/receivables.js?v=20260405"></script>
 <script src="js/cdco_import.js?v=20260405"></script>
 <script src="js/patrimonio.js?v=20260405"></script>
@@ -1620,7 +1631,6 @@
 <script src="js/goals.js?v=20260405"></script>
 <script src="js/advice.js?v=20260405"></script>
 <script src="js/backup-ui.js?v=20260405"></script>
-<script src="scripts/seed-fleet-data.js"></script>
 
 <div id="print-area"></div>
 </body>

@@ -107,6 +107,8 @@ function renderFleet() {
   const grid = g('fleet-grid');
   if (!grid) return;
 
+  // SWR: In this version S.vehicles and S.fuelLogs are loaded from local cache in auth.js.
+
   // Usar solo vehículos reales de Supabase
   const vehicles = (S.vehicles || []).filter(v => v.id && v.brand);
 

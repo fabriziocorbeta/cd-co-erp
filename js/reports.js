@@ -331,6 +331,12 @@ function generatePdfReport() {
   const fuelTotal = (S.fuelLogs || []).filter(fl => mkey(fl.date) === selMo)
     .reduce((s, fl) => s + parseFloat(fl.cost || 0), 0);
 
+  // Sales & Orders for selected month
+  const salesTotal = (S.sales || []).filter(sa => mkey(sa.date) === selMo)
+    .reduce((s, sa) => s + parseFloat(sa.total || 0), 0);
+  const ordersTotal = (S.orders || []).filter(od => mkey(od.date) === selMo)
+    .reduce((s, od) => s + parseFloat(od.total || 0), 0);
+
   tX.forEach(t => {
     const isAdj = (t.desc||'').toLowerCase().includes('ajuste') || (t.cat||'').toLowerCase().includes('ajuste') || (t.cat === 'Otros Ingresos' && t.amount > 500000);
     if(mkey(t.date) === selMo && !isAdj) {
@@ -370,6 +376,14 @@ function generatePdfReport() {
     ? `<div style="margin-top:16px;padding:10px;background:#f8f9fa;border-radius:8px;border:1px solid #eee"><div style="font-size:10px;color:#666;text-transform:uppercase;margin-bottom:4px">⛽ Gasto Flota (Combustible)</div><div style="font-size:14px;font-weight:bold">${fmt(fuelTotal,'₲')}</div></div>`
     : '';
 
+  const salesRow = salesTotal > 0
+    ? `<div style="margin-top:16px;padding:10px;background:#f8f9fa;border-radius:8px;border:1px solid #eee"><div style="font-size:10px;color:#666;text-transform:uppercase;margin-bottom:4px">🛒 Ventas</div><div style="font-size:14px;font-weight:bold">${fmt(salesTotal,'₲')}</div></div>`
+    : '';
+
+  const ordersRow = ordersTotal > 0
+    ? `<div style="margin-top:16px;padding:10px;background:#f8f9fa;border-radius:8px;border:1px solid #eee"><div style="font-size:10px;color:#666;text-transform:uppercase;margin-bottom:4px">📦 Compras</div><div style="font-size:14px;font-weight:bold">${fmt(ordersTotal,'₲')}</div></div>`
+    : '';
+
   const html = `
     <div style="font-family:sans-serif;color:#000;padding:40px;max-width:800px;margin:0 auto">
       <div style="display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:15px">
@@ -393,7 +407,11 @@ function generatePdfReport() {
           <div style="font-size:12px;color:${mBalUSD>=0?'#4a9b6f':'#c94a4a'};opacity:0.8">${fmt(mBalUSD,'$')}</div>
         </div>
       </div>
-      ${fuelRow}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+        ${fuelRow}
+        ${salesRow}
+        ${ordersRow}
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px">
         ${expRows ? `<div><h3 style="border-bottom:1px solid #333;font-size:14px;margin-bottom:10px">Egresos por Categoría</h3><table style="width:100%;border-collapse:collapse">${expRows}</table></div>` : ''}
         ${incRows ? `<div><h3 style="border-bottom:1px solid #333;font-size:14px;margin-bottom:10px">Ingresos por Categoría</h3><table style="width:100%;border-collapse:collapse">${incRows}</table></div>` : ''}

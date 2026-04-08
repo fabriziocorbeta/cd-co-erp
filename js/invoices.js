@@ -67,7 +67,7 @@ function viewInvoice(saleId){
     <!-- CABECERA: el emisor es el usuario de la app -->
     <div class="inv-hdr">
       <div style="display:flex;align-items:center;gap:16px">
-        ${E.logo ? '<img src="' + E.logo + '" style="max-height:120px;max-width:250px;object-fit:contain;border-radius:4px" alt="Logo"/>' : ''}
+        ${E.logo ? '<img src="' + E.logo + '" loading="lazy" style="max-height:120px;max-width:250px;object-fit:contain;border-radius:4px" alt="Logo"/>' : ''}
         <div>
           <div class="inv-brand" style="font-size:1.5rem;letter-spacing:.02em">${E.razonSocial||'Mi Empresa'}</div>
           <div style="font-size:.7rem;color:var(--mu);font-family:var(--fm);line-height:1.8;margin-top:4px">
