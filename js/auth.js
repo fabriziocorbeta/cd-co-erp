@@ -71,6 +71,7 @@ function swrSave() {
       sales: S.sales, orders: S.orders, contacts: S.contacts,
       cards: S.cards, debts: S.debts, budgets: S.budgets,
       subscriptions: S.subscriptions, receivables: S.receivables, goals: S.goals,
+      vehicles: S.vehicles, fuelLogs: S.fuelLogs,
     }));
   } catch(e) {}
 }
@@ -81,7 +82,8 @@ function swrLoad() {
     if (!d.ts || !d.accounts || !d.txs) return false;
     if (Date.now() - d.ts > SWR_TTL) return false; // caché vencido
     ['txs','accounts','products','sales','orders','contacts',
-     'cards','debts','budgets','subscriptions','receivables','goals']
+     'cards','debts','budgets','subscriptions','receivables','goals',
+     'vehicles','fuelLogs']
       .forEach(k => { if (d[k] !== undefined) S[k] = d[k]; });
     return true; // cache hit
   } catch(e) { return false; }
@@ -155,6 +157,23 @@ async function loadAllUserData() {
     }
   };
 
+  // Helper para fetch de fuel_logs (nombre de tabla ≠ clave en S)
+  const fetchFuelLogs = (ms) => Promise.race([
+    sb.from('fuel_logs').select('*').order('date', { ascending: false }),
+    qTimeout(ms)
+  ]);
+  const fetchVehicles = (ms) => Promise.race([
+    sb.from('vehicles').select('*').order('created_at', { ascending: false }),
+    qTimeout(ms)
+  ]);
+  const applyFleet = async () => {
+    const [vRes, fRes] = await Promise.allSettled([fetchVehicles(10000), fetchFuelLogs(10000)]);
+    if (vRes.status === 'fulfilled' && vRes.value?.data && !vRes.value?.error)
+      S.vehicles = vRes.value.data;
+    if (fRes.status === 'fulfilled' && fRes.value?.data && !fRes.value?.error)
+      S.fuelLogs = fRes.value.data;
+  };
+
   // ── SWR: cache hit → render inmediato, revalidar en background ──────────
   if (swrLoad()) {
     recomputeBalances();
@@ -163,9 +182,14 @@ async function loadAllUserData() {
     // Revalidar todas las tablas en paralelo (sin bloquear UI)
     const ALL = ['accounts','txs','products','sales','orders','contacts',
                  'cards','debts','budgets','subscriptions','receivables','goals'];
-    Promise.allSettled(ALL.map(t => fetchTable(t, 12000))).then(results => {
+    Promise.allSettled([
+      ...ALL.map(t => fetchTable(t, 12000)),
+    ]).then(results => {
       applyResults(ALL, results);
       recomputeBalances();
+    });
+    // Fleet en paralelo, no bloquea
+    applyFleet().then(() => {
       swrSave();
       if (typeof renderAll === 'function') renderAll();
       if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
@@ -180,12 +204,16 @@ async function loadAllUserData() {
   applyResults(critical, critResults);
   recomputeBalances();
 
-  // FASE 2 — resto en background (no bloquea la UI)
+  // FASE 2 — resto en background (no bloquea la UI), incluye fleet
   const rest = ['products','sales','orders','contacts','cards','debts',
                 'budgets','subscriptions','receivables','goals'];
-  Promise.allSettled(rest.map(t => fetchTable(t, 12000))).then(results => {
+  Promise.allSettled([
+    ...rest.map(t => fetchTable(t, 12000)),
+  ]).then(results => {
     applyResults(rest, results);
     recomputeBalances();
+  });
+  applyFleet().then(() => {
     swrSave(); // guardar caché completo para próximas visitas
     if (typeof renderAll === 'function') renderAll();
     if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();

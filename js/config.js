@@ -60,11 +60,9 @@ const CATEGORIAS_INGRESOS = [
 ];
 
 let S={
-  txs:[], products:[], sales:[], orders:[], contacts:[], cards:[], debts:[], accounts:[], budgets:[], subscriptions:[], goals:[], historical:[], receivables:[], vehicles: [
-    {id: 'v1', name: 'Auto Principal', icon: '🚗'},
-    {id: 'v2', name: 'Moto de Reparto', icon: '🏍️'},
-    {id: 'v3', name: 'Camión Utilitario', icon: '🚚'}
-  ],
+  txs:[], products:[], sales:[], orders:[], contacts:[], cards:[], debts:[], accounts:[], budgets:[], subscriptions:[], goals:[], historical:[], receivables:[],
+  vehicles: [], // cargado desde Supabase tabla vehicles
+  fuelLogs: [], // cargado desde Supabase tabla fuel_logs
   customCategories: {gastos:[], ingresos:[]},
   fltTx:'all', fltInv:'all', fltSale:'all', fltOrd:'all', fltCon:'all', fltInv2:'all',
   user:null, plan:'pro',
