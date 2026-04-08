@@ -12,7 +12,7 @@ function handleLogoUpload(e) {
     const b64 = evt.target.result;
     window._tempLogo = b64;
     const pv = g('emp-logo-preview');
-    if(pv) pv.innerHTML = `<img src="${b64}" style="max-width:100%;max-height:100%;object-fit:contain"/>`;
+    if(pv) pv.innerHTML = `<img src="${b64}" loading="lazy" style="max-width:100%;max-height:100%;object-fit:contain"/>`;
     const rm = g('emp-logo-rm');
     if(rm) rm.style.display = 'inline-flex';
   };
@@ -59,7 +59,7 @@ function loadEmpresaForm(){
   if(EMPRESA.logo) {
     window._tempLogo = EMPRESA.logo;
     const pv = g('emp-logo-preview');
-    if(pv) pv.innerHTML = `<img src="${EMPRESA.logo}" style="max-width:100%;max-height:100%;object-fit:contain"/>`;
+    if(pv) pv.innerHTML = `<img src="${EMPRESA.logo}" loading="lazy" style="max-width:100%;max-height:100%;object-fit:contain"/>`;
     const rm = g('emp-logo-rm');
     if(rm) rm.style.display = 'inline-flex';
   } else {

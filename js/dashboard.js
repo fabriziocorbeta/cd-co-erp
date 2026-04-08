@@ -133,36 +133,36 @@ function renderDashboardSummary() {
  async function renderDashboard() {
   if (!SB_ON || !sb) return;
 
-  // 1. Mostramos esqueletos mientras llega el paquete de datos
+  // SWR: Render from local storage (if any)
   renderEtherealStats();
   renderEtherealCharts();
   renderEtherealRecentTxs();
+  renderEtherealCardsStock();
 
-  // 2. Llamada única de alta velocidad (RPC)
+  // 2. Llamada única de alta velocidad en background (RPC)
+  // We revert to get_complete_dashboard_v2 which is guaranteed to be working and not a stub.
   const { data, error } = await sb.rpc('get_complete_dashboard_v2', { 
     user_uuid: S.user.id 
   });
 
   if (error) {
-    console.error("[DASH] Error en carga RPC:", error);
+    console.error("[GLOBAL RPC] Error en carga RPC:", error);
     return;
   }
 
   if (data) {
     // 3. Inyectamos los datos reales en el estado global 'S'
+    // Map the returned wrapper
     S.patrimonio = data.patrimonio_neto;
     S.stats = data.resumen_mes;
-    S.txs = data.ultimas_txs;
+    S.txs = data.ultimas_txs || S.txs;
     S.inventory = data.inventario_kpis;
-
-    // 4. Guardamos en caché para que la próxima vez sea instantáneo
     _saveDashboardSummary(data);
 
-    // 5. Renderizamos la interfaz real con los datos que llegaron
-    renderStats();           // Asegurate que estas funciones existan en tus archivos .js
+    renderStats();
     renderCharts();
     renderRecentTransactions();
-    renderCardsStock();      // Reemplaza a renderEtherealCardsStock()
+    renderCardsStock();
   }
 }
 

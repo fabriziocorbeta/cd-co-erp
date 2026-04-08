@@ -100,7 +100,23 @@ function switchDebtTab(t){
 // ══════════════════════════════════════════
 // ETHEREAL 3D CARDS RENDER
 // ══════════════════════════════════════════
-function renderCards(){
+async function renderCards(){
+  if (SB_ON && sb) {
+    try {
+      const { data, error } = await sb.rpc('get_user_cards_v1', { p_user_id: S.user?.id });
+      if (!error && data) {
+        // Map the RPC snake_case response to camelCase if necessary
+        S.cards = data.map(c => ({
+          ...c,
+          initialBalance: c.initial_balance,
+          closingDate: c.closing_date,
+          dueDate: c.due_date,
+          used: c.used_amount,
+        }));
+      }
+    } catch (e) { console.error('[RPC Cards] error:', e); }
+  }
+
   const el=g('cards-list');
   if(!el) return;
   if(!S.cards||!S.cards.length){

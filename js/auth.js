@@ -144,7 +144,7 @@ const TABLE_COLS = {
   sales:         'id,date,total,cur,items,contact_id,status,num,nro_factura,condicion',
   orders:        'id,date,status,supplier_id,items,num,eta,notes',
   contacts:      'id,name,type,phone,email,ruc,notes',
-  cards:         'id,name,limit,used,cur,bank,dueDate,color',
+  cards:         'id,name,brand,cur,initial_balance,closing_date,due_date,notes',
   debts:         'id,creditor,description,total,paid,cur,dueDate,installments,paidInstallments',
   budgets:       'id,category,amount,cur,month',
   subscriptions: 'id,name,amount,cur,frequency,nextDate,active,icon,description',
