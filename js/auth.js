@@ -61,7 +61,7 @@ function lload(){
 // SWR CACHE — stale-while-revalidate (5 min TTL)
 // ══════════════════════════════════════════
 const SWR_KEY = 'cdco_swr_v2';
-const SWR_TTL = 5 * 60 * 1000; // 5 minutes
+const SWR_TTL = 15 * 60 * 1000; // 15 minutes — longer TTL = instant loads on return visits
 
 function swrSave() {
   try {
@@ -301,45 +301,137 @@ if (SB_ON && sb) {
   });
 }
 
-async function enterApp(name,plan){
-  S.plan=plan;
-  document.getElementById('auth').style.display='none';
-  document.getElementById('app').style.display='block';
+// ── SKELETON INJECTION ──────────────────────────────────────────────────────
+function _injectSkeletons() {
+  const SK = (w, h) =>
+    `<span class="skel" style="width:${w};height:${h}px;border-radius:6px;display:block"></span>`;
 
-  // ── Limpiar claves de caché obsoletas (migración schema anterior) ────────
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+  // Patrimonio hero
+  set('d-total-balance', SK('180px', 40));
+  // Monthly income / expense
+  set('d-wk-inc', SK('130px', 28));
+  set('d-wk-exp', SK('130px', 28));
+  // Sidebar mini stats
+  set('am1', SK('80px', 18));
+  set('am2', SK('30px', 18));
+  set('am3', SK('30px', 18));
+  // Chart placeholders
+  const charts = ['d-revenue-chart', 'd-expense-donut'];
+  charts.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement) {
+      el.style.display = 'none';
+      if (!el.parentElement.querySelector('.skel-chart')) {
+        const s = document.createElement('span');
+        s.className = 'skel skel-chart';
+        s.style.cssText = 'display:block;width:100%;height:100%;border-radius:10px;min-height:130px';
+        el.parentElement.appendChild(s);
+      }
+    }
+  });
+  // Recent txs list
+  set('d-recent-txs',
+    [1,2,3,4].map(() =>
+      `<div style="display:flex;gap:10px;align-items:center;padding:6px 0">
+        <span class="skel" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+          ${SK('60%', 12)}${SK('40%', 10)}
+        </div>
+        ${SK('70px', 14)}
+      </div>`
+    ).join('')
+  );
+}
+
+function _clearSkeletons() {
+  // Re-show canvases hidden during skeleton phase
+  ['d-revenue-chart', 'd-expense-donut'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = '';
+    if (el?.parentElement) {
+      el.parentElement.querySelectorAll('.skel-chart').forEach(s => s.remove());
+    }
+  });
+}
+
+async function enterApp(name, plan) {
+  S.plan = plan;
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  // ── Limpiar claves de caché obsoletas ───────────────────────────────────
   try { localStorage.removeItem('cdco_sb_cache'); localStorage.removeItem('cdco_erp_v1'); } catch(e) {}
 
-  // ── SKELETON: mostrar mientras carga (swrLoad lo reemplaza en <1ms si hay caché) ──
-  const dbBal = document.getElementById('d-total-balance');
-  if (dbBal && !dbBal.textContent.includes('₲')) {
-    dbBal.innerHTML = '<span class="skel" style="display:inline-block;width:160px;height:32px;border-radius:6px;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite"></span>';
+  // ── Sidebar info (no depende de datos) ──────────────────────────────────
+  const ini = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('s-av').textContent = ini;
+  document.getElementById('s-nm').textContent = name;
+  document.getElementById('s-pl').textContent = plan.toUpperCase();
+  document.getElementById('gr-nm').textContent = name.split(' ')[0];
+  const nd = new Date();
+  const DNS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const MNS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('top-date').textContent =
+    `${DNS[nd.getDay()]} ${nd.getDate()} ${MNS[nd.getMonth()]} ${nd.getFullYear()}`;
+
+  if (SB_ON) {
+    const cacheHit = swrLoad();
+
+    if (cacheHit) {
+      // ── FAST PATH: cache hit → render inmediato ────────────────────────
+      recomputeBalances();
+      _fillSidebarStats();
+      buildPlanCards();
+      populateSelects();
+      if (typeof setAppMode === 'function') setAppMode(S.appMode || 'full', true);
+      if (typeof calculateAlerts === 'function') calculateAlerts();
+      renderAll();
+      if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
+      initFx();
+      if (typeof applySavedTheme === 'function') applySavedTheme();
+      // Background revalidation (silent, no blocking)
+      loadAllUserData().catch(() => {});
+    } else {
+      // ── COLD START: skeletons → cargar datos críticos → render ─────────
+      _injectSkeletons();
+      buildPlanCards();
+      if (typeof applySavedTheme === 'function') applySavedTheme();
+      await loadAllUserData(); // critical + accounts+txs are loaded first internally
+      _clearSkeletons();
+      recomputeBalances();
+      _fillSidebarStats();
+      populateSelects();
+      if (typeof setAppMode === 'function') setAppMode(S.appMode || 'full', true);
+      if (typeof calculateAlerts === 'function') calculateAlerts();
+      renderAll();
+      if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
+      initFx();
+    }
+  } else {
+    lload();
+    defaults();
+    _fillSidebarStats();
+    buildPlanCards();
+    populateSelects();
+    if (typeof setAppMode === 'function') setAppMode(S.appMode || 'full', true);
+    if (typeof calculateAlerts === 'function') calculateAlerts();
+    renderAll();
+    if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
+    initFx();
+    if (typeof applySavedTheme === 'function') applySavedTheme();
   }
+}
 
-  // ── RÁPIDO: cargar resumen del dashboard vía RPC (números al instante) ────
-  if(SB_ON && typeof loadDashboardSummary === 'function') {
-    loadDashboardSummary(); // async, no bloquea UI
-  }
-
-  if(SB_ON){ await loadAllUserData(); } else { lload(); defaults(); }
-  const ini=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('s-av').textContent=ini;
-  document.getElementById('s-nm').textContent=name;
-  document.getElementById('s-pl').textContent=plan.toUpperCase();
-  document.getElementById('gr-nm').textContent=name.split(' ')[0];
-
-  const nd=new Date();const DNS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];const MNS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  document.getElementById('top-date').textContent=DNS[nd.getDay()]+' '+nd.getDate()+' '+MNS[nd.getMonth()]+' '+nd.getFullYear();
-  let cU=0, cG=0; S.txs.forEach(t=>t.cur==='₲'?cG++:cU++); const dom = cG>cU?'₲':'$';
-  document.getElementById('am1').textContent=fmt(S.txs.filter(t=>t.cur===dom).reduce((a,t)=>a+(t.type==='income'?t.amount:-t.amount),0), dom);
-  document.getElementById('am2').textContent=S.products.length;
-  document.getElementById('am3').textContent=S.sales.length;
-  buildPlanCards();
-  populateSelects();
-  if(typeof setAppMode==='function') setAppMode(S.appMode||'full', true);
-  if(typeof calculateAlerts==='function') calculateAlerts();
-  renderAll();
-  if(typeof populateTxAccountSelect==='function') populateTxAccountSelect();
-  initFx();
-  if(typeof applySavedTheme === 'function') applySavedTheme();
-
+function _fillSidebarStats() {
+  let cU = 0, cG = 0;
+  S.txs.forEach(t => t.cur === '₲' ? cG++ : cU++);
+  const dom = cG > cU ? '₲' : '$';
+  const am1 = document.getElementById('am1');
+  const am2 = document.getElementById('am2');
+  const am3 = document.getElementById('am3');
+  if (am1) am1.textContent = fmt(S.txs.filter(t => t.cur === dom).reduce((a, t) => a + (t.type === 'income' ? t.amount : -t.amount), 0), dom);
+  if (am2) am2.textContent = S.products.length;
+  if (am3) am3.textContent = S.sales.length;
 }

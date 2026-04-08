@@ -568,6 +568,39 @@ async function reconLoadPdf(file) {
   }
 }
 
+// ── RECONCILIATION HELPERS ──────────────────────────────────────────────────
+
+// Extract date from a bank statement line (dd/mm/yyyy or yyyy-mm-dd or dd/mm)
+function _reconExtractDate(line) {
+  // yyyy-mm-dd
+  let m = line.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  // dd/mm/yyyy or dd-mm-yyyy
+  m = line.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  // dd/mm (assume current year)
+  m = line.match(/(\d{2})[\/\-](\d{2})(?!\d)/);
+  if (m) return `${new Date().getFullYear()}-${m[2]}-${m[1]}`;
+  return null;
+}
+
+// Find a matching tx by amount + type, optionally also by date
+function _reconFindMatch(amount, type, date) {
+  const txs = S.txs || [];
+  // Priority: date + amount + type (exact or within 1 day)
+  if (date) {
+    const d = new Date(date).getTime();
+    const byDate = txs.find(t =>
+      Math.abs(t.amount - amount) < 1 &&
+      t.type === type &&
+      Math.abs(new Date(t.date).getTime() - d) <= 86400000 // ±1 day
+    );
+    if (byDate) return byDate;
+  }
+  // Fallback: amount + type only
+  return txs.find(t => Math.abs(t.amount - amount) < 1 && t.type === type) || null;
+}
+
 // Internal: shared parse logic (used by both PDF path and manual textarea)
 function _reconParseText(raw) {
   const statusEl  = document.getElementById('recon-status');
@@ -601,36 +634,71 @@ function _reconParseText(raw) {
 
     const desc = line.replace(/[0-9\/\-.,+]/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 60);
     const type = isNeg ? 'expense' : 'income';
-    const exists = (S.txs || []).some(t => Math.abs(t.amount - amount) < 10 && t.type === type);
-    suggestions.push({ line, amount, desc: desc || 'Movimiento bancario', type, exists });
+    const date = _reconExtractDate(line);
+
+    // Duplicate detection: date+amount (exact) OR amount-only (fallback)
+    const matchedTx = _reconFindMatch(amount, type, date);
+    const isDuplicate = !!matchedTx;
+
+    suggestions.push({
+      line, amount, desc: desc || 'Movimiento bancario', type, date,
+      isDuplicate,
+      matchedDesc: matchedTx ? (matchedTx.desc || matchedTx.cat || '—') : null
+    });
   });
 
   if (statusEl) {
+    const newCount = suggestions.filter(s => !s.isDuplicate).length;
     if (suggestions.length > 0) {
-      statusEl.textContent = `✓ ${suggestions.length} movimientos detectados — ${suggestions.filter(s => !s.exists).length} nuevos`;
+      statusEl.style.display = 'block';
+      statusEl.textContent = `✓ ${suggestions.length} movimientos detectados — ${newCount} nuevos, ${suggestions.length - newCount} duplicados`;
     } else {
+      statusEl.style.display = 'block';
       statusEl.textContent = '⚠ No se detectaron movimientos. Verificá el formato del PDF.';
     }
   }
 
   if (suggestions.length === 0) {
     resultsEl.innerHTML = '<div style="color:var(--mu);font-size:.8rem;text-align:center;padding:20px">No se detectaron movimientos. Intentá pegar el texto manualmente.</div>';
+    window._reconSuggestions = [];
     return;
   }
 
-  resultsEl.innerHTML = suggestions.map((s, i) => `
-    <div class="recon-row ${s.exists ? 'recon-exists' : ''}">
+  const newCount = suggestions.filter(s => !s.isDuplicate).length;
+
+  // "Import all new" header button
+  const importAllBtn = newCount > 0
+    ? `<div style="text-align:right;margin-bottom:8px">
+        <button class="btn btn-g" style="font-size:.72rem;padding:5px 14px" onclick="importAllReconTx()">
+          ＋ Importar todos los nuevos (${newCount})
+        </button>
+       </div>`
+    : '';
+
+  resultsEl.innerHTML = importAllBtn + suggestions.map((s, i) => {
+    const bgColor  = s.isDuplicate ? 'rgba(201,150,12,0.08)' : '';
+    const border   = s.isDuplicate ? '1px solid rgba(201,150,12,0.3)' : '1px solid transparent';
+    const typePill = `<span style="font-size:.7rem;padding:2px 8px;border-radius:20px;font-weight:600;background:${s.type==='income'?'rgba(78,222,163,0.15)':'rgba(255,180,171,0.15)'};color:${s.type==='income'?'var(--pos)':'var(--neg)'}">${s.type==='income'?'INGRESO':'EGRESO'}</span>`;
+
+    return `
+    <div class="recon-row" style="background:${bgColor};border:${border};border-radius:var(--rs);padding:8px 10px">
       <div style="display:flex;gap:8px;align-items:flex-start">
-        <span style="font-size:.75rem;padding:2px 8px;border-radius:20px;font-weight:600;background:${s.type==='income'?'rgba(78,222,163,0.15)':'rgba(255,180,171,0.15)'};color:${s.type==='income'?'var(--pos)':'var(--neg)'}">${s.type==='income'?'INGRESO':'EGRESO'}</span>
+        ${typePill}
         <div style="flex:1">
           <div style="font-size:.8rem;color:var(--cr);font-weight:500">${s.desc}</div>
-          <div style="font-family:var(--fm);font-weight:600;color:${s.type==='income'?'var(--pos)':'var(--neg)'};margin-top:2px">₲ ${s.amount.toLocaleString()}</div>
-          ${s.exists ? '<div style="font-size:.68rem;color:var(--mu);margin-top:2px">✓ Ya registrado</div>' : ''}
+          <div style="display:flex;gap:8px;align-items:center;margin-top:2px">
+            <div style="font-family:var(--fm);font-weight:600;color:${s.type==='income'?'var(--pos)':'var(--neg)'}">₲ ${s.amount.toLocaleString()}</div>
+            ${s.date ? `<span style="font-size:.65rem;color:var(--mu)">${s.date}</span>` : ''}
+          </div>
+          ${s.isDuplicate ? `<div style="font-size:.68rem;color:#c9960c;margin-top:3px">⚠ Posible duplicado — coincide con: <em>${s.matchedDesc}</em></div>` : ''}
         </div>
-        ${!s.exists ? `<button class="btn btn-o" style="font-size:.7rem;padding:4px 10px;white-space:nowrap" onclick="importReconTx(${i})">＋ Importar</button>` : ''}
+        ${s.isDuplicate
+          ? `<button class="btn" style="font-size:.65rem;padding:3px 10px;opacity:.5;cursor:default" disabled>Ya registrado</button>`
+          : `<button class="btn btn-o" style="font-size:.7rem;padding:4px 10px;white-space:nowrap" onclick="importReconTx(${i})">＋ Importar</button>`
+        }
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   window._reconSuggestions = suggestions;
 }
@@ -657,7 +725,7 @@ function parseReconciliation() {
 
 function importReconTx(idx) {
   const s = (window._reconSuggestions || [])[idx];
-  if (!s) return;
+  if (!s || s.isDuplicate) return;
   const tx = {
     id: uid(),
     type: s.type,
@@ -665,17 +733,52 @@ function importReconTx(idx) {
     amount: s.amount,
     cur: '₲',
     cat: s.type === 'income' ? 'Ingresos' : 'Gastos',
-    date: today(),
-    icon: s.type === 'income' ? '🏦' : '🏦'
+    date: s.date || today()
   };
   S.txs.unshift(tx);
   if (SB_ON) sbUpsert('txs', { ...tx, user_id: S.user?.id });
-  lsave();
+  else lsave();
   renderAll();
-  // Marcar como importado
-  const btn = document.querySelectorAll('#recon-results .btn')[idx];
-  if (btn) { btn.textContent = '✓'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  // Mark as imported in UI
+  const rows = document.querySelectorAll('#recon-results .recon-row');
+  if (rows[idx + (document.querySelector('#recon-results [onclick="importAllReconTx()"]') ? 1 : 0)]) {
+    const btn = rows[idx]?.querySelector('button');
+    if (btn) { btn.textContent = '✓ Importado'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  }
+  // Mark suggestion as duplicate so "import all" skips it
+  s.isDuplicate = true;
   toast('◆ Movimiento importado');
+}
+
+async function importAllReconTx() {
+  const pending = (window._reconSuggestions || []).filter(s => !s.isDuplicate);
+  if (!pending.length) { toast('No hay movimientos nuevos para importar'); return; }
+
+  const txBatch = pending.map(s => ({
+    id: uid(),
+    type: s.type,
+    desc: s.desc,
+    amount: s.amount,
+    cur: '₲',
+    cat: s.type === 'income' ? 'Ingresos' : 'Gastos',
+    date: s.date || today()
+  }));
+
+  txBatch.forEach(tx => S.txs.unshift(tx));
+
+  if (SB_ON) {
+    await Promise.allSettled(txBatch.map(tx => sbUpsert('txs', { ...tx, user_id: S.user?.id })));
+  } else {
+    lsave();
+  }
+
+  // Mark all as imported in window state
+  (window._reconSuggestions || []).forEach(s => { s.isDuplicate = true; });
+
+  renderAll();
+  // Rebuild results to show everything as imported
+  _reconParseText(document.getElementById('recon-input')?.value || '');
+  toast(`◆ ${txBatch.length} movimientos importados`);
 }
 
 // ══════════════════════════════════════════

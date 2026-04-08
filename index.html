@@ -21,18 +21,7 @@
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
-<!-- PDF.js (extracto bancario) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.mjs" type="module" id="pdfjs-script"></script>
-<script>
-  // Load PDF.js as a module and expose globally for accounts.js
-  (async () => {
-    try {
-      const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.mjs');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs';
-      window.pdfjsLib = pdfjsLib;
-    } catch(e) { console.warn('PDF.js no cargó:', e); }
-  })();
-</script>
+<!-- PDF.js: cargado LAZY en accounts.js solo cuando el usuario abre Conciliación -->
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
