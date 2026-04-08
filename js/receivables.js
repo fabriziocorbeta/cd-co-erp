@@ -78,7 +78,7 @@ function recvCardHTML(r, isCompleted) {
   return `<div class="panel pp" style="padding:18px;${isCompleted ? 'opacity:.55;' : ''}transition:opacity .2s">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;color:var(--cr);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name || r.customer || '—'}</div>
+        <div style="font-weight:600;color:var(--cr);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contact_id || r.contact || r.name || r.customer || '—'}</div>
         ${r.type ? `<span class="pill pill-neu" style="margin-top:4px;display:inline-block">${r.type}</span>` : ''}
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">

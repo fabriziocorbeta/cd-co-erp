@@ -144,11 +144,10 @@ const TABLE_COLS = {
   sales:         'id,date,total,cur,items,contact_id,status,num,nro_factura,condicion',
   orders:        'id,date,status,supplier_id,items,num,eta,notes',
   contacts:      'id,name,type,phone,email,ruc,notes',
-  cards:         'id,name,brand,cur,initial_balance,closing_date,due_date,notes',
-  debts:         'id,creditor,description,total,paid,cur,dueDate,installments,paidInstallments',
+  debts:         'id,"desc",creditor_id,total,paid,inst,paid_inst,due_date,cur,status,notes,created_at',
   budgets:       'id,category,amount,cur,month',
   subscriptions: 'id,name,amount,cur,frequency,nextDate,active,icon,description',
-  receivables:   'id,contact,total,paid,cur,dueDate,completed,desc',
+  receivables:   'id,contact_id,total,paid,cur,due_date,completed,notes',
   goals:         'id,name,target_amount,current_amount,deadline,cur,icon',
 };
 
@@ -195,7 +194,7 @@ async function loadAllUserData() {
   };
 
   const ALL  = ['accounts','txs','products','sales','orders','contacts',
-                'cards','debts','budgets','subscriptions','receivables','goals'];
+                'debts','budgets','subscriptions','receivables','goals'];
 
   const _bgRefresh = () => {
     // All tables in parallel, then fleet, then save + re-render
@@ -231,7 +230,7 @@ async function loadAllUserData() {
   recomputeBalances();
 
   // FASE 2 — everything else in background (no await)
-  const rest = ['products','sales','orders','contacts','cards','debts',
+  const rest = ['products','sales','orders','contacts','debts',
                 'budgets','subscriptions','receivables','goals'];
   Promise.allSettled(rest.map(t => fetchTable(t, 12000))).then(results => {
     applyResults(rest, results);
