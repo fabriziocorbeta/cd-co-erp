@@ -130,24 +130,40 @@ function renderDashboardSummary() {
 // ══════════════════════════════════════════
 // DASHBOARD RENDER (en dos fases)
 // ══════════════════════════════════════════
-function renderDashboard(){
-  // Fase 1: Resumen rápido (ya fue renderizado por loadDashboardSummary)
-  // Si el RPC no devolvió data, compute fallback:
-  if (!_dashboardSummaryCache) {
-    renderEtherealStats();
+ async function renderDashboard() {
+  if (!SB_ON || !sb) return;
+
+  // 1. Mostramos esqueletos mientras llega el paquete de datos
+  renderEtherealStats();
+  renderEtherealCharts();
+  renderEtherealRecentTxs();
+
+  // 2. Llamada única de alta velocidad (RPC)
+  const { data, error } = await sb.rpc('get_complete_dashboard_v2', { 
+    user_uuid: S.user.id 
+  });
+
+  if (error) {
+    console.error("[DASH] Error en carga RPC:", error);
+    return;
   }
 
-  // Fase 2: Gráficos y listas en segundo plano (no bloquean)
-  // Solo si hay datos en S (después de loadAllUserData)
-  if (S.txs && S.txs.length) {
-    renderEtherealCharts();
-    renderEtherealRecentTxs();
-  }
+  if (data) {
+    // 3. Inyectamos los datos reales en el estado global 'S'
+    S.patrimonio = data.patrimonio_neto;
+    S.stats = data.resumen_mes;
+    S.txs = data.ultimas_txs;
+    S.inventory = data.inventario_kpis;
 
-  renderEtherealCardsStock();
-  renderEtherealSubs();
-  if(typeof renderBudgetsSummary === 'function') renderBudgetsSummary();
-  if(typeof renderGoalsSummary === 'function') renderGoalsSummary();
+    // 4. Guardamos en caché para que la próxima vez sea instantáneo
+    _saveDashboardSummary(data);
+
+    // 5. Renderizamos la interfaz real con los datos que llegaron
+    renderStats();           // Asegurate que estas funciones existan en tus archivos .js
+    renderCharts();
+    renderRecentTransactions();
+    renderCardsStock();      // Reemplaza a renderEtherealCardsStock()
+  }
 }
 
 // ══════════════════════════════════════════
