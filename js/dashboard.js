@@ -153,7 +153,47 @@ function renderDashboardSummary() {
   if (data) {
     // 3. Inyectamos los datos reales en el estado global 'S'
     // Map the returned wrapper
-    S.patrimonio = data.patrimonio_neto;
+    // Recalculate based on full client data to factor in debts and receivables accurately
+    let acctTotal = 0;
+    const patFxRate = (typeof FX !== 'undefined' && FX.buy && FX.buy > 1000) ? FX.buy : 7200;
+    (S.accounts || []).forEach(a => {
+      const bal = parseFloat(a.balance) || 0;
+      const conv = a.cur === '₲' || !a.cur ? bal : bal * patFxRate;
+      acctTotal += conv;
+    });
+
+    let cardDebt = 0;
+    (S.cards || []).forEach(c => {
+      const used = parseFloat(c.used) || 0;
+      const conv = c.cur === '₲' || !c.cur ? used : used * patFxRate;
+      cardDebt += conv;
+    });
+
+    let otherDebt = 0;
+    (S.debts || []).forEach(d => {
+      const pending = Math.max(0, parseFloat(d.total || d.totalAmount || 0) - parseFloat(d.paid || d.paidAmount || 0));
+      const conv = d.cur === '₲' || !d.cur ? pending : pending * patFxRate;
+      otherDebt += conv;
+    });
+
+    let recvTotal = 0;
+    (S.receivables || []).filter(r => !r.completed).forEach(r => {
+      const pending = Math.max(0, parseFloat(r.total || 0) - parseFloat(r.paid || 0));
+      const conv = r.cur === '₲' || !r.cur ? pending : pending * patFxRate;
+      recvTotal += conv;
+    });
+
+    let invValue = 0;
+    (S.products || []).forEach(p => {
+      const val = (parseFloat(p.buyPrice) || 0) * (parseInt(p.stock) || 0);
+      const pCur = p.cur || '₲';
+      const conv = pCur === '₲' ? val : val * patFxRate;
+      invValue += conv;
+    });
+
+    const totalDebt = cardDebt + otherDebt;
+    const totalActivos = acctTotal + recvTotal + invValue;
+    S.patrimonio = totalActivos - totalDebt;
     S.stats = data.resumen_mes;
     S.txs = data.ultimas_txs || S.txs;
     S.inventory = data.inventario_kpis;

@@ -20,9 +20,8 @@ function goPage(pg){
 document.addEventListener('DOMContentLoaded', function() {
   const fleetBtn = document.getElementById('nav-fleet');
   if(fleetBtn){
-    console.log('[NAV] ✅ Botón Flota encontrado en DOM:', fleetBtn.offsetParent !== null ? 'VISIBLE' : 'OCULTO (revisar CSS/overflow)');
-  } else {
-    console.error('[NAV] ❌ Botón Flota NO encontrado — verificar index.html');
+    fleetBtn.style.setProperty('display', 'flex', 'important');
+    fleetBtn.style.setProperty('visibility', 'visible', 'important');
   }
 });
 async function renderPageData(pg){

@@ -340,20 +340,29 @@ function renderDebts(){
   }
   const sorted=[...S.debts].sort((a,b)=>a.status==='paid'?1:-1);
   el.innerHTML=sorted.map(d=>{
-    const nextDate = getDebtNextDueDate(d);
-    const days=getDaysUntilDate(nextDate || d.dueDate);
+    // Map backend column names correctly
+    const total = parseFloat(d.total) || parseFloat(d.totalAmount) || 0;
+    const paid = parseFloat(d.paid) || parseFloat(d.paidAmount) || 0;
+    const inst = parseInt(d.inst) || parseInt(d.installments) || 0;
+    const paidInst = parseInt(d.paid_inst) || parseInt(d.paidInstallments) || 0;
+    const dueDate = d.due_date || d.dueDate;
+    const creditor = d.creditor_id || d.creditor || 'Desconocido';
+    const desc = d.desc || d.description || '';
+
+    const nextDate = getDebtNextDueDate({dueDate, installments: inst, paidInstallments: paidInst});
+    const days=getDaysUntilDate(nextDate || dueDate);
     const urgnt=d.status!=='paid'&&days<=7;
-    const pct=d.totalAmount>0?Math.min(100,Math.round((d.paidAmount||0)/d.totalAmount*100)):0;
-    const remaining=(d.totalAmount||0)-(d.paidAmount||0);
-    const instStr=d.installments>0?`${d.paidInstallments||0}/${d.installments}`:'—';
+    const pct=total>0?Math.min(100,Math.round(paid/total*100)):0;
+    const remaining=total-paid;
+    const instStr=inst>0?`${paidInst}/${inst}`:'—';
     const daysLabel=d.status==='paid'?'—':days<0?`Vencida ${Math.abs(days)}d`:days===0?'Hoy!':days+'d';
     const daysClass=d.status==='paid'?'':'color:'+(days<=0?'#d47a7a':days<=7?'#e8b124':'var(--pos)');
-    const nextInst = calcNextInst(d.totalAmount||0, d.paidAmount||0, d.installments||0, d.paidInstallments||0);
+    const nextInst = calcNextInst(total, paid, inst, paidInst);
     const nextInstStr = nextInst > 0 ? `<div style="font-size:.65rem;color:var(--g2);margin-top:2px">Próx. Cuota: ${fmt(nextInst, d.cur||'$')}</div>` : '';
 
     return `<tr>
-      <td><strong style="color:var(--cr)">${d.creditor}</strong>${nextInstStr}<div style="font-size:.6rem;color:var(--m3);margin-top:1px">${d.description||''}</div></td>
-      <td class="mono" style="color:var(--g2)">${fmt(d.totalAmount||0,d.cur||'$')}</td>
+      <td><strong style="color:var(--cr)">${creditor}</strong>${nextInstStr}<div style="font-size:.6rem;color:var(--m3);margin-top:1px">${desc}</div></td>
+      <td class="mono" style="color:var(--g2)">${fmt(total,d.cur||'$')}</td>
       <td class="mono" style="color:#d47a7a">${fmt(remaining>0?remaining:0,d.cur||'$')}</td>
       <td>
         <div style="display:flex;align-items:center;gap:7px">
