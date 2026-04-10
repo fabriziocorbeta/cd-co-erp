@@ -411,7 +411,7 @@ async function enterApp(name, plan) {
       // ── FAST PATH: data already in S from swrLoad() ───────────────────
       recomputeBalances();
       _fillSidebarStats();
-      buildPlanCards();
+      if (typeof buildPlanCards === 'function') buildPlanCards();
       populateSelects();
       if (typeof setAppMode === 'function') setAppMode(S.appMode || 'full', true);
       if (typeof calculateAlerts === 'function') calculateAlerts();
@@ -424,7 +424,7 @@ async function enterApp(name, plan) {
     } else {
       // ── COLD START: skeletons → accounts+txs → render ─────────────────
       _injectSkeletons();
-      buildPlanCards();
+      if (typeof buildPlanCards === 'function') buildPlanCards();
       if (typeof applySavedTheme === 'function') applySavedTheme();
       await loadAllUserData(); // fetches accounts+txs first, rest in background
       _clearSkeletons();

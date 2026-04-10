@@ -1612,18 +1612,6 @@
 <script src="js/history.js?v=20260405"></script>
 <script src="js/reports.js?v=20260405"></script>
 <script src="js/notifs.js?v=20260405"></script>
-<!-- Service Worker Init -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(reg => {
-        console.log('Service Worker registrado', reg.scope);
-      }).catch(err => {
-        console.log('Service Worker error:', err);
-      });
-    });
-  }
-</script>
 <script src="js/receivables.js?v=20260405"></script>
 <script src="js/cdco_import.js?v=20260405"></script>
 <script src="js/patrimonio.js?v=20260405"></script>
