@@ -442,11 +442,26 @@ function openFuelModal() {
   g('fuel-amt').value = '';
   g('fuel-lts').value = '';
   g('fuel-km').value  = '';
+  if (g('fuel-type')) g('fuel-type').value = 'nafta';  // reset fuel type selector
   g('fuel-modal').style.display = 'flex';
 }
 
 function selectFuelVehicle(id) {
   g('fuel-vehicle-id').value = id;
+  const selected = (S.vehicles || []).find(v => v.id === id);
+
+  // Mostrar selector de tipo de combustible solo para vehículos Flex
+  const typeContainer = g('fuel-type-container');
+  const typeSelect = g('fuel-type');
+  if (typeContainer) {
+    if (selected?.engine_type === 'flex') {
+      typeContainer.style.display = 'block';
+      typeSelect.value = 'nafta';  // default
+    } else {
+      typeContainer.style.display = 'none';
+    }
+  }
+
   (S.vehicles || []).forEach(v => {
     const btn = g(`v-btn-${v.id}`);
     if (btn) {
@@ -463,6 +478,8 @@ function saveFuelLog() {
   const lts   = parseFloat(g('fuel-lts').value);
   const km    = parseFloat(g('fuel-km').value);
   const date  = g('fuel-date').value;
+  const vehicle = (S.vehicles || []).find(v => v.id === vId);
+  let fuelType = g('fuel-type')?.value || 'nafta';  // default
 
   if (!vId)               { toast('Seleccioná un vehículo'); return; }
   if (isNaN(amt) || amt <= 0) { toast('Ingresá un monto válido'); return; }
@@ -477,7 +494,7 @@ function saveFuelLog() {
     cost: amt,
     liters: isNaN(lts) ? null : lts,
     odometer_reading: isNaN(km) ? null : km,
-    fuel_type: 'Gasolina',
+    fuel_type: fuelType === 'alcohol' ? 'Alcohol' : 'Nafta',  // Flex vehicles can choose; others default
     is_settled: false
   };
 
@@ -487,7 +504,8 @@ function saveFuelLog() {
   if (SB_ON) sbUpsert('fuel_logs', fuelLog);
 
   // También registrar como tx de gasto (impacta tesorería)
-  let desc = 'Combustible';
+  let desc = `Combustible (${fuelLog.fuel_type})`;
+  if (vehicle) desc += ` · ${vehicleLabel(vehicle)}`;
   if (!isNaN(lts) && lts > 0) desc += ` | ${lts} lts`;
   if (!isNaN(km) && km > 0)  desc += ` | Km: ${km}`;
 

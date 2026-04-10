@@ -1452,6 +1452,7 @@
         <select class="fs" id="veh-combustible">
           <option value="nafta">⛽ Nafta</option>
           <option value="gasoil">🛢️ Gasoil</option>
+          <option value="flex">⛽ Flex (Nafta/Alcohol)</option>
           <option value="electrico">⚡ Eléctrico</option>
           <option value="hibrido">🔋 Híbrido</option>
           <option value="moto">🏍️ Moto</option>
@@ -1477,6 +1478,15 @@
         <!-- Rendered by JS -->
       </div>
       <input type="hidden" id="fuel-vehicle-id">
+    </div>
+
+    <div class="fg" id="fuel-type-container" style="display:none">
+      <label class="fl">Tipo de Combustible Cargado</label>
+      <select class="fs" id="fuel-type">
+        <option value="nafta">⛽ Nafta</option>
+        <option value="alcohol">🍷 Alcohol</option>
+      </select>
+      <div style="font-size:0.75rem;color:var(--mu);margin-top:6px">Para vehículos Flex, seleccioná qué combustible cargaste</div>
     </div>
 
     <div class="fr2">
