@@ -5,6 +5,7 @@
 // SALES
 // ══════════════════════════════════════════
 let saleFlt='all';
+let originalSaleItems=[];
 function setSaleFlt(f,btn){saleFlt=f;document.querySelectorAll('#page-sales .flt').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderSales()}
 function renderSales(){
   const q=(g('sale-search')?.value||'').toLowerCase();
@@ -120,8 +121,34 @@ g('sl-cur')?.addEventListener('change',updateSaleTotal);
 function saveSale(){
   if(!saleLines.length||!saleLines[0].prodId){toast('Agregá al menos un producto');return}
   const items=saleLines.filter(l=>l.prodId&&l.qty>0);
-  // Check stock
-  for(const l of items){const p=S.products.find(x=>x.id===l.prodId);if(!p)continue;if(p.stock<l.qty){toast(`Stock insuficiente: ${p.name} (${p.stock} u. disponibles)`);return}}
+
+  // Stock validation: different logic for new sales vs edits
+  if(!editIds.sale) {
+    // NEW SALE: check current stock
+    for(const l of items){
+      const p=S.products.find(x=>x.id===l.prodId);
+      if(!p)continue;
+      if(p.stock<l.qty){
+        toast(`Stock insuficiente: ${p.name} (${p.stock} u. disponibles)`);
+        return;
+      }
+    }
+  } else {
+    // EDIT MODE: validate against original qty + current stock
+    for(const l of items){
+      const p=S.products.find(x=>x.id===l.prodId);
+      if(!p)continue;
+      const origItem=originalSaleItems.find(oi=>oi.prodId===l.prodId);
+      const origQty=origItem?.qty||0;
+      // Available stock = current stock + what was originally deducted for this sale
+      const availableStock=p.stock+origQty;
+      if(availableStock<l.qty){
+        toast(`Stock insuficiente: ${p.name} (${availableStock} u. disponibles)`);
+        return;
+      }
+    }
+  }
+
   const total=items.reduce((a,l)=>a+l.qty*l.price,0);
   // Validate total
   if(!Number.isFinite(total)||total<0){toast('Total debe ser un número válido');return}
@@ -136,12 +163,23 @@ function saveSale(){
   const num=editIds.sale?S.sales.find(s=>s.id===editIds.sale)?.num:(S.sales.length+1);
 
   if(editIds.sale){
-    // EDIT MODE: restore old stock, update sale, sync to Supabase
-    const old=S.sales.find(s=>s.id===editIds.sale);
-    if(old)old.items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p)p.stock+=l.qty});
+    // EDIT MODE: apply stock differences only, update sale, sync to Supabase
     const idx=S.sales.findIndex(s=>s.id===editIds.sale);
     const updatedSale={...S.sales[idx],items,total,cur,date,clientId,status,notes,condicion,nroFactura,method};
     S.sales[idx]=updatedSale;
+
+    // Apply stock differences (not full restore + re-deduct)
+    items.forEach(l=>{
+      const p=S.products.find(x=>x.id===l.prodId);
+      if(!p)return;
+      const origItem=originalSaleItems.find(oi=>oi.prodId===l.prodId);
+      const origQty=origItem?.qty||0;
+      const qtyDifference=l.qty-origQty;
+      if(qtyDifference!==0){
+        p.stock-=qtyDifference;
+        p.stock=Math.max(0,p.stock);
+      }
+    });
 
     // Supabase update
     if(SB){
@@ -153,7 +191,7 @@ function saveSale(){
       }).catch(err=>console.error('Sales update error:',err));
     }
 
-    // remove old auto-tx
+    // remove old auto-tx and sync new one
     S.txs=S.txs.filter(t=>t._saleId!==editIds.sale);
   } else {
     // NEW SALE MODE
@@ -185,10 +223,13 @@ function saveSale(){
     }
   }
 
-  // deduct stock & auto income tx
+  // deduct stock & auto income tx (NEW SALES ONLY — edits already handled above)
   const saleId=editIds.sale||S.sales[S.sales.length-1].id;
-  items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p){p.stock-=l.qty;p.stock=Math.max(0,p.stock)}});
-  // remove old tx and add new one
+  if(!editIds.sale){
+    // New sale: deduct full quantity
+    items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p){p.stock-=l.qty;p.stock=Math.max(0,p.stock)}});
+  }
+  // Create/update transaction
   S.txs=S.txs.filter(t=>t._saleId!==saleId);
   S.txs.push({id:uid(),type:'income',desc:`Venta #${String(num).padStart(4,'0')} — ${items.length} producto(s)`,amount:total,cur,cat:'Relojes',date,_saleId:saleId});
 
@@ -203,6 +244,8 @@ function openEditSaleModal(id) {
 
   editIds.sale = id;
   saleLines = sale.items.map(i => ({...i}));
+  // Store original items for stock recalculation
+  originalSaleItems = sale.items.map(i => ({...i}));
 
   g('sale-mttl').textContent = 'Editar venta';
   g('sl-client').value = sale.clientId || '';

@@ -4693,10 +4693,27 @@ body.light-mode .sb-user { background: #f4f7fc !important; border-color: rgba(15
 
 /* ═══════════════ MATERIAL SYMBOLS ═══════════════ */
 .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   vertical-align: middle;
   line-height: 1;
   font-size: 18px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ni .material-symbols-outlined {
+  font-size: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ═══════════════ MOBILE BOTTOM NAV (STITCH) ═══════════════ */
