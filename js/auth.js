@@ -60,7 +60,7 @@ function lload(){
 // ══════════════════════════════════════════
 // SWR CACHE — stale-while-revalidate (5 min TTL)
 // ══════════════════════════════════════════
-const SWR_KEY = 'cdco_swr_v2';
+const SWR_KEY = 'cdco_swr_v3';
 const SWR_TTL = 15 * 60 * 1000; // 15 minutes — longer TTL = instant loads on return visits
 
 function swrSave() {
@@ -141,7 +141,7 @@ const TABLE_COLS = {
   txs:           'id,type,amount,cur,cat,date,desc,account_id,transferPairId,user_id',
   accounts:      'id,name,type,bank,cur,balance,initialBalance,notes,user_id',
   products:      'id,name,sku,cat,buyPrice,sellPrice,stock,minStock,cur,created_at,variant',
-  sales:         'id,date,total,cur,items,contact_id,status,num,nro_factura,condicion',
+  sales:         'id,date,total,cur,items,client_id,status,num,nro_factura,condicion',
   orders:        'id,date,status,supplier_id,items,num,eta,notes',
   contacts:      'id,name,type,phone,email,ruc,notes',
   // cards: columnas reales de la DB (sin dueDate — no existe)
@@ -202,6 +202,7 @@ async function loadAllUserData() {
     // Main tables: refresh + render immediately when done (don't wait for fleet)
     Promise.allSettled(ALL.map(t => fetchTable(t, 12000))).then(results => {
       applyResults(ALL, results);
+      console.log('[DEBUG] debts[0]:', S.debts?.[0], '| sales[0]:', S.sales?.[0]);
       recomputeBalances();
       swrSave();
       if (typeof renderAll === 'function') renderAll();
@@ -236,6 +237,7 @@ async function loadAllUserData() {
                 'budgets','subscriptions','receivables','goals'];
   Promise.allSettled(rest.map(t => fetchTable(t, 12000))).then(results => {
     applyResults(rest, results);
+    console.log('[DEBUG] debts[0]:', S.debts?.[0], '| sales[0]:', S.sales?.[0]);
     recomputeBalances();
     swrSave();
     if (typeof renderAll === 'function') renderAll();
