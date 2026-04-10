@@ -109,12 +109,16 @@ function renderFleet() {
 
   // SWR: In this version S.vehicles and S.fuelLogs are loaded from local cache in auth.js.
 
-  // Usar solo vehículos reales de Supabase
-  const vehicles = (S.vehicles || []).filter(v => v.id && v.brand);
+  // Usar solo vehículos reales de Supabase (acepta nickname o brand)
+  const vehicles = (S.vehicles || []).filter(v => v.id && (v.brand || v.nickname));
 
   if (vehicles.length === 0) {
     g('fleet-kpis') && (g('fleet-kpis').innerHTML = '');
-    grid.innerHTML = '<div class="tbl-empty" style="grid-column:1/-1;padding:30px">No hay vehículos registrados en Supabase. Agregá el primero desde el panel de administración.</div>';
+    grid.innerHTML = `<div class="tbl-empty" style="grid-column:1/-1;padding:40px;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:12px">🚗</div>
+      <div style="margin-bottom:16px;color:var(--mu)">No hay vehículos registrados.</div>
+      <button class="btn btn-g" onclick="openAddVehicleModal()" style="padding:12px 28px">＋ Agregar primer vehículo</button>
+    </div>`;
     return;
   }
 
@@ -357,6 +361,59 @@ function renderFleetCompChart(fleetData, monthLabels) {
 // ══════════════════════════════════════════
 // FUEL MODAL
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// AGREGAR VEHÍCULO
+// ══════════════════════════════════════════
+function openAddVehicleModal() {
+  g('veh-nombre').value = '';
+  g('veh-chapa').value  = '';
+  g('veh-odometro').value = '';
+  g('veh-combustible').value = 'nafta';
+  g('add-vehicle-modal').style.display = 'flex';
+}
+
+async function saveNewVehicle() {
+  const nombre    = g('veh-nombre').value.trim();
+  const chapa     = g('veh-chapa').value.trim().toUpperCase();
+  const odometro  = parseInt(g('veh-odometro').value) || 0;
+  const combustible = g('veh-combustible').value;
+
+  if (!nombre) { toast('Ingresá el nombre del vehículo'); return; }
+
+  // Construir etiqueta con chapa si se proporcionó
+  const label = chapa ? `${nombre} · ${chapa}` : nombre;
+
+  const vehicle = {
+    id:          uid(),
+    user_id:     S.user?.id,
+    nickname:    label,
+    brand:       nombre,   // requerido para renderFleet filter
+    model:       chapa || null,
+    year:        odometro || null,  // odómetro inicial guardado en year por compatibilidad
+    engine_type: combustible,
+    created_at:  new Date().toISOString(),
+  };
+
+  // Guardar en Supabase
+  if (SB_ON && sb && S.user?.id) {
+    const { error } = await sb.from('vehicles').insert([vehicle]);
+    if (error) {
+      console.error('[Fleet] Error al guardar vehículo:', error);
+      toast('Error al guardar: ' + error.message);
+      return;
+    }
+  }
+
+  // Actualizar estado local
+  if (!S.vehicles) S.vehicles = [];
+  S.vehicles.push(vehicle);
+  swrSave();
+
+  cm('add-vehicle-modal');
+  toast('✅ Vehículo agregado correctamente');
+  renderFleet();
+}
+
 function openFuelModal() {
   const vSel = g('fuel-vehicle-selector');
   const vehicles = (S.vehicles || []).filter(v => v.id && v.brand);

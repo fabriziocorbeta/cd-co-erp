@@ -430,7 +430,10 @@
       <div class="page" id="page-fleet">
         <div class="tb">
           <div class="tb-l"><div class="tb-ey">Negocio</div><div class="tb-t">Gestión de Flota</div></div>
-          <div class="tb-r"><button class="btn btn-g" onclick="openFuelModal()" style="font-size:.85rem;padding:12px 24px">⛽ Carga Rápida</button></div>
+          <div class="tb-r" style="gap:10px">
+            <button class="btn btn-o" onclick="openAddVehicleModal()" style="font-size:.85rem;padding:12px 20px">🚗 Agregar Vehículo</button>
+            <button class="btn btn-g" onclick="openFuelModal()" style="font-size:.85rem;padding:12px 24px">⛽ Carga Rápida</button>
+          </div>
         </div>
         <div class="pg-body">
           <!-- KPI Cards (Glassmorphism) -->
@@ -1426,6 +1429,42 @@
   </div>
   <div class="macts"><button class="mb mb-gh" onclick="cm('debtp-modal')">Cancelar</button><button class="mb mb-g" onclick="saveDebtPay()">✓ Confirmar pago</button></div>
 </div></div>
+
+<!-- Add Vehicle Modal -->
+<div id="add-vehicle-modal" class="overlay" style="display:none" onclick="oco(event,'add-vehicle-modal')">
+  <div class="modal" style="max-width:400px">
+    <div class="mttl">🚗 Agregar Vehículo <button class="mx" onclick="cm('add-vehicle-modal')">✕</button></div>
+    <div class="fg">
+      <label class="fl">Nombre del Vehículo <span style="color:var(--neg)">*</span></label>
+      <input class="fi" id="veh-nombre" type="text" placeholder="ej. La Negra, Delivery 1, Hilux Blanca" />
+    </div>
+    <div class="fg" style="margin-top:12px">
+      <label class="fl">Chapa (Matrícula)</label>
+      <input class="fi" id="veh-chapa" type="text" placeholder="ej. BCD 1234" style="text-transform:uppercase" />
+    </div>
+    <div class="fr2" style="margin-top:12px">
+      <div>
+        <label class="fl">Odómetro Inicial (km)</label>
+        <input class="fi" id="veh-odometro" type="number" inputmode="numeric" min="0" placeholder="ej. 45000" />
+      </div>
+      <div>
+        <label class="fl">Tipo de Combustible</label>
+        <select class="fs" id="veh-combustible">
+          <option value="nafta">⛽ Nafta</option>
+          <option value="gasoil">🛢️ Gasoil</option>
+          <option value="electrico">⚡ Eléctrico</option>
+          <option value="hibrido">🔋 Híbrido</option>
+          <option value="moto">🏍️ Moto</option>
+          <option value="camion">🚚 Camión</option>
+        </select>
+      </div>
+    </div>
+    <div class="macts" style="margin-top:20px">
+      <button class="btn btn-o" onclick="cm('add-vehicle-modal')" style="flex:1">Cancelar</button>
+      <button class="btn btn-g" onclick="saveNewVehicle()" style="flex:2;font-size:1rem;padding:14px">✓ Guardar Vehículo</button>
+    </div>
+  </div>
+</div>
 
 <!-- Fleet Fuel Loading Modal (Mobile Optimized) -->
 <div id="fuel-modal" class="overlay" style="display:none" onclick="oco(event,'fuel-modal')">
