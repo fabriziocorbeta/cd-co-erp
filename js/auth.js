@@ -140,13 +140,13 @@ function defaults(){
 const TABLE_COLS = {
   txs:           'id,type,amount,cur,cat,date,desc,account_id,transferPairId,user_id',
   accounts:      'id,name,type,bank,cur,balance,initialBalance,notes,user_id',
-  products:      'id,name,sku,cat,buyPrice,sellPrice,stock,minStock,cur,created_at,variant,desc',
+  products:      'id,name,sku,cat,buyPrice,sellPrice,stock,minStock,cur,created_at,variant',
   sales:         'id,date,total,cur,items,contact_id,status,num,nro_factura,condicion',
   orders:        'id,date,status,supplier_id,items,num,eta,notes',
   contacts:      'id,name,type,phone,email,ruc,notes',
   // cards: columnas reales de la DB (sin dueDate — no existe)
   cards:         'id,name,bank,cur,limit,used,color,last4,exp,cutDay,payDay',
-  debts:         'id,creditor,description,total,paid,cur,dueDate,installments,paidInstallments',
+  debts:         'id,creditor,description,total,paid,totalAmount,paidAmount,cur,dueDate,installments,paidInstallments',
   budgets:       'id,category,amount,cur,month',
   subscriptions: 'id,name,amount,cur,frequency,nextDate,active,icon,description',
   receivables:   'id,customer,name,total,paid,cur,completed,date',
