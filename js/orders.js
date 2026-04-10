@@ -11,11 +11,15 @@ function renderOrders(){
   let orders=[...S.orders].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(ordFlt==='pending')orders=orders.filter(o=>o.status==='pending' || o.status==='transit');
   else if(ordFlt==='received')orders=orders.filter(o=>o.status==='received');
-  if(q)orders=orders.filter(o=>{const s=S.contacts.find(c=>c.id===o.supId);return(s?.name||'').toLowerCase().includes(q)||String(o.num).includes(q)||String(o.ref||'').toLowerCase().includes(q)});
+  if(q)orders=orders.filter(o=>{const s=S.contacts.find(c=>c.id===(o.supplier_id||o.supId));return(s?.name||'').toLowerCase().includes(q)||String(o.num).includes(q)||String(o.ref||'').toLowerCase().includes(q)});
   const tb=g('orders-tbody');
   if(!orders.length){tb.innerHTML=`<tr><td colspan="7" class="tbl-empty">Sin pedidos. Creá tu primer pedido a proveedor.</td></tr>`;return}
   tb.innerHTML=orders.map(o=>{
-    const sup=S.contacts.find(c=>c.id===o.supId);
+    const sup=S.contacts.find(c=>c.id===(o.supplier_id||o.supId));
+    const supPhone=sup?.phone?sup.phone.replace(/\D/g,''):'';
+    const supLabel=sup
+      ?(supPhone?`<a href="https://wa.me/${supPhone}" target="_blank" style="color:var(--g);text-decoration:none" title="WhatsApp">${sup.name}</a>`:sup.name)
+      :'<span style="color:var(--m3)">Sin proveedor</span>';
     const total=o.totalAmount || o.items.reduce((a,i)=>a+i.qty*(S.products.find(p=>p.id===i.prodId)?.buyPrice||i.price||0),0);
     const statusPill = o.status==='received'?'pill-pos':o.status==='transit'?'pill-warn':'pill-warn';
     const statusLbl = o.status==='received'?'Recibido':o.status==='transit'?'En Tránsito':'Pendiente';
@@ -24,7 +28,7 @@ function renderOrders(){
     return `<tr>
       <td class="mono">${fmtDate(o.date)}</td>
       <td class="mono">#${String(o.num).padStart(4,'0')}</td>
-      <td>${sup?sup.name:'<span style="color:var(--m3)">Sin proveedor</span>'}${o.ref?`<div style="font-size:.6rem;color:var(--mu)">Ref: ${o.ref}</div>`:''}</td>
+      <td>${supLabel}${o.ref?`<div style="font-size:.6rem;color:var(--mu)">Ref: ${o.ref}</div>`:''}</td>
       <td style="font-size:.72rem;color:var(--mu)">${o.items.map(i=>{const p=S.products.find(x=>x.id===i.prodId);return`${p?.name||'?'} x${i.qty}`}).join(', ')}</td>
       <td class="mono">${fmt(total, o.cur || '$')}</td>
       <td><span class="pill ${statusPill}" style="${statusStyle}">${statusLbl}</span></td>

@@ -12,15 +12,19 @@ function renderSales(){
   let sales=[...S.sales].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(saleFlt==='today')sales=sales.filter(s=>s.date===today());
   else if(saleFlt==='month')sales=sales.filter(s=>mkey(s.date)===tm);
-  if(q)sales=sales.filter(s=>{const c=S.contacts.find(x=>x.id===s.clientId);return(c?.name||'').toLowerCase().includes(q)||String(s.num).includes(q)});
+  if(q)sales=sales.filter(s=>{const c=S.contacts.find(x=>x.id===(s.client_id||s.clientId));return(c?.name||'').toLowerCase().includes(q)||String(s.num).includes(q)});
   const tb=g('sales-tbody');
   if(!sales.length){tb.innerHTML=`<tr><td colspan="8" class="tbl-empty">Sin ventas. Registrá tu primera venta.</td></tr>`;return}
   tb.innerHTML=sales.map(s=>{
-    const client=S.contacts.find(c=>c.id===s.clientId);
+    const client=S.contacts.find(c=>c.id===(s.client_id||s.clientId));
+    const phone=client?.phone?client.phone.replace(/\D/g,''):'';
+    const clientLabel=client
+      ?(phone?`<a href="https://wa.me/${phone}" target="_blank" style="color:var(--g);text-decoration:none" title="WhatsApp">${client.name}</a>`:client.name)
+      :'<span style="color:var(--m3)">Cliente ocasional</span>';
     return `<tr>
       <td class="mono">${fmtDate(s.date)}</td>
       <td class="mono">#${String(s.num).padStart(4,'0')}</td>
-      <td>${client?client.name:'<span style="color:var(--m3)">Cliente ocasional</span>'}</td>
+      <td>${clientLabel}</td>
       <td style="font-size:.72rem;color:var(--mu)">${s.items.map(i=>{const p=S.products.find(x=>x.id===i.prodId);return`${p?.name||'Producto'} x${i.qty}`}).join(', ')}</td>
       <td class="mono" style="color:var(--pos)">${fmt(s.total,s.cur)}</td>
       <td class="mono">${s.cur}</td>
