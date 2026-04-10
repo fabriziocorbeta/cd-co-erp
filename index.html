@@ -1483,10 +1483,9 @@
     <div class="fg" id="fuel-type-container" style="display:none">
       <label class="fl">Tipo de Combustible Cargado</label>
       <select class="fs" id="fuel-type">
-        <option value="nafta">⛽ Nafta</option>
-        <option value="alcohol">🍷 Alcohol</option>
+        <!-- Opciones dinámicas según vehículo -->
       </select>
-      <div style="font-size:0.75rem;color:var(--mu);margin-top:6px">Para vehículos Flex, seleccioná qué combustible cargaste</div>
+      <div style="font-size:0.75rem;color:var(--mu);margin-top:6px" id="fuel-type-hint"></div>
     </div>
 
     <div class="fr2">

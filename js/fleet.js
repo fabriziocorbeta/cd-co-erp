@@ -449,14 +449,48 @@ function openFuelModal() {
 function selectFuelVehicle(id) {
   g('fuel-vehicle-id').value = id;
   const selected = (S.vehicles || []).find(v => v.id === id);
-
-  // Mostrar selector de tipo de combustible solo para vehículos Flex
   const typeContainer = g('fuel-type-container');
   const typeSelect = g('fuel-type');
-  if (typeContainer) {
-    if (selected?.engine_type === 'flex') {
+  const typeHint = g('fuel-type-hint');
+
+  if (typeContainer && typeSelect) {
+    const engineType = (selected?.engine_type || '').toLowerCase();
+
+    // Determinar qué opciones de combustible mostrar
+    let showSelector = false;
+    let options = [];
+    let hint = '';
+
+    if (engineType === 'flex') {
+      showSelector = true;
+      options = [
+        { value: 'nafta_88', label: '⛽ Nafta 88 / Aditivada (Económica)' },
+        { value: 'nafta_93', label: '⛽ Nafta 93 / Intermedia' },
+        { value: 'nafta_95', label: '⛽ Nafta 95-97 / Súper' },
+        { value: 'alcohol', label: '🍷 Alcohol / Etanol' }
+      ];
+      hint = 'Para vehículos Flex, seleccioná el octanaje o combustible cargado';
+    } else if (engineType === 'nafta') {
+      showSelector = true;
+      options = [
+        { value: 'nafta_88', label: '⛽ Nafta 88 / Aditivada (Económica)' },
+        { value: 'nafta_93', label: '⛽ Nafta 93 / Intermedia' },
+        { value: 'nafta_95', label: '⛽ Nafta 95-97 / Súper' }
+      ];
+      hint = 'Seleccioná el octanaje de la nafta cargada';
+    } else if (engineType === 'gasoil') {
+      showSelector = true;
+      options = [
+        { value: 'gasoil', label: '🛢️ Gasoil' }
+      ];
+      hint = 'Tipo de combustible';
+    }
+
+    if (showSelector) {
       typeContainer.style.display = 'block';
-      typeSelect.value = 'nafta';  // default
+      typeSelect.innerHTML = options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
+      typeSelect.value = options[0]?.value || '';
+      if (typeHint) typeHint.textContent = hint;
     } else {
       typeContainer.style.display = 'none';
     }
