@@ -130,80 +130,22 @@ function renderDashboardSummary() {
 // ══════════════════════════════════════════
 // DASHBOARD RENDER (en dos fases)
 // ══════════════════════════════════════════
- async function renderDashboard() {
-  if (!SB_ON || !sb) return;
-
-  // SWR: Render from local storage (if any)
-  renderEtherealStats();
-  renderEtherealCharts();
-  renderEtherealRecentTxs();
-  renderEtherealCardsStock();
-
-  // 2. Llamada única de alta velocidad en background (RPC)
-  // We revert to get_complete_dashboard_v2 which is guaranteed to be working and not a stub.
-  const { data, error } = await sb.rpc('get_complete_dashboard_v2', { 
-    user_uuid: S.user.id 
-  });
-
-  if (error) {
-    console.error("[GLOBAL RPC] Error en carga RPC:", error);
-    return;
+function renderDashboard() {
+  // Fase 1: stats desde S (siempre disponible — cache o red)
+  if (!_dashboardSummaryCache) {
+    renderEtherealStats();
   }
 
-  if (data) {
-    // 3. Inyectamos los datos reales en el estado global 'S'
-    // Map the returned wrapper
-    // Recalculate based on full client data to factor in debts and receivables accurately
-    let acctTotal = 0;
-    const patFxRate = (typeof FX !== 'undefined' && FX.buy && FX.buy > 1000) ? FX.buy : 7200;
-    (S.accounts || []).forEach(a => {
-      const bal = parseFloat(a.balance) || 0;
-      const conv = a.cur === '₲' || !a.cur ? bal : bal * patFxRate;
-      acctTotal += conv;
-    });
-
-    let cardDebt = 0;
-    (S.cards || []).forEach(c => {
-      const used = parseFloat(c.used) || 0;
-      const conv = c.cur === '₲' || !c.cur ? used : used * patFxRate;
-      cardDebt += conv;
-    });
-
-    let otherDebt = 0;
-    (S.debts || []).forEach(d => {
-      const pending = Math.max(0, parseFloat(d.total || d.totalAmount || 0) - parseFloat(d.paid || d.paidAmount || 0));
-      const conv = d.cur === '₲' || !d.cur ? pending : pending * patFxRate;
-      otherDebt += conv;
-    });
-
-    let recvTotal = 0;
-    (S.receivables || []).filter(r => !r.completed).forEach(r => {
-      const pending = Math.max(0, parseFloat(r.total || 0) - parseFloat(r.paid || 0));
-      const conv = r.cur === '₲' || !r.cur ? pending : pending * patFxRate;
-      recvTotal += conv;
-    });
-
-    let invValue = 0;
-    (S.products || []).forEach(p => {
-      const val = (parseFloat(p.buyPrice) || 0) * (parseInt(p.stock) || 0);
-      const pCur = p.cur || '₲';
-      const conv = pCur === '₲' ? val : val * patFxRate;
-      invValue += conv;
-    });
-
-    const totalDebt = cardDebt + otherDebt;
-    const totalActivos = acctTotal + recvTotal + invValue;
-    S.patrimonio = totalActivos - totalDebt;
-    S.stats = data.resumen_mes;
-    S.txs = data.ultimas_txs || S.txs;
-    S.inventory = data.inventario_kpis;
-    _saveDashboardSummary(data);
-
-    renderEtherealStats();
+  // Fase 2: gráficos y listas — solo si hay txs
+  if (S.txs && S.txs.length) {
     renderEtherealCharts();
     renderEtherealRecentTxs();
-    renderEtherealCardsStock();
   }
+
+  renderEtherealCardsStock();
+  renderEtherealSubs();
+  if (typeof renderBudgetsSummary === 'function') renderBudgetsSummary();
+  if (typeof renderGoalsSummary === 'function') renderGoalsSummary();
 }
 
 // ══════════════════════════════════════════

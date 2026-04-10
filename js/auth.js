@@ -140,15 +140,16 @@ function defaults(){
 const TABLE_COLS = {
   txs:           'id,type,amount,cur,cat,date,desc,account_id,transferPairId,user_id',
   accounts:      'id,name,type,bank,cur,balance,initialBalance,notes,user_id',
-  products:      'id,name,sku,cat,buyPrice,sellPrice,stock,minStock,cur,created_at,variant,serial,desc',
+  products:      'id,name,sku,cat,buyPrice,sellPrice,stock,minStock,cur,created_at,variant,desc',
   sales:         'id,date,total,cur,items,contact_id,status,num,nro_factura,condicion',
   orders:        'id,date,status,supplier_id,items,num,eta,notes',
   contacts:      'id,name,type,phone,email,ruc,notes',
-  // cards: omitido — fetch via RPC get_user_cards_v1 para evitar error 400 (columna dueDate no existe)
-  debts:         'id,"desc",creditor_id,total,paid,inst,paid_inst,due_date,cur,status,notes,created_at',
+  // cards: columnas reales de la DB (sin dueDate — no existe)
+  cards:         'id,name,bank,cur,limit,used,color,last4,exp,cutDay,payDay',
+  debts:         'id,creditor,description,total,paid,cur,dueDate,installments,paidInstallments',
   budgets:       'id,category,amount,cur,month',
   subscriptions: 'id,name,amount,cur,frequency,nextDate,active,icon,description',
-  receivables:   'id,contact_id,total,paid,cur,due_date,completed,notes',
+  receivables:   'id,customer,name,total,paid,cur,completed,date',
   goals:         'id,name,target_amount,current_amount,deadline,cur,icon',
 };
 
@@ -195,19 +196,19 @@ async function loadAllUserData() {
   };
 
   const ALL  = ['accounts','txs','products','sales','orders','contacts',
-                'debts','budgets','subscriptions','receivables','goals'];
+                'cards','debts','budgets','subscriptions','receivables','goals'];
 
   const _bgRefresh = () => {
-    // All tables in parallel, then fleet, then save + re-render
+    // Main tables: refresh + render immediately when done (don't wait for fleet)
     Promise.allSettled(ALL.map(t => fetchTable(t, 12000))).then(results => {
       applyResults(ALL, results);
       recomputeBalances();
-    });
-    applyFleet().then(() => {
       swrSave();
       if (typeof renderAll === 'function') renderAll();
       if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
     });
+    // Fleet runs in background — no gate on it
+    applyFleet().then(() => swrSave());
   };
 
   // ── SWR tri-state ────────────────────────────────────────────────────────
@@ -231,17 +232,17 @@ async function loadAllUserData() {
   recomputeBalances();
 
   // FASE 2 — everything else in background (no await)
-  const rest = ['products','sales','orders','contacts','debts',
+  const rest = ['products','sales','orders','contacts','cards','debts',
                 'budgets','subscriptions','receivables','goals'];
   Promise.allSettled(rest.map(t => fetchTable(t, 12000))).then(results => {
     applyResults(rest, results);
     recomputeBalances();
-  });
-  applyFleet().then(() => {
     swrSave();
     if (typeof renderAll === 'function') renderAll();
     if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
   });
+  // Fleet runs independently — no gate
+  applyFleet().then(() => swrSave());
 }
 // ── AUDIT-FIRST: balance = SUM(amount) — gastos son negativos en DB ─────────
 function recomputeBalances() {
