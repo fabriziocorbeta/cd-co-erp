@@ -34,6 +34,7 @@ function renderSales(){
       </td>
       <td><div class="actions">
         <button class="btn btn-pur" style="padding:4px 8px;font-size:.62rem" onclick="viewInvoice('${s.id}')">🧾</button>
+        <button class="btn btn-o" style="padding:4px 8px;font-size:.62rem;border-color:var(--g2);color:var(--g2)" onclick="openEditSaleModal('${s.id}')">✏</button>
         <button class="btn btn-danger" style="padding:4px 8px;font-size:.62rem" onclick="delSale('${s.id}')">✕</button>
       </div></td>
     </tr>`;
@@ -122,6 +123,8 @@ function saveSale(){
   // Check stock
   for(const l of items){const p=S.products.find(x=>x.id===l.prodId);if(!p)continue;if(p.stock<l.qty){toast(`Stock insuficiente: ${p.name} (${p.stock} u. disponibles)`);return}}
   const total=items.reduce((a,l)=>a+l.qty*l.price,0);
+  // Validate total
+  if(!Number.isFinite(total)||total<0){toast('Total debe ser un número válido');return}
   const cur=g('sl-cur').value;
   const date=g('sl-date').value;
   const clientId=g('sl-client').value;
@@ -131,23 +134,97 @@ function saveSale(){
   const nroFactura=g('sl-nrofactura')?.value.trim()||'';
   const method=g('sl-method')?.value||'Efectivo';
   const num=editIds.sale?S.sales.find(s=>s.id===editIds.sale)?.num:(S.sales.length+1);
+
   if(editIds.sale){
-    // restore old stock
+    // EDIT MODE: restore old stock, update sale, sync to Supabase
     const old=S.sales.find(s=>s.id===editIds.sale);
     if(old)old.items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p)p.stock+=l.qty});
     const idx=S.sales.findIndex(s=>s.id===editIds.sale);
-    S.sales[idx]={...S.sales[idx],items,total,cur,date,clientId,status,notes,condicion,nroFactura,method};
+    const updatedSale={...S.sales[idx],items,total,cur,date,clientId,status,notes,condicion,nroFactura,method};
+    S.sales[idx]=updatedSale;
+
+    // Supabase update
+    if(SB){
+      SB.from('sales').update({
+        items,total,currency:cur,date,client_id:clientId||null,status,notes,condicion,nro_factura:nroFactura||null,method
+      }).eq('id',editIds.sale).then(res=>{
+        if(res.error)console.error('Sales update error:',res.error);
+        else console.log('Sale updated in Supabase');
+      }).catch(err=>console.error('Sales update error:',err));
+    }
+
     // remove old auto-tx
     S.txs=S.txs.filter(t=>t._saleId!==editIds.sale);
   } else {
-    S.sales.push({id:uid(),num:num||S.sales.length+1,items,total,cur,date,clientId,status,notes,condicion,nroFactura,method});
+    // NEW SALE MODE
+    const saleId=uid();
+    const newSale={id:saleId,num:num||S.sales.length+1,items,total,cur,date,client_id:clientId||null,clientId,status,notes,condicion,nroFactura,method};
+    S.sales.push(newSale);
+
+    // Supabase insert
+    if(SB){
+      SB.from('sales').insert({
+        id:saleId,
+        user_id:S.user?.id,
+        num:newSale.num,
+        items,
+        total,
+        currency:cur,
+        date,
+        client_id:clientId||null,
+        status,
+        notes,
+        condicion,
+        nro_factura:nroFactura||null,
+        method,
+        created_at:new Date().toISOString()
+      }).then(res=>{
+        if(res.error)console.error('Sales insert error:',res.error);
+        else console.log('Sale inserted to Supabase');
+      }).catch(err=>console.error('Sales insert error:',err));
+    }
   }
+
   // deduct stock & auto income tx
   const saleId=editIds.sale||S.sales[S.sales.length-1].id;
   items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p){p.stock-=l.qty;p.stock=Math.max(0,p.stock)}});
+  // remove old tx and add new one
+  S.txs=S.txs.filter(t=>t._saleId!==saleId);
   S.txs.push({id:uid(),type:'income',desc:`Venta #${String(num).padStart(4,'0')} — ${items.length} producto(s)`,amount:total,cur,cat:'Relojes',date,_saleId:saleId});
-  toast('◆ Venta registrada · Stock actualizado');lsave();renderAll();cm('sale-modal');populateSelects();
+
+  const msg=editIds.sale?'◆ Venta actualizada':'◆ Venta registrada';
+  toast(msg+' · Stock actualizado');
+  lsave();renderAll();cm('sale-modal');populateSelects();
+  editIds.sale=null;
 }
+function openEditSaleModal(id) {
+  const sale = S.sales.find(s => s.id === id);
+  if (!sale) return;
+
+  editIds.sale = id;
+  saleLines = sale.items.map(i => ({...i}));
+
+  g('sale-mttl').textContent = 'Editar venta';
+  g('sl-client').value = sale.clientId || '';
+  g('sl-date').value = sale.date || today();
+  g('sl-cur').value = sale.cur || '$';
+  g('sl-status').value = sale.status || 'paid';
+  g('sl-notes').value = sale.notes || '';
+  if(g('sl-condicion')) g('sl-condicion').value = sale.condicion || 'contado';
+  if(g('sl-nrofactura')) g('sl-nrofactura').value = sale.nroFactura || '';
+  if(g('sl-method')) g('sl-method').value = sale.method || 'Efectivo';
+
+  renderSaleLines();
+
+  g('sale-acts').innerHTML = `
+    <button class="mb mb-d" onclick="delSale('${id}');cm('sale-modal')">Eliminar</button>
+    <button class="mb mb-gh" onclick="cm('sale-modal')">Cancelar</button>
+    <button class="mb mb-g" onclick="saveSale()">Guardar cambios</button>
+  `;
+
+  g('sale-modal').style.display = 'flex';
+}
+
 function delSale(id){
   if(!confirm('¿Eliminar venta? El stock no se restaura automáticamente.'))return;
   S.sales=S.sales.filter(s=>s.id!==id);S.txs=S.txs.filter(t=>t._saleId!==id);
