@@ -86,7 +86,7 @@ function swrLoad() {
     if (!d.ts || !d.accounts || !d.txs) return 'miss';
     // Always hydrate S from cache — even if stale, show data immediately
     ['txs','accounts','products','sales','orders','contacts',
-     'cards','debts','budgets','subscriptions','receivables','goals',
+     'debts','budgets','subscriptions','receivables','goals',
      'vehicles','fuelLogs']
       .forEach(k => { if (d[k] !== undefined) S[k] = d[k]; });
     return (Date.now() - d.ts <= SWR_TTL) ? 'fresh' : 'stale';
@@ -144,6 +144,7 @@ const TABLE_COLS = {
   sales:         'id,date,total,cur,items,contact_id,status,num,nro_factura,condicion',
   orders:        'id,date,status,supplier_id,items,num,eta,notes',
   contacts:      'id,name,type,phone,email,ruc,notes',
+  // cards: omitido — fetch via RPC get_user_cards_v1 para evitar error 400 (columna dueDate no existe)
   debts:         'id,"desc",creditor_id,total,paid,inst,paid_inst,due_date,cur,status,notes,created_at',
   budgets:       'id,category,amount,cur,month',
   subscriptions: 'id,name,amount,cur,frequency,nextDate,active,icon,description',

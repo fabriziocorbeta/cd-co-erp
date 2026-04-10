@@ -101,24 +101,25 @@ function switchDebtTab(t){
 // ETHEREAL 3D CARDS RENDER
 // ══════════════════════════════════════════
 async function renderCards(){
-  if (SB_ON && sb) {
-    try {
-      const { data, error } = await sb.rpc('get_user_cards_v1', { p_user_id: S.user?.id });
-      if (!error && data) {
-        // Map the RPC snake_case response to camelCase if necessary
-        S.cards = data.map(c => ({
-          ...c,
-          initialBalance: c.initial_balance,
-          closingDate: c.closing_date,
-          dueDate: c.due_date,
-          used: c.used_amount,
-        }));
-      }
-    } catch (e) { console.error('[RPC Cards] error:', e); }
-  }
-
   const el=g('cards-list');
   if(!el) return;
+
+  // Cargar tarjetas frescas vía RPC (evita error 400 del fetch directo con columnas inexistentes)
+  if(SB_ON && sb && S.user?.id) {
+    try {
+      const { data, error } = await sb.rpc('get_user_cards_v1', { p_user_id: S.user.id });
+      if(data && !error) {
+        S.cards = data.map(c => ({
+          ...c,
+          used:    parseFloat(c.used_amount || 0),
+          cutDay:  c.closing_date,
+          payDay:  c.due_date,
+          dueDate: c.due_date,
+        }));
+      }
+    } catch(e) { /* usa S.cards existente si el RPC falla */ }
+  }
+
   if(!S.cards||!S.cards.length){
     el.innerHTML='<div class="tbl-empty" style="padding:30px;width:100%;text-align:center">Sin tarjetas registradas. Agregá la primera.</div>';
     g('card-details-panel').style.display = 'none';

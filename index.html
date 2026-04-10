@@ -1633,5 +1633,14 @@
 <script src="js/backup-ui.js?v=20260405"></script>
 
 <div id="print-area"></div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .catch(() => {/* SW opcional — no bloquea la app */});
+  });
+}
+</script>
 </body>
 </html>

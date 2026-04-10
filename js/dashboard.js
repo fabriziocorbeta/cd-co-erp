@@ -306,10 +306,10 @@ function renderEtherealStats(){
     invValue += conv;
   });
 
-  // 📊 FÓRMULA: Patrimonio Neto = Activos - Pasivos
-  const totalDebt = cardDebt + otherDebt;
-  const totalActivos = acctTotal + recvTotal + invValue;
-  const patrimonioNeto = totalActivos - totalDebt;
+  // 📊 PATRIMONIO NETO = (Cuentas + A Cobrar + Inventario) − (Deudas Tarjetas + Otras Deudas)
+  const ACTIVOS  = acctTotal + recvTotal + invValue;   // Cuentas + Receivables + Stock
+  const PASIVOS  = cardDebt  + otherDebt;              // Tarjetas + Préstamos/Deudas
+  const patrimonioNeto = ACTIVOS - PASIVOS;
 
   if(g('d-total-balance')) g('d-total-balance').textContent = fmt(patrimonioNeto, dCur);
 
