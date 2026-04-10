@@ -386,6 +386,7 @@ async function saveNewVehicle() {
   const vehicle = {
     id:          uid(),
     user_id:     S.user?.id,
+    vin:         'PENDIENTE',  // Supabase NOT NULL constraint - can be updated later
     nickname:    label,
     brand:       nombre,   // requerido para renderFleet filter
     model:       chapa || null,
