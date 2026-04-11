@@ -35,18 +35,52 @@ function acctTypeBorder(type) {
   return 'rgba(122,90,181,.45)';
 }
 
-// Investment: total interests acredited (income txs linked to this account with cat 'Interés')
+// ─── INVESTMENT MATH (CFO Logic) ─────────────────────────────────────────────
+// Categorías que representan RENDIMIENTO (no capital): se excluyen del base
+const INVEST_RETURN_CATS = new Set([
+  'Interés','interés','interes','Interes',
+  'Dividendo','dividendo',
+  'Ganancia','ganancia',
+  'Rendimiento','rendimiento',
+  'Inversiones',  // categoría usada en práctica para acreditaciones de interés
+]);
+
+// Capital Base = capital inicial declarado - retiros (expense txs)
+// Los retiros de capital NO son pérdidas de mercado
+function getInvestmentCapital(acc) {
+  const initialCap = parseFloat(acc.init_balance || acc.initialBalance || 0);
+  const retiros = (S.txs || [])
+    .filter(t => (t.account_id === acc.id) && t.type === 'expense')
+    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount || 0)), 0);
+  return Math.max(0, initialCap - retiros);
+}
+
+// Intereses = income txs con categoría de rendimiento
 function getInvestmentInterests(accountId) {
   return (S.txs || [])
-    .filter(t => t.account_id === accountId && t.type === 'income' && (t.cat === 'Interés' || t.cat === 'Dividendo'))
+    .filter(t => t.account_id === accountId && t.type === 'income' && INVEST_RETURN_CATS.has(t.cat))
     .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
 }
-// ROI % = (saldo actual - capital inicial) / capital inicial * 100
+
+// Rendimiento (%) = Intereses / Capital Base × 100
+// Desvinculado del balance actual → retiros no distorsionan el %
 function getInvestmentROI(acc) {
-  const capital = parseFloat(acc.initialBalance || 0);
+  const capital = getInvestmentCapital(acc);
   if (!capital) return 0;
-  const current = getAccountBalance(acc.id);
-  return ((current - capital) / capital * 100);
+  const interests = getInvestmentInterests(acc.id);
+  return (interests / capital * 100);
+}
+
+// Formateador Intl para montos de inversión (estándar Paraguay)
+function fmtInv(amount, cur) {
+  const n = parseFloat(amount) || 0;
+  if (cur === '₲' || cur === 'G' || cur === 'PYG') {
+    return new Intl.NumberFormat('es-PY', { style:'currency', currency:'PYG', maximumFractionDigits:0 }).format(n);
+  }
+  if (cur === '$' || cur === 'USD') {
+    return new Intl.NumberFormat('es-PY', { style:'currency', currency:'USD', minimumFractionDigits:2 }).format(n);
+  }
+  return new Intl.NumberFormat('es-PY', { maximumFractionDigits:0 }).format(n) + ' ' + cur;
 }
 
 // Calculate real balance: initial balance ± all linked transactions
@@ -145,24 +179,27 @@ function renderAccounts() {
     const txs = isOpen ? getAccountTxs(acc.id) : [];
     const isInvestment = acc.type === 'investment';
 
-    // Investment-specific metrics
-    const interests = isInvestment ? getInvestmentInterests(acc.id) : 0;
-    const roi       = isInvestment ? getInvestmentROI(acc) : 0;
-    const roiColor  = roi >= 0 ? 'var(--pos)' : '#d47a7a';
+    // Investment-specific metrics (CFO logic)
+    const capitalBase = isInvestment ? getInvestmentCapital(acc) : 0;
+    const interests   = isInvestment ? getInvestmentInterests(acc.id) : 0;
+    const roi         = isInvestment ? getInvestmentROI(acc) : 0;
+    // Colores condicionales estrictos: verde = positivo, rojo = negativo
+    const roiColor    = roi > 0 ? '#4ade80' : roi < 0 ? '#f87171' : 'var(--mu)';
+    const intColor    = interests > 0 ? '#4ade80' : interests < 0 ? '#f87171' : 'var(--mu)';
 
     const investmentPanel = isInvestment ? `
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 0;border-top:1px solid rgba(232,177,36,.2);border-bottom:1px solid rgba(232,177,36,.2);margin:8px 0">
         <div>
-          <div class="acc-bal-lbl">Capital Inicial</div>
-          <div style="font-family:var(--fm);font-size:.82rem;color:var(--mu)">${fmt(acc.initialBalance || 0, cur)}</div>
+          <div class="acc-bal-lbl">Capital Base</div>
+          <div style="font-family:var(--fm);font-size:.82rem;color:var(--mu)">${fmtInv(capitalBase, cur)}</div>
         </div>
         <div>
           <div class="acc-bal-lbl">Intereses</div>
-          <div style="font-family:var(--fm);font-size:.82rem;color:var(--pos)">+${fmt(interests, cur)}</div>
+          <div style="font-family:var(--fm);font-size:.82rem;color:${intColor}">${interests >= 0 ? '+' : ''}${fmtInv(interests, cur)}</div>
         </div>
         <div>
           <div class="acc-bal-lbl">Rendimiento</div>
-          <div style="font-family:var(--fm);font-size:.9rem;font-weight:700;color:${roiColor}">${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%</div>
+          <div style="font-family:var(--fm);font-size:.9rem;font-weight:700;color:${roiColor}">${roi > 0 ? '+' : ''}${roi.toFixed(2)}%</div>
         </div>
       </div>` : `
       <div class="acc-balance-row">
@@ -417,13 +454,18 @@ function openInterestModal(accId) {
   _investmentAccId = accId;
   const cur = acc.cur || acc.currency || '$';
   const bal = getAccountBalance(accId);
-  const capital = parseFloat(acc.initialBalance || 0);
+  const capital = getInvestmentCapital(acc);  // Capital Base (no Capital Inicial)
+  const interests = getInvestmentInterests(accId);
   const roi = getInvestmentROI(acc);
+  const roiEl = g('inv-roi-disp');
 
   g('inv-acc-name').textContent = acc.name + (acc.bank ? ' · ' + acc.bank : '');
-  g('inv-capital-disp').textContent = fmt(capital, cur);
-  g('inv-balance-disp').textContent = fmt(bal, cur);
-  g('inv-roi-disp').textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + '%';
+  g('inv-capital-disp').textContent = fmtInv(capital, cur);
+  g('inv-balance-disp').textContent = fmtInv(bal, cur);
+  if (roiEl) {
+    roiEl.textContent = (roi > 0 ? '+' : '') + roi.toFixed(2) + '%';
+    roiEl.style.color = roi > 0 ? '#4ade80' : roi < 0 ? '#f87171' : 'var(--mu)';
+  }
   g('inv-interest-amt').value = '';
   g('inv-interest-cur').value = cur;
   g('inv-interest-date').value = today();
@@ -471,8 +513,10 @@ async function saveInvestmentInterest() {
 
   renderAll();
   cm('interest-modal');
-  const roi = getInvestmentROI(S.accounts[accIdx]);
-  toast(`◆ ${fmt(amt, cur)} acreditado — Rendimiento total: ${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%`);
+  const updatedAcc = S.accounts[accIdx];
+  const roi = getInvestmentROI(updatedAcc);
+  const totalInt = getInvestmentInterests(updatedAcc.id);
+  toast(`✅ ${fmtInv(amt, cur)} acreditado en ${updatedAcc.name} — Rendimiento: ${roi > 0 ? '+' : ''}${roi.toFixed(2)}% · Intereses totales: ${fmtInv(totalInt, cur)}`);
 }
 
 // ══════════════════════════════════════════
