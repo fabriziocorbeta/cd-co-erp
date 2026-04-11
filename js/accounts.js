@@ -241,21 +241,25 @@ function renderAccounts() {
       </div>
       ${isOpen ? `
       <div class="acc-hist">
-        ${txs.length === 0 ? '<div class="tbl-empty" style="padding:12px;font-size:.72rem">Sin movimientos en esta cuenta</div>' :
-          txs.slice(0, 8).map(tx => `
-          <div class="acc-hist-row">
-            <div class="acc-hist-icon" style="background:${tx.type==='income'||tx.type==='transfer-in'?'var(--pb)':'var(--nb)'}">
-              ${tx.type==='income'||tx.type==='transfer-in'?'＋':'－'}
-            </div>
-            <div class="acc-hist-info">
-              <div class="acc-hist-desc">${tx.desc}</div>
-              <div class="acc-hist-date">${fmtDate(tx.date)}</div>
-            </div>
-            <div class="acc-hist-amt" style="color:${tx.type==='income'||tx.type==='transfer-in'?'var(--pos)':'#d47a7a'}">
-              ${tx.type==='income'||tx.type==='transfer-in'?'+':'-'}${fmt(tx.amount, tx.cur||'$')}
-            </div>
-          </div>`).join('')}
-        ${txs.length > 8 ? `<div style="text-align:center;font-size:.62rem;color:var(--mu);padding:7px">+${txs.length-8} más</div>` : ''}
+        <div class="acc-hist-header">
+          <span>${txs.length} movimiento${txs.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="acc-hist-scroll">
+          ${txs.length === 0 ? '<div class="tbl-empty" style="padding:12px;font-size:.72rem">Sin movimientos en esta cuenta</div>' :
+            txs.map(tx => `
+            <div class="acc-hist-row">
+              <div class="acc-hist-icon" style="background:${tx.type==='income'||tx.type==='transfer-in'?'var(--pb)':'var(--nb)'}">
+                ${tx.type==='income'||tx.type==='transfer-in'?'＋':'－'}
+              </div>
+              <div class="acc-hist-info">
+                <div class="acc-hist-desc">${tx.desc}</div>
+                <div class="acc-hist-date">${fmtDate(tx.date)}</div>
+              </div>
+              <div class="acc-hist-amt" style="color:${tx.type==='income'||tx.type==='transfer-in'?'var(--pos)':'#d47a7a'}">
+                ${tx.type==='income'||tx.type==='transfer-in'?'+':'-'}${fmt(tx.amount, tx.cur||'$')}
+              </div>
+            </div>`).join('')}
+        </div>
       </div>` : ''}
     </div>`;
   }).join('');
