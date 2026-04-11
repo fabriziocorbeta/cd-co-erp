@@ -24,6 +24,19 @@ if (SB_ON) {
 }
 
 // ══════════════════════════════════════════
+// STUBS DE SEGURIDAD — evitan ReferenceError si un módulo no cargó a tiempo
+// ══════════════════════════════════════════
+window.renderGoals       = window.renderGoals       || function(){ console.warn('[stub] renderGoals no disponible aún'); };
+window.renderFleet       = window.renderFleet       || function(){ console.warn('[stub] renderFleet no disponible aún'); };
+window.renderDashboard   = window.renderDashboard   || function(){ console.warn('[stub] renderDashboard no disponible aún'); };
+window.renderSales       = window.renderSales       || function(){ console.warn('[stub] renderSales no disponible aún'); };
+window.renderOrders      = window.renderOrders      || function(){ console.warn('[stub] renderOrders no disponible aún'); };
+window.renderInventory   = window.renderInventory   || function(){ console.warn('[stub] renderInventory no disponible aún'); };
+window.renderAccounts    = window.renderAccounts    || function(){ console.warn('[stub] renderAccounts no disponible aún'); };
+window.renderDebtsPage   = window.renderDebtsPage   || function(){ console.warn('[stub] renderDebtsPage no disponible aún'); };
+window.renderReceivables = window.renderReceivables || function(){ console.warn('[stub] renderReceivables no disponible aún'); };
+window.buildPlanCards    = window.buildPlanCards    || function(){ console.warn('[stub] buildPlanCards no disponible aún'); };
+// ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
 // ── DATOS FISCALES DE LA EMPRESA (editables en configuración) ──

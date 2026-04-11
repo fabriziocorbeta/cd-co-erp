@@ -837,6 +837,10 @@ let _cashFlowChart = null;
 function renderCashFlow() {
   const el = g('cashflow-chart');
   if (!el) return;
+  if (typeof Chart === 'undefined') {
+    console.warn('[Chart.js] librería no disponible — renderCashFlow abortado');
+    return;
+  }
 
   const txs = S.txs || [];
   const now = new Date();

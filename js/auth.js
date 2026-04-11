@@ -166,7 +166,13 @@ async function loadAllUserData() {
   const applyResults = (tables, results) => {
     tables.forEach((t, i) => {
       const r = results[i];
-      if (r.status === 'fulfilled' && r.value?.data && !r.value?.error) S[t] = r.value.data;
+      if (r.status === 'rejected') {
+        console.error(`[Supabase Error en tabla '${t}'] Promise rejected:`, r.reason);
+      } else if (r.value?.error) {
+        console.error(`[Supabase Error en tabla '${t}'] ${r.value.error.message}`, '| code:', r.value.error.code, '| details:', r.value.error.details, '| hint:', r.value.error.hint);
+      } else if (r.status === 'fulfilled' && r.value?.data) {
+        S[t] = r.value.data;
+      }
     });
     if (S.goals && S.goals.length) {
       S.goals = S.goals.map(g => ({

@@ -23,8 +23,8 @@
 <!-- Material Icons (ligature font estable) — fallback y compatibilidad -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=block" rel="stylesheet"/>
 
-<!-- Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<!-- Chart.js — sin defer: debe estar disponible cuando los scripts del body se ejecutan -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <!-- PDF.js: cargado LAZY en accounts.js solo cuando el usuario abre Conciliación -->
 
