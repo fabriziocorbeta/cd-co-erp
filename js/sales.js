@@ -119,15 +119,37 @@ function updateSaleTotal(){
 g('sl-cur')?.addEventListener('change',updateSaleTotal);
 
 function saveSale(){
-  if(!saleLines.length||!saleLines[0].prodId){toast('Agregá al menos un producto');return}
+  // Validate required fields
+  if(!saleLines.length||!saleLines[0].prodId){
+    toast('Agregá al menos un producto');
+    return;
+  }
+
   const items=saleLines.filter(l=>l.prodId&&l.qty>0);
+  if(!items.length){
+    toast('Agregá al menos un producto con cantidad');
+    return;
+  }
+
+  // Get form values
+  const cur=g('sl-cur').value;
+  const date=g('sl-date').value;
+  const clientId=g('sl-client').value;
+
+  if(!date){
+    toast('Seleccioná una fecha');
+    return;
+  }
 
   // Stock validation: different logic for new sales vs edits
   if(!editIds.sale) {
     // NEW SALE: check current stock
     for(const l of items){
       const p=S.products.find(x=>x.id===l.prodId);
-      if(!p)continue;
+      if(!p){
+        toast(`Producto no encontrado`);
+        return;
+      }
       if(p.stock<l.qty){
         toast(`Stock insuficiente: ${p.name} (${p.stock} u. disponibles)`);
         return;
@@ -137,7 +159,10 @@ function saveSale(){
     // EDIT MODE: validate against original qty + current stock
     for(const l of items){
       const p=S.products.find(x=>x.id===l.prodId);
-      if(!p)continue;
+      if(!p){
+        toast(`Producto no encontrado`);
+        return;
+      }
       const origItem=originalSaleItems.find(oi=>oi.prodId===l.prodId);
       const origQty=origItem?.qty||0;
       // Available stock = current stock + what was originally deducted for this sale
@@ -151,10 +176,11 @@ function saveSale(){
 
   const total=items.reduce((a,l)=>a+l.qty*l.price,0);
   // Validate total
-  if(!Number.isFinite(total)||total<0){toast('Total debe ser un número válido');return}
-  const cur=g('sl-cur').value;
-  const date=g('sl-date').value;
-  const clientId=g('sl-client').value;
+  if(!Number.isFinite(total)||total<0){
+    toast('Total debe ser un número válido');
+    return;
+  }
+  // Get remaining form values
   const status=g('sl-status').value;
   const notes=g('sl-notes').value;
   const condicion=g('sl-condicion')?.value||'contado';
@@ -182,13 +208,28 @@ function saveSale(){
     });
 
     // Supabase update
-    if(SB){
-      SB.from('sales').update({
-        items,total,currency:cur,date,client_id:clientId||null,status,notes,condicion,nro_factura:nroFactura||null,method
-      }).eq('id',editIds.sale).then(res=>{
-        if(res.error)console.error('Sales update error:',res.error);
-        else console.log('Sale updated in Supabase');
-      }).catch(err=>console.error('Sales update error:',err));
+    if(SB_ON && sb && S.user?.id){
+      sb.from('sales').update({
+        items:JSON.stringify(items),
+        total,
+        currency:cur,
+        date,
+        client_id:clientId||null,
+        status,
+        notes:notes||null,
+        condicion,
+        nro_factura:nroFactura||null,
+        method:method||null
+      }).eq('id',editIds.sale).eq('user_id',S.user.id).then(res=>{
+        if(res.error){
+          console.error('[Sales] Update error:',res.error.message,res.error.details);
+          toast('⚠️ Error al sincronizar venta: '+res.error.message);
+        }
+        else console.log('[Sales] Updated in Supabase');
+      }).catch(err=>{
+        console.error('[Sales] Update error:',err);
+        toast('⚠️ Error de conexión: '+err.message);
+      });
     }
 
     // remove old auto-tx and sync new one
@@ -200,26 +241,32 @@ function saveSale(){
     S.sales.push(newSale);
 
     // Supabase insert
-    if(SB){
-      SB.from('sales').insert({
+    if(SB_ON && sb && S.user?.id){
+      sb.from('sales').insert({
         id:saleId,
-        user_id:S.user?.id,
+        user_id:S.user.id,
         num:newSale.num,
-        items,
+        items:JSON.stringify(items),
         total,
         currency:cur,
         date,
         client_id:clientId||null,
         status,
-        notes,
+        notes:notes||null,
         condicion,
         nro_factura:nroFactura||null,
-        method,
+        method:method||null,
         created_at:new Date().toISOString()
       }).then(res=>{
-        if(res.error)console.error('Sales insert error:',res.error);
-        else console.log('Sale inserted to Supabase');
-      }).catch(err=>console.error('Sales insert error:',err));
+        if(res.error){
+          console.error('[Sales] Insert error:',res.error.message,res.error.details);
+          toast('⚠️ Error al guardar venta: '+res.error.message);
+        }
+        else console.log('[Sales] Inserted to Supabase');
+      }).catch(err=>{
+        console.error('[Sales] Insert error:',err);
+        toast('⚠️ Error de conexión: '+err.message);
+      });
     }
   }
 
