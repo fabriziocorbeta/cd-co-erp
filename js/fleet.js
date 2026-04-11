@@ -379,19 +379,24 @@ async function saveNewVehicle() {
   const combustible = g('veh-combustible').value;
 
   if (!nombre) { toast('Ingresá el nombre del vehículo'); return; }
+  if (!chapa)  { toast('Ingresá la chapa (matrícula) del vehículo'); return; }
 
   // Construir etiqueta con chapa si se proporcionó
-  const label = chapa ? `${nombre} · ${chapa}` : nombre;
+  const label = `${nombre} · ${chapa}`;
+
+  // Extraer marca del nombre (primera palabra) como best-effort
+  const brandGuess = nombre.split(/\s+/)[0] || nombre;
 
   const vehicle = {
     id:          uid(),
     user_id:     S.user?.id,
-    vin:         'PENDIENTE',  // Supabase NOT NULL constraint - can be updated later
+    vin:         'PENDIENTE',    // NOT NULL — se actualiza luego
+    plate:       chapa,          // NOT NULL — capturado del input veh-chapa
     nickname:    label,
-    brand:       nombre,   // requerido para renderFleet filter
-    model:       chapa || null,
-    year:        odometro || null,  // odómetro inicial guardado en year por compatibilidad
-    engine_type: combustible,
+    brand:       brandGuess,     // NOT NULL — primera palabra del nombre
+    model:       nombre,         // NOT NULL — nombre completo como modelo
+    year:        new Date().getFullYear(), // NOT NULL — año actual por defecto
+    engine_type: combustible,    // NOT NULL
     created_at:  new Date().toISOString(),
   };
 

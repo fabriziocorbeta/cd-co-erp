@@ -493,7 +493,8 @@ async function sbLoadSales() {
       num: s.num,
       items: s.items || [],
       total: s.total,
-      currency: s.currency || '$',
+      cur: s.cur || s.currency || '$',
+      currency: s.cur || s.currency || '$', // alias para compatibilidad local
       date: s.date,
       client_id: s.client_id,
       status: s.status,

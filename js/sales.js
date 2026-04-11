@@ -212,7 +212,7 @@ function saveSale(){
       sb.from('sales').update({
         items:JSON.stringify(items),
         total,
-        currency:cur,
+        cur,
         date,
         client_id:clientId||null,
         status,
@@ -248,7 +248,7 @@ function saveSale(){
         num:newSale.num,
         items:JSON.stringify(items),
         total,
-        currency:cur,
+        cur,
         date,
         client_id:clientId||null,
         status,

@@ -94,15 +94,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Cuenta en ${account.cur}, se intenta pagar con ${currency}` });
     }
 
-    const currentBalance = parseFloat(account.balance) || 0;
-    console.log(`[PayDebt] Saldo actual: ${currentBalance} ${account.cur}`);
+    // Limpiar balance: puede llegar como string "$ 550.790" o como número 550790
+    const rawBalance = String(account.balance ?? '0');
+    const currentBalance = parseFloat(rawBalance.replace(/[^0-9.-]+/g, '')) || 0;
+    console.log(`[PayDebt] Saldo actual: ${currentBalance} ${account.cur} (raw: ${rawBalance})`);
 
-    // Verificar fondos suficientes
-    if (currentBalance < amount) {
+    // Verificar fondos suficientes — permitir tolerancia de 1 unidad por redondeo
+    if (currentBalance + 1 < amount) {
       console.warn(`[PayDebt] Fondos insuficientes: ${currentBalance} < ${amount}`);
       return res.status(400).json({
         error: 'Fondos insuficientes',
-        detail: `Saldo: ${currentBalance} ${account.cur}, Intento: ${amount} ${account.cur}`
+        detail: `Saldo en DB: ${currentBalance} ${account.cur}, Monto requerido: ${amount} ${account.cur}. Si el saldo es correcto en la app, recargá la página para sincronizar.`
       });
     }
   } catch (e) {
@@ -111,7 +113,7 @@ export default async function handler(req, res) {
   }
 
   // ── 5. Actualizar saldo de la cuenta ────────────────────────────────
-  const newBalance = parseFloat(account.balance) - amount;
+  const newBalance = currentBalance - amount;
 
   try {
     const updateRes = await fetch(
@@ -241,7 +243,7 @@ export default async function handler(req, res) {
     account: {
       id: account.id,
       name: account.name,
-      balanceBefore: parseFloat(account.balance),
+      balanceBefore: currentBalance,
       balanceAfter: newBalance,
       currency: account.cur,
       amountPaid: amount
