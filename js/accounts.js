@@ -50,15 +50,16 @@ const INVEST_RETURN_CATS = new Set([
 function getInvestmentCapital(acc) {
   const initialCap = parseFloat(acc.init_balance || acc.initialBalance || 0);
   const retiros = (S.txs || [])
-    .filter(t => (t.account_id === acc.id) && t.type === 'expense')
+    .filter(t => (t.account_id || t.accountId) === acc.id && t.type === 'expense')
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount || 0)), 0);
   return Math.max(0, initialCap - retiros);
 }
 
 // Intereses = income txs con categoría de rendimiento
+// Compatible con account_id (Supabase/snake_case) y accountId (localStorage/camelCase)
 function getInvestmentInterests(accountId) {
   return (S.txs || [])
-    .filter(t => t.account_id === accountId && t.type === 'income' && INVEST_RETURN_CATS.has(t.cat))
+    .filter(t => (t.account_id || t.accountId) === accountId && t.type === 'income' && INVEST_RETURN_CATS.has(t.cat))
     .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
 }
 
@@ -95,7 +96,7 @@ function getAccountBalance(accountId) {
 // Get transactions linked to an account, sorted by date desc
 function getAccountTxs(accountId) {
   return [...(S.txs || [])]
-    .filter(tx => tx.account_id === accountId)
+    .filter(tx => (tx.account_id || tx.accountId) === accountId)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
