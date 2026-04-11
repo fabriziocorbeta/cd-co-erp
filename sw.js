@@ -32,6 +32,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Ignorar peticiones que no sean http/https
+  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
+    return;
+  }
+
   // Ignorar peticiones a Supabase RPC o APIs externas
   if (event.request.url.includes('supabase.co') || event.request.url.includes('/rest/v1/') || event.request.url.includes('/rpc/') || event.request.method !== 'GET') {
     return;
@@ -44,13 +49,26 @@ self.addEventListener('fetch', event => {
         if (networkRes && networkRes.status === 200 && networkRes.type === 'basic') {
           const responseToCache = networkRes.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
+            try {
+              cache.put(event.request, responseToCache).catch(err => {
+                console.warn('[SW] Cache.put error:', err);
+              });
+            } catch (err) {
+              console.warn('[SW] Cache.put exception:', err);
+            }
+          }).catch(err => {
+            console.warn('[SW] caches.open error:', err);
           });
         }
         return networkRes;
-      }).catch(() => cachedRes); // Fallback a cache offline
+      }).catch(err => {
+        console.warn('[SW] Fetch error:', err);
+        return cachedRes;
+      });
 
       return cachedRes || fetchPromise;
+    }).catch(err => {
+      console.warn('[SW] caches.match error:', err);
     })
   );
 });
