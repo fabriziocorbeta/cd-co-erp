@@ -1,5 +1,5 @@
 {
-  "buildCommand": "mkdir -p public && cp -r index.html admin.html css js assets api sw.js public/ 2>/dev/null || true",
+  "buildCommand": "mkdir -p public && cp -r index.html admin.html css js assets sw.js public/ 2>/dev/null || true",
   "outputDirectory": "public",
   "headers": [
     {
