@@ -189,7 +189,7 @@ function saveGoal() {
       current_amount: goalData.current,
       cur: goalData.cur,
       deadline: goalData.date || null,
-      account_id: goalData.accountId || null,
+      accountId: goalData.accountId || null,
       completed: goalData.completed
     };
     sb.from('goals').upsert(row).then(({ error }) => {
