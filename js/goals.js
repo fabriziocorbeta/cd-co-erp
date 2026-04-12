@@ -160,7 +160,7 @@ function saveGoal() {
     cur: document.getElementById('goal-cur').value,
     current: parseFloat(document.getElementById('goal-current').value) || 0,
     date: document.getElementById('goal-date').value || null,
-    accountId: document.getElementById('goal-account').value || null,
+    accountId: (document.getElementById('goal-account')?.value) || null,
     completed: existingGoal ? existingGoal.completed : false
   };
 

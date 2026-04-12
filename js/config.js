@@ -25,17 +25,30 @@ if (SB_ON) {
 
 // ══════════════════════════════════════════
 // STUBS DE SEGURIDAD — evitan ReferenceError si un módulo no cargó a tiempo
+// Cubre TODAS las funciones que nav.js o auth.js llaman directamente (sin typeof guard)
 // ══════════════════════════════════════════
-window.renderGoals       = window.renderGoals       || function(){ console.warn('[stub] renderGoals no disponible aún'); };
-window.renderFleet       = window.renderFleet       || function(){ console.warn('[stub] renderFleet no disponible aún'); };
-window.renderDashboard   = window.renderDashboard   || function(){ console.warn('[stub] renderDashboard no disponible aún'); };
-window.renderSales       = window.renderSales       || function(){ console.warn('[stub] renderSales no disponible aún'); };
-window.renderOrders      = window.renderOrders      || function(){ console.warn('[stub] renderOrders no disponible aún'); };
-window.renderInventory   = window.renderInventory   || function(){ console.warn('[stub] renderInventory no disponible aún'); };
-window.renderAccounts    = window.renderAccounts    || function(){ console.warn('[stub] renderAccounts no disponible aún'); };
-window.renderDebtsPage   = window.renderDebtsPage   || function(){ console.warn('[stub] renderDebtsPage no disponible aún'); };
-window.renderReceivables = window.renderReceivables || function(){ console.warn('[stub] renderReceivables no disponible aún'); };
-window.buildPlanCards    = window.buildPlanCards    || function(){ console.warn('[stub] buildPlanCards no disponible aún'); };
+const _stub = name => function(){ console.warn('[stub] ' + name + ' no disponible aún'); };
+window.renderGoals          = window.renderGoals          || _stub('renderGoals');
+window.renderFleet          = window.renderFleet          || _stub('renderFleet');
+window.renderDashboard      = window.renderDashboard      || _stub('renderDashboard');
+window.renderSales          = window.renderSales          || _stub('renderSales');
+window.renderOrders         = window.renderOrders         || _stub('renderOrders');
+window.renderInventory      = window.renderInventory      || _stub('renderInventory');
+window.renderAccounts       = window.renderAccounts       || _stub('renderAccounts');
+window.renderDebtsPage      = window.renderDebtsPage      || _stub('renderDebtsPage');
+window.renderReceivables    = window.renderReceivables    || _stub('renderReceivables');
+window.renderTxs            = window.renderTxs            || _stub('renderTxs');
+window.renderContacts       = window.renderContacts       || _stub('renderContacts');
+window.renderBudgets        = window.renderBudgets        || _stub('renderBudgets');
+window.renderSubscriptions  = window.renderSubscriptions  || _stub('renderSubscriptions');
+window.renderHistoryPage    = window.renderHistoryPage    || _stub('renderHistoryPage');
+window.renderInvoices       = window.renderInvoices       || _stub('renderInvoices');
+window.renderAdvice         = window.renderAdvice         || _stub('renderAdvice');
+window.renderPatrimonio     = window.renderPatrimonio     || _stub('renderPatrimonio');
+window.renderProfitability  = window.renderProfitability  || _stub('renderProfitability');
+window.renderAll            = window.renderAll            || _stub('renderAll');
+window.buildPlanCards       = window.buildPlanCards       || _stub('buildPlanCards');
+window.populateSelects      = window.populateSelects      || _stub('populateSelects');
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
