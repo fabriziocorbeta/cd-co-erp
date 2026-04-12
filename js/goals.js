@@ -127,15 +127,17 @@ function openGoalModal(id) {
   
   // Populate Accounts Select
   const accSel = document.getElementById('goal-account');
-  accSel.innerHTML = `
-    <option value="">Ingreso manual</option>
-    <option value="patrimonio">🌟 Patrimonio Neto Total</option>
-  ` + (S.accounts || []).map(a => `<option value="${a.id}">${a.name} (${a.cur})</option>`).join('');
-  accSel.value = goal ? (goal.accountId || '') : '';
+  if (accSel) {
+    accSel.innerHTML = `
+      <option value="">Ingreso manual</option>
+      <option value="patrimonio">🌟 Patrimonio Neto Total</option>
+    ` + (S.accounts || []).map(a => `<option value="${a.id}">${a.name} (${a.cur})</option>`).join('');
+    accSel.value = goal ? (goal.accountId || '') : '';
+  }
 
   // Modal Actions
   const acts = document.getElementById('goal-modal-acts');
-  acts.innerHTML = `
+  if (acts) acts.innerHTML = `
     <button class="mb mb-gh" onclick="cm('goal-modal')">Cancelar</button>
     ${goal ? `<button class="mb mb-d" onclick="deleteGoal('${goal.id}')">Eliminar</button>` : ''}
     <button class="mb mb-g" onclick="saveGoal()">Guardar</button>

@@ -333,7 +333,7 @@ function _prefetchTables(tables, extraTables) {
   (extraTables || []).forEach(t => {
     if (_prefetchInflight.has(t)) return;
     _prefetchInflight.add(t);
-    const cols = t === 'fuel_logs' ? 'id,vehicle_id,date,liters,cost,km' : '*';
+    const cols = t === 'fuel_logs' ? 'id,vehicle_id,date,liters,cost,odometer_reading' : '*';
     sb.from(t).select(cols).order('date', { ascending: false })
       .then(({ data, error }) => {
         if (!error && data && t === 'fuel_logs' && (!S.fuelLogs || !S.fuelLogs.length))
