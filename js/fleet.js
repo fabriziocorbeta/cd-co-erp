@@ -196,14 +196,16 @@ function renderFleet() {
     });
     const maintCost = maintTxs.reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
 
-    // Costo mensual (últimos 6 meses) desde fuel_logs
+    // Costo mensual (últimos 6 meses) desde fuel_logs + fuelTxs
     const monthlyCost = [0, 0, 0, 0, 0, 0];
-    vLogs.forEach(fl => {
-      if (!fl.date) return;
-      const d = new Date(fl.date);
+    const addToMonth = (dateStr, amount) => {
+      if (!dateStr) return;
+      const d = new Date(dateStr);
       const diff = (now.getFullYear() - d.getFullYear()) * 12 + now.getMonth() - d.getMonth();
-      if (diff >= 0 && diff < 6) monthlyCost[5 - diff] += parseFloat(fl.cost) || 0;
-    });
+      if (diff >= 0 && diff < 6) monthlyCost[5 - diff] += Math.abs(parseFloat(amount) || 0);
+    };
+    vLogs.forEach(fl => addToMonth(fl.date, fl.cost));
+    fuelTxs.forEach(t  => addToMonth(t.date,  t.amount));
 
     // C/km
     const ckm = (totalKm > 0 && (fuelCost + maintCost) > 0)
