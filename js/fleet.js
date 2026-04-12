@@ -154,21 +154,45 @@ function renderFleet() {
     // Eficiencia km/l
     const efficiency = (totalKm > 0 && totalLiters > 0) ? totalKm / totalLiters : null;
 
-    // Mantenimiento vinculado a este vehículo.
-    // REGLA ESTRICTA: la desc DEBE mencionar la matrícula (plate) o el modelo del vehículo.
-    // Nunca usar fallback genérico — evita mezclar gastos de otras tarjetas/cuentas.
+    // Categorización ESTRICTA de txs del vehículo.
+    // Palabras que identifican una carga de combustible (excluye de mant.)
+    const FUEL_WORDS = ['combustible', 'nafta', 'alcohol', 'gasoil', 'diesel', 'lts', 'litro', 'surtidor', 'estacion', 'combustib'];
+    const MAINT_WORDS = ['mant', 'repuesto', 'taller', 'service', 'servicio', 'repara', 'freno', 'aceite', 'filtro', 'neumatico', 'goma'];
     const EXCLUDE_WORDS = ['ueno', 'tc ueno'];
     const vPlate = (v.plate || '').toLowerCase();
     const vModel = (v.model || '').toLowerCase();
+
+    // Helper: ¿una tx pertenece a este vehículo?
+    const isVehicleTx = t => {
+      const desc = (t.desc || '').toLowerCase();
+      if (EXCLUDE_WORDS.some(w => desc.includes(w))) return false;
+      if (t._sale_id === v.id) return true;
+      return (vPlate && desc.includes(vPlate)) || (vModel && desc.includes(vModel));
+    };
+
+    // Helper: ¿una tx es de combustible?
+    const isFuelTx = t => {
+      const cat  = (t.cat  || '').toLowerCase();
+      const desc = (t.desc || '').toLowerCase();
+      return cat.includes('combustib') || FUEL_WORDS.some(w => desc.includes(w) || cat.includes(w));
+    };
+
+    // Txs de combustible registradas en S.txs (además de fuel_logs)
+    const fuelTxs = (S.txs || []).filter(t => t.type === 'expense' && isVehicleTx(t) && isFuelTx(t));
+    const fuelTxCost = fuelTxs.reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
+    // Costo combustible = fuel_logs (tabla de cargas) + txs de combustible
+    const fuelCostTotal = fuelCost + fuelTxCost;
+
+    // Txs de MANTENIMIENTO: pertenecen al vehículo, NO son de combustible
     const maintTxs = (S.txs || []).filter(t => {
       if (t.type !== 'expense') return false;
+      if (!isVehicleTx(t)) return false;
+      // Excluir si es una carga de combustible
+      if (isFuelTx(t)) return false;
+      // Debe tener al menos una palabra de mantenimiento (cat o desc)
+      const cat  = (t.cat  || '').toLowerCase();
       const desc = (t.desc || '').toLowerCase();
-      // Excluir explícitamente txs de otras fuentes (TC Ueno, etc.)
-      if (EXCLUDE_WORDS.some(w => desc.includes(w))) return false;
-      // Vínculo directo por ID tiene prioridad
-      if (t._sale_id === v.id) return true;
-      // Solo incluir si la desc menciona la matrícula O el modelo del vehículo
-      return (vPlate && desc.includes(vPlate)) || (vModel && desc.includes(vModel));
+      return MAINT_WORDS.some(w => cat.includes(w) || desc.includes(w)) || t._sale_id === v.id;
     });
     const maintCost = maintTxs.reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
 
@@ -190,9 +214,10 @@ function renderFleet() {
       ...v,
       label: vehicleLabel(v),
       icon:  vehicleIcon(v),
-      fuelCost,
+      fuelCost: fuelCostTotal,
       maintCost,
       maintTxs,
+      fuelTxs,
       totalKm,
       totalLiters,
       efficiency,
@@ -217,7 +242,7 @@ function renderFleet() {
       : [v.brand, v.model].filter(Boolean).join(' ');
     const subLabel = [modelDisplay, v.year].filter(Boolean).join(' ') + (v.plate ? ` · ${v.plate}` : '');
 
-    // Historial de movimientos: mant txs + fuel logs, ordenados por fecha desc
+    // Historial de movimientos: mant txs + fuel_logs + fuel txs, ordenados por fecha desc
     const movements = [
       ...v.maintTxs.map(t => ({
         date: t.date, icon: '🔧',
@@ -230,8 +255,14 @@ function renderFleet() {
         desc: `Combustible${fl.liters ? ' · ' + parseFloat(fl.liters).toFixed(1) + ' L' : ''}`,
         amt:  -(parseFloat(fl.cost) || 0),
         cur:  '₲'
+      })),
+      ...v.fuelTxs.map(t => ({
+        date: t.date, icon: '⛽',
+        desc: t.desc || 'Combustible',
+        amt:  -Math.abs(parseFloat(t.amount) || 0),
+        cur:  '₲'
       }))
-    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
     const histHTML = movements.length
       ? movements.map(m => `
@@ -480,9 +511,9 @@ async function saveNewVehicle(editId) {
     created_at:  new Date().toISOString(),
   };
 
-  // Guardar en Supabase
+  // Guardar en Supabase — upsert evita 409 si el vehículo ya existe (mismo id)
   if (SB_ON && sb && S.user?.id) {
-    const { error } = await sb.from('vehicles').insert([vehicle]);
+    const { error } = await sb.from('vehicles').upsert([vehicle], { onConflict: 'id' });
     if (error) {
       console.error('[Fleet] Error al guardar vehículo:', error);
       toast('Error al guardar: ' + error.message);
