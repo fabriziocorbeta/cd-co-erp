@@ -245,38 +245,42 @@ function renderFleet() {
     const subLabel = [modelDisplay, v.year].filter(Boolean).join(' ') + (v.plate ? ` · ${v.plate}` : '');
 
     // Historial de movimientos: mant txs + fuel_logs + fuel txs, ordenados por fecha desc
+    // id presente → tx de S.txs editable via openTxModal; sin id → fuel_log (no editable aquí)
     const movements = [
       ...v.maintTxs.map(t => ({
-        date: t.date, icon: '🔧',
+        id: t.id, date: t.date, icon: '🔧',
         desc: t.desc || 'Mantenimiento',
         amt:  -Math.abs(parseFloat(t.amount) || 0),
-        cur:  '₲'
+        cur:  '₲', type: t.type || 'expense'
       })),
       ...v.fuelLogs.map(fl => ({
-        date: fl.date, icon: '⛽',
+        id: null, date: fl.date, icon: '⛽',
         desc: `Combustible${fl.liters ? ' · ' + parseFloat(fl.liters).toFixed(1) + ' L' : ''}`,
         amt:  -(parseFloat(fl.cost) || 0),
-        cur:  '₲'
+        cur:  '₲', type: 'expense'
       })),
       ...v.fuelTxs.map(t => ({
-        date: t.date, icon: '⛽',
+        id: t.id, date: t.date, icon: '⛽',
         desc: t.desc || 'Combustible',
         amt:  -Math.abs(parseFloat(t.amount) || 0),
-        cur:  '₲'
+        cur:  '₲', type: t.type || 'expense'
       }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
     const histHTML = movements.length
       ? movements.map(m => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg5)">
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:.85rem">${m.icon}</span>
-              <div>
-                <div style="font-size:.72rem;color:var(--cr)">${m.desc}</div>
-                <div style="font-size:.64rem;color:var(--mu)">${fmtDate ? fmtDate(m.date) : m.date}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg5);gap:6px">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+              <span style="font-size:.85rem;flex-shrink:0">${m.icon}</span>
+              <div style="min-width:0">
+                <div style="font-size:.72rem;color:var(--cr);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.desc}</div>
+                <div style="font-size:.64rem;color:var(--mu)">${typeof fmtDate === 'function' ? fmtDate(m.date) : m.date}</div>
               </div>
             </div>
-            <span style="font-family:var(--fm);font-size:.78rem;color:var(--neg);white-space:nowrap">${fmt(m.amt, m.cur)}</span>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <span style="font-family:var(--fm);font-size:.78rem;color:var(--neg)">${fmt(m.amt, m.cur)}</span>
+              ${m.id ? `<button onclick="openTxModal('${m.type}','${m.id}')" title="Editar" style="background:none;border:1px solid var(--bg5);border-radius:6px;color:var(--mu);cursor:pointer;padding:2px 6px;font-size:.7rem;line-height:1.4;transition:color .15s" onmouseover="this.style.color='var(--g2)'" onmouseout="this.style.color='var(--mu)'">✏</button>` : ''}
+            </div>
           </div>`).join('')
       : `<div style="font-size:.72rem;color:var(--mu);padding:6px 0">Sin movimientos registrados</div>`;
 
