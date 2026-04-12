@@ -246,7 +246,7 @@ function renderFleet() {
         cur:  '₲', type: t.type || 'expense'
       })),
       ...v.fuelLogs.map(fl => ({
-        id: null, date: fl.date, icon: '⛽',
+        id: fl.id, date: fl.date, icon: '⛽',
         desc: `Combustible${fl.liters ? ' · ' + parseFloat(fl.liters).toFixed(1) + ' L' : ''}`,
         amt:  -(parseFloat(fl.cost) || 0),
         cur:  '₲', type: 'expense'
