@@ -186,11 +186,11 @@ async function loadAllUserData() {
 
   // Helper para fetch de fuel_logs y vehicles con columnas mínimas
   const fetchFuelLogs = (ms) => Promise.race([
-    sb.from('fuel_logs').select('id,vehicle_id,date,liters,cost,km').order('date', { ascending: false }),
+    sb.from('fuel_logs').select('id,vehicle_id,date,liters,cost,odometer_reading').order('date', { ascending: false }),
     qTimeout(ms)
   ]);
   const fetchVehicles = (ms) => Promise.race([
-    sb.from('vehicles').select('id,nickname,brand,model,year,engine_type,user_id').order('created_at', { ascending: false }),
+    sb.from('vehicles').select('id,nickname,brand,model,year,engine_type,plate,user_id').order('created_at', { ascending: false }),
     qTimeout(ms)
   ]);
   const applyFleet = async () => {

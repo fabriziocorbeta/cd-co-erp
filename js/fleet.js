@@ -29,13 +29,9 @@ function renderFleetKPIs(fleetData) {
 
   const totalVehicles = (S.vehicles || []).length;
 
-  // Combustible total — fuente real: fuel_logs.cost
-  const totalFuel = (S.fuelLogs || []).reduce((s, fl) => s + (parseFloat(fl.cost) || 0), 0);
-
-  // Mantenimiento total — fuente real: txs cat 'Mantenimiento'
-  const totalMaint = (S.txs || []).filter(t =>
-    t.type === 'expense' && (t.cat || '').toLowerCase().includes('mant')
-  ).reduce((s, t) => s + (t.amount || 0), 0);
+  // Combustible y mantenimiento — sumar desde fleetData ya calculado
+  const totalFuel  = fleetData.reduce((s, v) => s + (v.fuelCost  || 0), 0);
+  const totalMaint = fleetData.reduce((s, v) => s + (v.maintCost || 0), 0);
 
   // C/km — vehículo principal
   let ckm = null;
