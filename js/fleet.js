@@ -155,20 +155,20 @@ function renderFleet() {
     const efficiency = (totalKm > 0 && totalLiters > 0) ? totalKm / totalLiters : null;
 
     // Mantenimiento vinculado a este vehículo.
-    // Detecta por: _sale_id === v.id, cat contiene "mant", o desc menciona el vehículo + keyword de manto.
-    const vKeywords = [v.plate, v.brand, v.model, v.nickname]
-      .filter(Boolean).map(k => k.toLowerCase());
-    const MAINT_WORDS = ['mant', 'servicio', 'taller', 'repara', 'aceite', 'filtro', 'freno', 'goma', 'neumatico', 'service'];
+    // REGLA ESTRICTA: la desc DEBE mencionar la matrícula (plate) o el modelo del vehículo.
+    // Nunca usar fallback genérico — evita mezclar gastos de otras tarjetas/cuentas.
+    const EXCLUDE_WORDS = ['ueno', 'tc ueno'];
+    const vPlate = (v.plate || '').toLowerCase();
+    const vModel = (v.model || '').toLowerCase();
     const maintTxs = (S.txs || []).filter(t => {
       if (t.type !== 'expense') return false;
-      if (t._sale_id === v.id) return true;
       const desc = (t.desc || '').toLowerCase();
-      const cat  = (t.cat  || '').toLowerCase();
-      const hasMaintWord = cat.includes('mant') || MAINT_WORDS.some(w => desc.includes(w));
-      if (!hasMaintWord) return false;
-      // flota de un solo vehículo → atribuir todos los gastos de mant
-      if (vehicles.length === 1) return true;
-      return vKeywords.some(k => k && desc.includes(k));
+      // Excluir explícitamente txs de otras fuentes (TC Ueno, etc.)
+      if (EXCLUDE_WORDS.some(w => desc.includes(w))) return false;
+      // Vínculo directo por ID tiene prioridad
+      if (t._sale_id === v.id) return true;
+      // Solo incluir si la desc menciona la matrícula O el modelo del vehículo
+      return (vPlate && desc.includes(vPlate)) || (vModel && desc.includes(vModel));
     });
     const maintCost = maintTxs.reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
 
