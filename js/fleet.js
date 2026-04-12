@@ -173,11 +173,9 @@ function renderFleet() {
       return cat.includes('combustib') || FUEL_WORDS.some(w => desc.includes(w) || cat.includes(w));
     };
 
-    // Txs de combustible registradas en S.txs (además de fuel_logs)
-    const fuelTxs = (S.txs || []).filter(t => t.type === 'expense' && isVehicleTx(t) && isFuelTx(t));
-    const fuelTxCost = fuelTxs.reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
-    // Costo combustible = fuel_logs (tabla de cargas) + txs de combustible
-    const fuelCostTotal = fuelCost + fuelTxCost;
+    // Combustible: única fuente de verdad = fuel_logs
+    // (NO sumar con txs de combustible para evitar duplicación)
+    const fuelCostTotal = fuelCost;
 
     // Txs de MANTENIMIENTO: pertenecen al vehículo, NO son de combustible
     const maintTxs = (S.txs || []).filter(t => {
@@ -201,7 +199,6 @@ function renderFleet() {
       if (diff >= 0 && diff < 6) monthlyCost[5 - diff] += Math.abs(parseFloat(amount) || 0);
     };
     vLogs.forEach(fl => addToMonth(fl.date, fl.cost));
-    fuelTxs.forEach(t  => addToMonth(t.date,  t.amount));
 
     // C/km
     const ckm = (totalKm > 0 && (fuelCost + maintCost) > 0)
@@ -215,7 +212,6 @@ function renderFleet() {
       fuelCost: fuelCostTotal,
       maintCost,
       maintTxs,
-      fuelTxs,
       totalKm,
       totalLiters,
       efficiency,
@@ -254,12 +250,6 @@ function renderFleet() {
         desc: `Combustible${fl.liters ? ' · ' + parseFloat(fl.liters).toFixed(1) + ' L' : ''}`,
         amt:  -(parseFloat(fl.cost) || 0),
         cur:  '₲', type: 'expense'
-      })),
-      ...v.fuelTxs.map(t => ({
-        id: t.id, date: t.date, icon: '⛽',
-        desc: t.desc || 'Combustible',
-        amt:  -Math.abs(parseFloat(t.amount) || 0),
-        cur:  '₲', type: t.type || 'expense'
       }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
