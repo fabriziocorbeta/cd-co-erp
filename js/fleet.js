@@ -154,13 +154,23 @@ function renderFleet() {
     // Eficiencia km/l
     const efficiency = (totalKm > 0 && totalLiters > 0) ? totalKm / totalLiters : null;
 
-    // Mantenimiento vinculado a este vehículo (txs cat Mantenimiento + _sale_id = v.id)
-    const maintTxs = (S.txs || []).filter(t =>
-      t.type === 'expense' &&
-      (t.cat || '').toLowerCase().includes('mant') &&
-      (t._sale_id === v.id || (!t._sale_id && vehicles.indexOf(v) === 0))
-    );
-    const maintCost = maintTxs.reduce((s, t) => s + (t.amount || 0), 0);
+    // Mantenimiento vinculado a este vehículo.
+    // Detecta por: _sale_id === v.id, cat contiene "mant", o desc menciona el vehículo + keyword de manto.
+    const vKeywords = [v.plate, v.brand, v.model, v.nickname]
+      .filter(Boolean).map(k => k.toLowerCase());
+    const MAINT_WORDS = ['mant', 'servicio', 'taller', 'repara', 'aceite', 'filtro', 'freno', 'goma', 'neumatico', 'service'];
+    const maintTxs = (S.txs || []).filter(t => {
+      if (t.type !== 'expense') return false;
+      if (t._sale_id === v.id) return true;
+      const desc = (t.desc || '').toLowerCase();
+      const cat  = (t.cat  || '').toLowerCase();
+      const hasMaintWord = cat.includes('mant') || MAINT_WORDS.some(w => desc.includes(w));
+      if (!hasMaintWord) return false;
+      // flota de un solo vehículo → atribuir todos los gastos de mant
+      if (vehicles.length === 1) return true;
+      return vKeywords.some(k => k && desc.includes(k));
+    });
+    const maintCost = maintTxs.reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
 
     // Costo mensual (últimos 6 meses) desde fuel_logs
     const monthlyCost = [0, 0, 0, 0, 0, 0];
@@ -182,12 +192,14 @@ function renderFleet() {
       icon:  vehicleIcon(v),
       fuelCost,
       maintCost,
+      maintTxs,
       totalKm,
       totalLiters,
       efficiency,
       monthlyCost,
       ckm,
-      logCount: vLogs.length
+      logCount: vLogs.length,
+      fuelLogs: vLogs
     };
   });
 
@@ -198,14 +210,57 @@ function renderFleet() {
   checkMaintenanceAlert();
 
   // Renderizar tarjetas de vehículos
-  grid.innerHTML = fleetData.map(v => `
+  grid.innerHTML = fleetData.map(v => {
+    // Evitar nombre duplicado "KIA KIA SPORTAGE": si model ya empieza con brand, no repetir brand
+    const modelDisplay = (v.brand && v.model && v.model.toLowerCase().startsWith(v.brand.toLowerCase()))
+      ? v.model
+      : [v.brand, v.model].filter(Boolean).join(' ');
+    const subLabel = [modelDisplay, v.year].filter(Boolean).join(' ') + (v.plate ? ` · ${v.plate}` : '');
+
+    // Historial de movimientos: mant txs + fuel logs, ordenados por fecha desc
+    const movements = [
+      ...v.maintTxs.map(t => ({
+        date: t.date, icon: '🔧',
+        desc: t.desc || 'Mantenimiento',
+        amt:  -Math.abs(parseFloat(t.amount) || 0),
+        cur:  '₲'
+      })),
+      ...v.fuelLogs.map(fl => ({
+        date: fl.date, icon: '⛽',
+        desc: `Combustible${fl.liters ? ' · ' + parseFloat(fl.liters).toFixed(1) + ' L' : ''}`,
+        amt:  -(parseFloat(fl.cost) || 0),
+        cur:  '₲'
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+
+    const histHTML = movements.length
+      ? movements.map(m => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg5)">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:.85rem">${m.icon}</span>
+              <div>
+                <div style="font-size:.72rem;color:var(--cr)">${m.desc}</div>
+                <div style="font-size:.64rem;color:var(--mu)">${fmtDate ? fmtDate(m.date) : m.date}</div>
+              </div>
+            </div>
+            <span style="font-family:var(--fm);font-size:.78rem;color:var(--neg);white-space:nowrap">${fmt(m.amt, m.cur)}</span>
+          </div>`).join('')
+      : `<div style="font-size:.72rem;color:var(--mu);padding:6px 0">Sin movimientos registrados</div>`;
+
+    return `
     <div class="panel pp" style="padding:18px;display:flex;flex-direction:column;gap:12px">
       <!-- Header -->
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:2.2rem;background:var(--bg3);width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:14px;border:1px solid var(--bg5)">${v.icon}</div>
-        <div>
-          <div style="font-weight:600;color:var(--cr);font-size:1.05rem">${v.label}</div>
-          <div style="font-size:.72rem;color:var(--mu)">${[v.brand, v.model, v.year].filter(Boolean).join(' ')} · ${v.plate || ''}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+          <div style="font-size:2.2rem;background:var(--bg3);width:56px;height:56px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:14px;border:1px solid var(--bg5)">${v.icon}</div>
+          <div style="min-width:0">
+            <div style="font-weight:600;color:var(--cr);font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.label}</div>
+            <div style="font-size:.72rem;color:var(--mu)">${subLabel}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-o" onclick="editVehicle('${v.id}')" style="padding:6px 10px;font-size:.75rem">✏</button>
+          <button class="btn" onclick="deleteVehicle('${v.id}')" style="padding:6px 10px;font-size:.75rem;color:var(--neg);border-color:rgba(244,94,94,.3)">🗑</button>
         </div>
       </div>
 
@@ -245,6 +300,12 @@ function renderFleet() {
         </div>` : ''}
       </div>` : ''}
 
+      <!-- Historial de movimientos -->
+      <div>
+        <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Historial de movimientos</div>
+        <div style="max-height:200px;overflow-y:auto;scrollbar-width:thin">${histHTML}</div>
+      </div>
+
       <!-- Gráfico mensual -->
       <div style="font-size:.7rem;color:var(--m3);text-transform:uppercase;letter-spacing:1px">
         Combustible últimos 6 meses ${v.logCount === 0 ? '· Sin registros' : `· ${v.logCount} cargas`}
@@ -252,8 +313,8 @@ function renderFleet() {
       <div style="height:110px;width:100%;position:relative">
         <canvas id="chart-vh-${v.id}"></canvas>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   // Renderizar gráfico comparativo
   renderFleetCompChart(fleetData, monthLabels);
@@ -365,18 +426,27 @@ function renderFleetCompChart(fleetData, monthLabels) {
 // AGREGAR VEHÍCULO
 // ══════════════════════════════════════════
 function openAddVehicleModal() {
-  g('veh-nombre').value = '';
-  g('veh-chapa').value  = '';
-  g('veh-odometro').value = '';
+  g('veh-nombre').value    = '';
+  g('veh-chapa').value     = '';
+  g('veh-odometro').value  = '';
   g('veh-combustible').value = 'nafta';
+  if (g('veh-year')) g('veh-year').value = new Date().getFullYear();
+  // Reset modal to "nuevo" mode
+  const saveBtn = document.querySelector('#add-vehicle-modal .btn-g');
+  if (saveBtn) {
+    saveBtn.textContent = '✓ Guardar Vehículo';
+    saveBtn.onclick = () => saveNewVehicle();
+    saveBtn.removeAttribute('data-edit-id');
+  }
   g('add-vehicle-modal').style.display = 'flex';
 }
 
-async function saveNewVehicle() {
+async function saveNewVehicle(editId) {
   const nombre    = g('veh-nombre').value.trim();
   const chapa     = g('veh-chapa').value.trim().toUpperCase();
   const odometro  = parseInt(g('veh-odometro').value) || 0;
   const combustible = g('veh-combustible').value;
+  const yearVal   = parseInt(g('veh-year')?.value) || new Date().getFullYear();
 
   if (!nombre) { toast('Ingresá el nombre del vehículo'); return; }
   if (!chapa)  { toast('Ingresá la chapa (matrícula) del vehículo'); return; }
@@ -405,7 +475,7 @@ async function saveNewVehicle() {
     nickname:    label,
     brand:       brandGuess,     // NOT NULL — primera palabra del nombre
     model:       nombre,         // NOT NULL — nombre completo como modelo
-    year:        new Date().getFullYear(), // NOT NULL — año actual por defecto
+    year:        yearVal, // NOT NULL — desde el selector de año
     engine_type: engineType,     // NOT NULL — mapeado a valor válido del CHECK constraint
     created_at:  new Date().toISOString(),
   };
@@ -420,13 +490,18 @@ async function saveNewVehicle() {
     }
   }
 
-  // Actualizar estado local
+  // Actualizar estado local (inserción o edición)
   if (!S.vehicles) S.vehicles = [];
-  S.vehicles.push(vehicle);
+  if (editId) {
+    const idx = S.vehicles.findIndex(v => v.id === editId);
+    if (idx >= 0) S.vehicles[idx] = { ...S.vehicles[idx], ...vehicle, id: editId };
+  } else {
+    S.vehicles.push(vehicle);
+  }
   swrSave();
 
   cm('add-vehicle-modal');
-  toast('✅ Vehículo agregado correctamente');
+  toast(editId ? '✅ Vehículo actualizado' : '✅ Vehículo agregado correctamente');
   renderFleet();
 }
 
@@ -581,4 +656,43 @@ function saveFuelLog() {
   cm('fuel-modal');
   if (typeof checkBudgetAlerts === 'function') checkBudgetAlerts();
   if (typeof renderAll === 'function') renderAll();
+}
+
+// ══════════════════════════════════════════
+// EDITAR / BORRAR VEHÍCULO
+// ══════════════════════════════════════════
+function editVehicle(id) {
+  const v = (S.vehicles || []).find(v => v.id === id);
+  if (!v) return;
+
+  const REV_MAP = { 'Nafta':'nafta', 'Diésel':'gasoil', 'Flex':'flex', 'Eléctrico':'electrico', 'Híbrido':'hibrido' };
+
+  g('veh-nombre').value    = v.model || v.nickname || '';
+  g('veh-chapa').value     = v.plate || '';
+  g('veh-odometro').value  = '';
+  g('veh-combustible').value = REV_MAP[v.engine_type] || 'nafta';
+
+  // Reutilizar el año si existe el selector
+  if (g('veh-year')) g('veh-year').value = v.year || new Date().getFullYear();
+
+  // Guardar id en el botón del modal para distinguir edición de alta
+  const saveBtn = document.querySelector('#add-vehicle-modal .btn-g');
+  if (saveBtn) {
+    saveBtn.setAttribute('data-edit-id', id);
+    saveBtn.textContent = '✓ Actualizar Vehículo';
+    saveBtn.onclick = () => saveNewVehicle(id);
+  }
+  g('add-vehicle-modal').style.display = 'flex';
+}
+
+async function deleteVehicle(id) {
+  if (!confirm('¿Borrar este vehículo? Esta acción no se puede deshacer.')) return;
+  if (SB_ON && sb && S.user?.id) {
+    const { error } = await sb.from('vehicles').delete().eq('id', id);
+    if (error) { toast('Error al borrar: ' + error.message); return; }
+  }
+  S.vehicles = (S.vehicles || []).filter(v => v.id !== id);
+  if (typeof lsave === 'function') lsave();
+  toast('🗑 Vehículo eliminado');
+  renderFleet();
 }
