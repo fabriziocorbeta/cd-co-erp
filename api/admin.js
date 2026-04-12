@@ -141,6 +141,13 @@ export default async function handler(req, res) {
     admin_email: user.email,
     patrimonio,
     inventario,
+    productos: products.map(p => ({
+      name:       p.name      || '—',
+      cat:        p.cat       || p.category || '—',
+      stock:      parseInt(p.stock) || 0,
+      minStock:   parseInt(p.minStock || p.min_stock) || 2,
+      sellPrice:  parseFloat(p.sellPrice || p.sell_price) || 0,
+    })),
     usuarios: users.map(u => ({
       id:         u.id,
       email:      u.email      || '',

@@ -4,25 +4,14 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>CD & Co — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/app.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/api/config"></script>
 <style>
-  :root {
-    /* ── Surfaces — dark navy (Stitch/Boutique) ── */
-    --bg:  #0b1326; --bg2: #131b2e; --bg3: #171f33; --bg4: #222a3d; --bg5: #2d3449;
-    /* ── Text ── */
-    --cr:  #dae2fd; --mu:  #c6c6cd;
-    /* ── Accents ── */
-    --g:   #d4af37; --g2:  #c1c1ff; --g3:  #e1e0ff;
-    /* ── Semantic ── */
-    --pos: #4edea3; --neg: #ffb4ab;
-    /* ── Design tokens ── */
-    --r:   10px; --rs: 8px;
-    --fd:  'Cormorant Garamond', Georgia, serif;
-    --fb:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --fm:  'DM Mono', 'SF Mono', monospace;
-  }
+  /* ── Admin-specific overrides — tokens from css/app.css ── */
   * { box-sizing: border-box; margin: 0; padding: 0 }
   body { background: var(--bg); color: var(--cr); font-family: var(--fb); min-height: 100vh }
 
@@ -342,7 +331,7 @@ async function loadAdminData() {
 
 // ── Renderizar dashboard ───────────────────────────────────────────────
 function renderDashboard(data) {
-  const { patrimonio, inventario, usuarios } = data;
+  const { patrimonio, inventario, productos = [], usuarios } = data;
 
   // Stats
   const usdFmt = v => '$' + Math.abs(v).toLocaleString('es-PY', { maximumFractionDigits: 0 });
@@ -395,12 +384,16 @@ function renderDashboard(data) {
   `).join('');
 
   // Inventario
-  document.getElementById('inv-count').textContent = `${inventario.totalProductos} productos`;
-  // (inventario detallado requiere datos por producto desde la API)
-  document.getElementById('inv-body').innerHTML = `
-    <tr><td colspan="4" style="color:var(--mu);font-size:.82rem;padding:20px">
-      Total: ${inventario.totalUnidades} unidades · Valor de venta estimado: $${inventario.valorTotal.toLocaleString('es-PY', {maximumFractionDigits:0})}
-    </td></tr>`;
+  document.getElementById('inv-count').textContent = `${inventario.totalProductos} productos · ${inventario.totalUnidades} u.`;
+  document.getElementById('inv-body').innerHTML = productos.length
+    ? productos.map(p => `
+      <tr class="inv-row">
+        <td>${p.name}</td>
+        <td style="color:var(--mu);font-size:.78rem">${p.cat}</td>
+        <td class="${p.stock <= p.minStock ? 'stock-low' : 'stock-ok'}" style="font-family:var(--fm)">${p.stock}</td>
+        <td style="font-family:var(--fm)">$${p.sellPrice.toLocaleString('es-PY', {maximumFractionDigits:0})}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="color:var(--mu);font-size:.82rem;padding:20px">Sin productos</td></tr>`;
 
   document.getElementById('loader').style.display  = 'none';
   document.getElementById('content').style.display = 'block';
@@ -438,7 +431,9 @@ async function updateUserPlan(userId) {
       btn.textContent = '✓';
       setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 1500);
     } else {
-      alert(`Error: ${data.error || 'No se pudo actualizar el plan'}`);
+      const detail = data.detail ? `\n\nDetalle: ${data.detail}` : '';
+      alert(`Error: ${data.error || 'No se pudo actualizar el plan'}${detail}`);
+      console.error('[updateUserPlan] API error:', data);
       btn.textContent = origText;
       btn.disabled    = false;
     }
