@@ -387,6 +387,16 @@ async function saveNewVehicle() {
   // Extraer marca del nombre (primera palabra) como best-effort
   const brandGuess = nombre.split(/\s+/)[0] || nombre;
 
+  // Mapear valores del dropdown a los strings exactos que acepta el CHECK constraint de Supabase
+  const ENGINE_TYPE_MAP = {
+    'nafta':    'Nafta',
+    'gasoil':   'Diésel',
+    'flex':     'Flex',
+    'electrico':'Eléctrico',
+    'hibrido':  'Híbrido',
+  };
+  const engineType = ENGINE_TYPE_MAP[combustible] || 'Nafta';
+
   const vehicle = {
     id:          uid(),
     user_id:     S.user?.id,
@@ -396,7 +406,7 @@ async function saveNewVehicle() {
     brand:       brandGuess,     // NOT NULL — primera palabra del nombre
     model:       nombre,         // NOT NULL — nombre completo como modelo
     year:        new Date().getFullYear(), // NOT NULL — año actual por defecto
-    engine_type: combustible,    // NOT NULL
+    engine_type: engineType,     // NOT NULL — mapeado a valor válido del CHECK constraint
     created_at:  new Date().toISOString(),
   };
 

@@ -258,8 +258,11 @@ function recomputeBalances() {
   S.accounts = S.accounts.map(acc => ({
     ...acc,
     balance: S.txs
-      .filter(t => t.account_id === acc.id)
-      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0)
+      .filter(t => (t.account_id || t.accountId) === acc.id && !t.isBalanceAdj)
+      .reduce((sum, t) => {
+        const amt = parseFloat(t.amount) || 0;
+        return sum + (t.type === 'expense' ? -amt : amt);
+      }, parseFloat(acc.initialBalance || acc.init_balance || 0))
   }));
 }
 // ────────────────────────────────────────────────────────────────────────────
