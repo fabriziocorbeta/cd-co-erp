@@ -225,13 +225,11 @@ async function saveNewCat() {
 
   // 2. LA MAGIA DE SUPABASE (Persistencia Real)
   try {
-    // Cambiamos el texto del botón para que el usuario sepa que está cargando
     const modal = document.getElementById('new-cat-modal');
     const btnGuardar = modal ? modal.querySelector('button:last-child') : null;
     const textoOriginal = btnGuardar ? btnGuardar.textContent : 'GUARDAR';
     if(btnGuardar) btnGuardar.textContent = 'Guardando en la nube...';
 
-    // ⚠️ ATENCIÓN: Ajustá 'categorias' por el nombre real de tu tabla en Supabase
     const { error } = await supabase
       .from('categorias') 
       .insert([
@@ -240,7 +238,6 @@ async function saveNewCat() {
           nombre: name,
           icono: icon,
           tipo: catType
-          // Nota: Si usas RLS, puede que necesites enviar el user_id aquí
         }
       ]);
 
@@ -253,7 +250,6 @@ async function saveNewCat() {
 
     if(modal) {
         modal.style.display = 'none';
-        // Limpiar el input para la próxima vez
         document.getElementById('nc-name').value = ''; 
     }
     if(btnGuardar) btnGuardar.textContent = textoOriginal;
@@ -262,21 +258,9 @@ async function saveNewCat() {
     console.error("Error crítico guardando la categoría:", err);
     toast('Error de conexión con la base de datos');
     
-    // Restaurar el botón si falla
-    const btnGuardar = document.getElementById('new-cat-modal').querySelector('button:last-child');
+    const btnGuardar = document.getElementById('new-cat-modal')?.querySelector('button:last-child');
     if(btnGuardar) btnGuardar.textContent = 'GUARDAR CATEGORÍA';
   }
-}
-
-  // Repoblar el select correspondiente
-  const type = catType === 'ingresos' ? 'income' : 'expense';
-  if(window._pendingCatSelect) {
-    populateTxCat(type, window._pendingCatSelect, name);
-  }
-  populateSelects();
-
-  cm('new-cat-modal');
-  toast('◆ Categoría agregada');
 }
 
 // ══════════════════════════════════════════
