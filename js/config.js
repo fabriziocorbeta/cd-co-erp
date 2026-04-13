@@ -699,3 +699,54 @@ async function sbDeleteFuelLog(fuelLogId) {
 
 
 // v1.0.99-FINAL-FIX — account_id correcto, tabla txs confirmada — 2026-04-05
+
+// ══════════════════════════════════════════
+// EMOJI PICKER — Global utility
+// ══════════════════════════════════════════
+const EMOJI_PICKER_EMOJIS = [
+  '🏦','💳','💵','💰','💼','🏠','🚗','✈️','📈','🛍️',
+  '📱','💎','🏧','💱','🪙','💹','🧾','🎯','🔒','🏪',
+  '⚡','🌐','📦','🎁','🏋️','🎓','🏥','🍽️','🌱','⭐',
+  '🔹','🔸','🟣','🟡','🟢','🔴','🎨','🎵','📚','🧩',
+  '🛒','🏷️','💡','🔧','⚙️','📊','📋','🗓️','🤝','🌟'
+];
+
+/**
+ * openEmojiPicker(btnId, gridId)
+ * Toggles the picker dropdown and populates the emoji grid on first open.
+ * Each emoji button calls selectEmoji(btnId, gridId, emoji) when clicked.
+ */
+function openEmojiPicker(event, btnId, gridId) {
+  event.stopPropagation();
+  const grid = document.getElementById(gridId);
+  const btn  = document.getElementById(btnId);
+  if (!grid || !btn) return;
+
+  // Populate once
+  if (!grid.childElementCount) {
+    grid.innerHTML = EMOJI_PICKER_EMOJIS.map(e =>
+      `<button type="button" onclick="selectEmoji(event,'${btnId}','${gridId}','${e}')"
+        style="background:none;border:none;font-size:1.25rem;cursor:pointer;padding:4px;border-radius:6px;transition:background .15s;line-height:1"
+        onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='none'">${e}</button>`
+    ).join('');
+  }
+
+  // Toggle visibility
+  const picker = grid.parentElement;
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+function selectEmoji(event, btnId, gridId, emoji) {
+  event.stopPropagation();
+  const btn = document.getElementById(btnId);
+  if (btn) btn.textContent = emoji;
+  const grid = document.getElementById(gridId);
+  if (grid) grid.parentElement.style.display = 'none';
+}
+
+// Close any open emoji picker on outside click
+document.addEventListener('click', () => {
+  document.querySelectorAll('.emoji-picker-dropdown').forEach(el => {
+    el.style.display = 'none';
+  });
+});

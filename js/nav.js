@@ -205,7 +205,7 @@ document.addEventListener('change', function(e) {
 
 function saveNewCat() {
   const name = document.getElementById('nc-name').value.trim();
-  const icon = document.getElementById('nc-icon').value.trim() || '🔹';
+  const icon = document.getElementById('cat-emoji-btn')?.textContent?.trim() || '🔹';
   const catType = document.getElementById('nc-type')?.value || 'gastos';
   if(!name) { toast('Ingresá un nombre'); return; }
 

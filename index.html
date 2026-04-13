@@ -1117,7 +1117,24 @@
   </div>
 </div>
 <!-- New Category Modal -->
-<div id="new-cat-modal" class="overlay" style="display:none;z-index:999" onclick="oco(event,'new-cat-modal')"><div class="modal"><div class="mttl">Nueva categoría<button class="mx" onclick="cm('new-cat-modal')">✕</button></div><div class="fr2"><div><label class="fl">Nombre</label><input class="fi" id="nc-name" placeholder="Ej: Regalos"/></div><div><label class="fl">Ícono (Emoji)</label><input class="fi" id="nc-icon" placeholder="🎁"/></div></div><div class="fg"><label class="fl">Tipo</label><select class="fs" id="nc-type"><option value="gastos">Gastos</option><option value="ingresos">Ingresos</option></select></div><div class="macts"><button class="mb mb-gh" onclick="cm('new-cat-modal')">Cancelar</button><button class="mb mb-g" onclick="saveNewCat()">Guardar categoría</button></div></div></div>
+<div id="new-cat-modal" class="overlay" style="display:none;z-index:999" onclick="oco(event,'new-cat-modal')"><div class="modal"><div class="mttl">Nueva categoría<button class="mx" onclick="cm('new-cat-modal')">✕</button></div>
+  <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
+    <div>
+      <label class="fl">Ícono</label>
+      <div style="position:relative">
+        <button id="cat-emoji-btn" type="button" onclick="openEmojiPicker(event,'cat-emoji-btn','cat-emoji-grid')"
+          style="width:46px;height:46px;background:var(--bg3);border:1px solid var(--bg5);border-radius:var(--rs);font-size:1.3rem;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;justify-content:center"
+          onmouseover="this.style.borderColor='var(--g2)'" onmouseout="this.style.borderColor='var(--bg5)'">🔹</button>
+        <div class="emoji-picker-dropdown" style="display:none;position:absolute;top:54px;left:0;z-index:1000;background:var(--bg2);border:1px solid var(--bg5);border-radius:12px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:284px">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px" id="cat-emoji-grid"></div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1"><label class="fl">Nombre</label><input class="fi" id="nc-name" placeholder="Ej: Regalos"/></div>
+  </div>
+  <div class="fg"><label class="fl">Tipo</label><select class="fs" id="nc-type"><option value="gastos">Gastos</option><option value="ingresos">Ingresos</option></select></div>
+  <div class="macts"><button class="mb mb-gh" onclick="cm('new-cat-modal')">Cancelar</button><button class="mb mb-g" onclick="saveNewCat()">Guardar categoría</button></div>
+</div></div>
 
 <!-- Contact Modal -->
 <div id="contact-modal" class="overlay" style="display:none" onclick="oco(event,'contact-modal')"><div class="modal"><div class="mttl"><span id="con-mttl">Nuevo contacto</span><button class="mx" onclick="cm('contact-modal')">✕</button></div><div class="fr2"><div><label class="fl">Nombre</label><input class="fi" id="co-name" placeholder="Nombre o empresa"/></div><div><label class="fl">Tipo</label><select class="fs" id="co-type"><option value="client">Cliente</option><option value="supplier">Proveedor</option><option value="both">Ambos</option></select></div></div><div class="fr2"><div><label class="fl">Teléfono / WhatsApp</label><input class="fi" id="co-phone" placeholder="+595 9..." inputmode="tel"/></div><div><label class="fl">Email</label><input class="fi" id="co-email" type="email" placeholder="opcional"/></div></div><div class="fg"><label class="fl">RUC / CI</label><input class="fi" id="co-ruc" placeholder="Opcional"/></div><div class="fg"><label class="fl">Notas</label><input class="fi" id="co-notes" placeholder="Dirección, referencias..."/></div><div class="macts" id="con-acts"></div></div></div>
@@ -1163,10 +1180,10 @@
     <div>
       <label class="fl">Ícono</label>
       <div style="position:relative">
-        <button id="acc-emoji-btn" onclick="toggleEmojiPicker(event)" type="button"
+        <button id="acc-emoji-btn" onclick="openEmojiPicker(event,'acc-emoji-btn','acc-emoji-grid')" type="button"
           style="width:46px;height:46px;background:var(--bg3);border:1px solid var(--bg5);border-radius:var(--rs);font-size:1.3rem;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;justify-content:center"
           onmouseover="this.style.borderColor='var(--g2)'" onmouseout="this.style.borderColor='var(--bg5)'">🏦</button>
-        <div id="acc-emoji-picker" style="display:none;position:absolute;top:54px;left:0;z-index:999;background:var(--bg2);border:1px solid var(--bg5);border-radius:12px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:228px">
+        <div class="emoji-picker-dropdown" style="display:none;position:absolute;top:54px;left:0;z-index:999;background:var(--bg2);border:1px solid var(--bg5);border-radius:12px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:284px">
           <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px" id="acc-emoji-grid"></div>
         </div>
       </div>

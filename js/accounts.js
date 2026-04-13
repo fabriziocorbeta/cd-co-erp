@@ -301,42 +301,7 @@ function renderAccountsSummary() {
 // ══════════════════════════════════════════
 // ACCOUNT MODAL
 // ══════════════════════════════════════════
-const ACCOUNT_EMOJIS = [
-  '🏦','💳','💵','💰','💼','🏠','🚗','✈️','📈','🛍️',
-  '📱','💎','🏧','💱','🪙','💹','🧾','🎯','🔒','🏪',
-  '⚡','🌐','📦','🎁','🏋️','🎓','🏥','🍽️','🌱','⭐'
-];
-
-function initEmojiPicker() {
-  const grid = g('acc-emoji-grid');
-  if (!grid || grid.childElementCount > 0) return;
-  grid.innerHTML = ACCOUNT_EMOJIS.map(e =>
-    `<button type="button" onclick="selectAccountEmoji('${e}')"
-      style="background:none;border:none;font-size:1.25rem;cursor:pointer;padding:4px;border-radius:6px;transition:background .15s;line-height:1"
-      onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='none'">${e}</button>`
-  ).join('');
-}
-
-function selectAccountEmoji(emoji) {
-  const btn = g('acc-emoji-btn');
-  if (btn) btn.textContent = emoji;
-  const picker = g('acc-emoji-picker');
-  if (picker) picker.style.display = 'none';
-}
-
-function toggleEmojiPicker(e) {
-  e.stopPropagation();
-  initEmojiPicker();
-  const picker = g('acc-emoji-picker');
-  if (!picker) return;
-  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
-}
-
-// Close picker when clicking outside
-document.addEventListener('click', () => {
-  const picker = g('acc-emoji-picker');
-  if (picker) picker.style.display = 'none';
-});
+// Emoji picker for accounts uses the global openEmojiPicker() from config.js
 
 function openAccountModal(id) {
   editAccountId = id || null;
