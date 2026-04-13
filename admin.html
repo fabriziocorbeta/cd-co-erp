@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/api/config"></script>
 <style>
-  /* ── Admin-specific overrides — tokens from css/app.css ── */
+  /* ── Admin-specific — tokens from css/app.css ── */
   * { box-sizing: border-box; margin: 0; padding: 0 }
   body { background: var(--bg); color: var(--cr); font-family: var(--fb); min-height: 100vh }
 
@@ -26,9 +26,17 @@
   }
   #gate-box h1 { font-family: var(--fd); font-size: 1.6rem; font-weight: 300; color: var(--g); margin-bottom: 8px }
   #gate-box p  { color: var(--mu); font-size: .82rem; margin-bottom: 28px }
+  #gate-email, #gate-pass {
+    width: 100%; padding: 12px 14px; background: var(--bg3); border: 1px solid var(--bg5);
+    border-radius: 10px; color: var(--cr); font-size: .88rem; margin-bottom: 10px;
+    outline: none; font-family: var(--fb); transition: border-color .2s;
+  }
+  #gate-pass { margin-bottom: 18px }
+  #gate-email:focus, #gate-pass:focus { border-color: var(--g2) }
   .gate-btn {
-    width: 100%; padding: 13px; background: linear-gradient(135deg, var(--g), var(--g2));
-    border: none; border-radius: 12px; color: #000; font-weight: 600;
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, var(--g), var(--g2));
+    border: none; border-radius: 12px; color: #0b1326; font-weight: 600;
     font-size: .9rem; cursor: pointer; transition: opacity .2s;
   }
   .gate-btn:hover { opacity: .85 }
@@ -36,90 +44,121 @@
 
   /* ── PANEL ── */
   #panel { display: none }
+
+  /* ── HEADER — matches ERP main nav ── */
   header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 22px 48px; border-bottom: 1px solid var(--bg5);
-    background: rgba(18,18,18,.95); backdrop-filter: blur(12px);
+    padding: 16px 40px; border-bottom: 1px solid var(--bg5);
+    background: var(--bg2); backdrop-filter: blur(16px);
     position: sticky; top: 0; z-index: 10;
   }
-  header h1 { font-family: var(--fd); font-size: 1.4rem; font-weight: 300; color: var(--g) }
-  header .meta { font-family: var(--fm); font-size: .65rem; color: var(--mu); letter-spacing: .1em }
-  .logout-btn {
-    padding: 8px 18px; background: transparent; border: 1px solid var(--bg5);
-    border-radius: 8px; color: var(--mu); cursor: pointer; font-size: .8rem;
+  .header-brand { display: flex; align-items: center; gap: 14px }
+  .header-brand h1 {
+    font-family: var(--fd); font-size: 1.25rem; font-weight: 400; color: var(--g);
+    letter-spacing: .02em;
+  }
+  .header-badge {
+    font-family: var(--fm); font-size: .6rem; letter-spacing: .14em;
+    background: rgba(212,175,55,.12); color: var(--g); border: 1px solid rgba(212,175,55,.25);
+    padding: 3px 10px; border-radius: 20px; text-transform: uppercase;
+  }
+  .header-meta { font-family: var(--fm); font-size: .65rem; color: var(--mu); letter-spacing: .08em; margin-top: 3px }
+  .header-actions { display: flex; gap: 8px; align-items: center }
+
+  /* ── ICON BUTTONS ── */
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid var(--bg5); background: transparent;
+    color: var(--mu); cursor: pointer; font-size: .9rem;
+    display: flex; align-items: center; justify-content: center;
     transition: all .2s;
+  }
+  .icon-btn:hover { border-color: var(--g2); color: var(--g2) }
+
+  /* ── ACTION BUTTONS ── */
+  .refresh-btn {
+    padding: 8px 16px; background: rgba(212,175,55,.08); border: 1px solid rgba(212,175,55,.2);
+    border-radius: var(--rs); color: var(--g); cursor: pointer; font-size: .8rem;
+    font-family: var(--fb); transition: all .2s;
+  }
+  .refresh-btn:hover { background: rgba(212,175,55,.18) }
+  .logout-btn {
+    padding: 8px 16px; background: transparent; border: 1px solid var(--bg5);
+    border-radius: var(--rs); color: var(--mu); cursor: pointer; font-size: .8rem;
+    font-family: var(--fb); transition: all .2s;
   }
   .logout-btn:hover { border-color: var(--neg); color: var(--neg) }
 
-  main { padding: 40px 48px; max-width: 1400px }
+  main { padding: 36px 40px; max-width: 1440px }
 
   /* ── STAT CARDS ── */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 40px }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 32px }
   .stat {
     background: var(--bg2); border: 1px solid var(--bg5); border-radius: var(--r);
-    padding: 24px 28px; position: relative; overflow: hidden;
+    padding: 22px 26px; position: relative; overflow: hidden;
   }
   .stat::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: linear-gradient(90deg, transparent, var(--g2), transparent);
   }
-  .stat-label { font-family: var(--fm); font-size: .58rem; letter-spacing: .22em; color: var(--g); text-transform: uppercase; margin-bottom: 10px }
-  .stat-val   { font-family: var(--fd); font-size: 1.9rem; font-weight: 300; color: var(--cr) }
-  .stat-sub   { font-size: .75rem; color: var(--mu); margin-top: 6px }
+  .stat-label { font-family: var(--fm); font-size: .56rem; letter-spacing: .22em; color: var(--g); text-transform: uppercase; margin-bottom: 10px }
+  .stat-val   { font-family: var(--fd); font-size: 1.8rem; font-weight: 300; color: var(--cr) }
+  .stat-sub   { font-size: .73rem; color: var(--mu); margin-top: 6px }
   .pos { color: var(--pos) } .neg-c { color: var(--neg) }
 
   /* ── SECTION ── */
-  .section { background: var(--bg2); border: 1px solid var(--bg5); border-radius: var(--r); margin-bottom: 28px; overflow: hidden }
+  .section { background: var(--bg2); border: 1px solid var(--bg5); border-radius: var(--r); margin-bottom: 24px; overflow: hidden }
   .section-head {
-    padding: 18px 28px; border-bottom: 1px solid var(--bg5);
+    padding: 16px 24px; border-bottom: 1px solid var(--bg5);
     display: flex; align-items: center; justify-content: space-between;
   }
-  .section-title { font-family: var(--fd); font-size: 1.05rem; font-weight: 400; color: var(--cr) }
-  .section-count { font-family: var(--fm); font-size: .7rem; color: var(--g); background: rgba(197,160,89,.1); padding: 4px 10px; border-radius: 20px }
+  .section-title { font-family: var(--fd); font-size: 1rem; font-weight: 400; color: var(--cr) }
+  .section-count { font-family: var(--fm); font-size: .68rem; color: var(--g2); background: rgba(193,193,255,.08); padding: 3px 10px; border-radius: 20px }
 
   /* ── TABLE ── */
   table { width: 100%; border-collapse: collapse }
-  th { padding: 12px 20px; text-align: left; font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; color: var(--mu); text-transform: uppercase; border-bottom: 1px solid var(--bg5) }
-  td { padding: 14px 20px; font-size: .83rem; border-bottom: 1px solid rgba(255,255,255,.03) }
+  th { padding: 11px 20px; text-align: left; font-family: var(--fm); font-size: .58rem; letter-spacing: .14em; color: var(--mu); text-transform: uppercase; border-bottom: 1px solid var(--bg5) }
+  td { padding: 13px 20px; font-size: .82rem; border-bottom: 1px solid var(--bg5); border-bottom-color: rgba(45,52,73,.6) }
   tr:last-child td { border-bottom: none }
-  tr:hover td { background: rgba(255,255,255,.02) }
+  tr:hover td { background: var(--bg3) }
 
-  .badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: .68rem; font-family: var(--fm);
-  }
-  .badge-admin { background: rgba(197,160,89,.2); color: var(--g) }
-  .badge-user  { background: rgba(255,255,255,.06); color: var(--mu) }
-  .badge-pro   { background: rgba(74,155,111,.15); color: var(--pos) }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .66rem; font-family: var(--fm) }
+  .badge-admin { background: rgba(212,175,55,.15); color: var(--g) }
+  .badge-user  { background: rgba(193,193,255,.08); color: var(--mu) }
+  .badge-pro   { background: rgba(78,222,163,.12); color: var(--pos) }
   .badge-free  { background: rgba(255,255,255,.04); color: var(--mu) }
+  .badge-socio { background: rgba(139,92,246,.15); color: var(--pur, #8b5cf6) }
+  .badge-familiar { background: rgba(59,130,246,.15); color: var(--blue, #3b82f6) }
 
-  /* Role toggle button */
+  /* ── PLAN CONTROLS ── */
+  .plan-select {
+    background: var(--bg3); color: var(--cr); border: 1px solid var(--bg5);
+    border-radius: 6px; padding: 5px 9px; font-size: .75rem; cursor: pointer;
+    font-family: var(--fb); outline: none; transition: border-color .2s;
+  }
+  .plan-select:focus { border-color: var(--g2) }
+  .plan-btn {
+    padding: 5px 12px; border-radius: var(--rs);
+    border: 1px solid var(--g2); background: rgba(193,193,255,.1);
+    color: var(--g2); cursor: pointer; font-size: .75rem; font-family: var(--fb);
+    transition: all .2s; font-weight: 500;
+  }
+  .plan-btn:hover { background: rgba(193,193,255,.22) }
   .role-btn {
-    padding: 5px 12px; border-radius: 8px; border: 1px solid var(--bg5);
+    padding: 5px 12px; border-radius: var(--rs); border: 1px solid var(--bg5);
     background: transparent; color: var(--mu); cursor: pointer; font-size: .75rem;
-    transition: all .2s;
+    font-family: var(--fb); transition: all .2s;
   }
   .role-btn:hover { border-color: var(--g); color: var(--g) }
 
   /* ── INVENTORY ── */
-  .inv-row td:nth-child(3) { font-family: var(--fm) }
-  .stock-low { color: var(--neg) }
+  .stock-low { color: var(--neg); font-weight: 500 }
   .stock-ok  { color: var(--pos) }
 
   /* ── LOADER ── */
-  #loader {
-    display: flex; align-items: center; justify-content: center; min-height: 300px;
-    color: var(--mu); font-size: .85rem; gap: 10px;
-  }
+  #loader { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--mu); font-size: .85rem; gap: 10px }
   .spin { animation: spin .8s linear infinite; display: inline-block }
   @keyframes spin { to { transform: rotate(360deg) } }
-
-  /* ── REFRESH ── */
-  .refresh-btn {
-    padding: 8px 16px; background: rgba(197,160,89,.1); border: 1px solid rgba(197,160,89,.3);
-    border-radius: 8px; color: var(--g); cursor: pointer; font-size: .8rem; transition: all .2s;
-  }
-  .refresh-btn:hover { background: rgba(197,160,89,.2) }
 </style>
 </head>
 <body>
@@ -129,12 +168,8 @@
   <div id="gate-box">
     <h1>◆ Admin</h1>
     <p>CD & Co. — Panel de Administración<br>Acceso exclusivo para administradores</p>
-    <input id="gate-email" type="email" placeholder="Email" value=""
-      style="width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-      border-radius:10px;color:#f5f5f5;font-size:.88rem;margin-bottom:10px;box-sizing:border-box;outline:none"/>
-    <input id="gate-pass" type="password" placeholder="Contraseña"
-      style="width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-      border-radius:10px;color:#f5f5f5;font-size:.88rem;margin-bottom:18px;box-sizing:border-box;outline:none"
+    <input id="gate-email" type="email" placeholder="Email" autocomplete="email"/>
+    <input id="gate-pass" type="password" placeholder="Contraseña" autocomplete="current-password"
       onkeydown="if(event.key==='Enter')adminLogin()"/>
     <button class="gate-btn" onclick="adminLogin()">Ingresar al Panel</button>
     <div id="gate-err"></div>
@@ -144,13 +179,17 @@
 <!-- ── PANEL ── -->
 <div id="panel">
   <header>
-    <div>
-      <h1>◆ CD & Co. Admin</h1>
-      <div class="meta" id="admin-email-label">cargando...</div>
+    <div class="header-brand">
+      <div>
+        <h1>◆ CD & Co.</h1>
+        <div class="header-meta" id="admin-email-label">cargando...</div>
+      </div>
+      <span class="header-badge">Admin</span>
     </div>
-    <div style="display:flex;gap:10px;align-items:center">
+    <div class="header-actions">
+      <button class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema">☀</button>
       <button class="refresh-btn" onclick="loadAdminData()">↻ Actualizar</button>
-      <button class="logout-btn" onclick="adminLogout()">Cerrar sesión</button>
+      <button class="logout-btn" onclick="adminLogout()">Salir</button>
     </div>
   </header>
 
@@ -201,7 +240,26 @@
 const ADMIN_EMAIL = 'fabriziocorbeta@gmail.com';
 let sb, currentSession;
 
-// Inicializar Supabase cuando window.__ENV__ esté disponible
+// ── Theme toggle (shared key with main ERP) ──────────────────────────
+function applyTheme() {
+  const saved = localStorage.getItem('cdco_theme');
+  const isLight = saved === 'light';
+  document.body.classList.toggle('light-mode', isLight);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = isLight ? '☾' : '☀';
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-mode');
+  localStorage.setItem('cdco_theme', isLight ? 'light' : 'dark');
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = isLight ? '☾' : '☀';
+}
+
+// Apply immediately (before paint)
+applyTheme();
+
+// ── Supabase init ────────────────────────────────────────────────────
 function initSB() {
   const url = window.__ENV__?.SUPABASE_URL;
   const key = window.__ENV__?.SUPABASE_ANON_KEY;
@@ -218,7 +276,6 @@ async function adminLogin() {
 
   if (!email || !pass) { showErr('Completá email y contraseña'); return; }
 
-  // Primera capa: verificar email antes de llamar a Supabase
   if (email !== ADMIN_EMAIL) {
     showErr('⚠ Acceso denegado. Solo el administrador puede ingresar.');
     return;
@@ -231,15 +288,12 @@ async function adminLogin() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
 
   if (error) {
-    showErr(error.message === 'Invalid login credentials'
-      ? '⚠ Contraseña incorrecta'
-      : error.message);
+    showErr(error.message === 'Invalid login credentials' ? '⚠ Contraseña incorrecta' : error.message);
     btn.disabled = false;
     return;
   }
 
   currentSession = data.session;
-  // El resto del flujo lo maneja el listener onAuthStateChange
 }
 
 async function adminLogout() {
@@ -251,56 +305,48 @@ function showErr(msg) {
   document.getElementById('gate-err').textContent = msg;
 }
 
-// ── Verificar sesión al cargar ─────────────────────────────────────────
+function enterPanel(session) {
+  currentSession = session;
+  document.getElementById('gate').style.display  = 'none';
+  document.getElementById('panel').style.display = 'block';
+  document.getElementById('admin-email-label').textContent = session.user.email + ' · ADMIN';
+  loadAdminData();
+}
+
+// ── Session bootstrap ──────────────────────────────────────────────
 window.addEventListener('load', async () => {
-  // Esperar a que /api/config cargue window.__ENV__
   await new Promise(r => setTimeout(r, 400));
   if (!initSB()) { showErr('Error cargando configuración. Recargá la página.'); return; }
 
-  // Escuchar cambios de auth (login, logout, token refresh)
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
-      currentSession = session;
-
       if (session.user.email !== ADMIN_EMAIL) {
-        showErr('⚠ Acceso denegado. Solo el administrador puede ingresar.');
+        showErr('⚠ Acceso denegado.');
         await sb.auth.signOut();
         document.querySelector('.gate-btn').disabled = false;
         return;
       }
-
-      document.getElementById('gate').style.display  = 'none';
-      document.getElementById('panel').style.display = 'block';
-      document.getElementById('admin-email-label').textContent = session.user.email + ' · ADMIN';
-      await loadAdminData();
+      enterPanel(session);
     }
-
     if (event === 'SIGNED_OUT') {
       document.getElementById('gate').style.display  = 'flex';
       document.getElementById('panel').style.display = 'none';
-      document.getElementById('gate-pass').value     = '';
+      document.getElementById('gate-pass').value = '';
       showErr('');
     }
   });
 
-  // Verificar si ya hay sesión activa (vuelve a la página sin loguear de nuevo)
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
-
-  currentSession = session;
   if (session.user.email !== ADMIN_EMAIL) {
     showErr('⚠ Acceso denegado.');
     await sb.auth.signOut();
     return;
   }
-
-  document.getElementById('gate').style.display  = 'none';
-  document.getElementById('panel').style.display = 'block';
-  document.getElementById('admin-email-label').textContent = session.user.email + ' · ADMIN';
-  await loadAdminData();
+  enterPanel(session);
 });
 
-// ── Cargar datos desde la API segura ──────────────────────────────────
+// ── Load data ─────────────────────────────────────────────────────
 async function loadAdminData() {
   document.getElementById('loader').style.display  = 'flex';
   document.getElementById('content').style.display = 'none';
@@ -318,10 +364,8 @@ async function loadAdminData() {
     }
 
     if (!res.ok) throw new Error(`Error ${res.status}`);
-
     const data = await res.json();
     renderDashboard(data);
-
   } catch (err) {
     console.error('[Admin]', err);
     document.getElementById('loader').innerHTML =
@@ -329,12 +373,10 @@ async function loadAdminData() {
   }
 }
 
-// ── Renderizar dashboard ───────────────────────────────────────────────
+// ── Render dashboard ───────────────────────────────────────────────
 function renderDashboard(data) {
   const { patrimonio, inventario, productos = [], usuarios } = data;
-
-  // Stats
-  const usdFmt = v => '$' + Math.abs(v).toLocaleString('es-PY', { maximumFractionDigits: 0 });
+  const usdFmt = v => '$'  + Math.abs(v).toLocaleString('es-PY', { maximumFractionDigits: 0 });
   const pygFmt = v => '₲' + Math.abs(v).toLocaleString('es-PY', { maximumFractionDigits: 0 });
 
   document.getElementById('stats-grid').innerHTML = `
@@ -356,7 +398,7 @@ function renderDashboard(data) {
     <div class="stat">
       <div class="stat-label">Unidades en Stock</div>
       <div class="stat-val">${inventario.totalUnidades}</div>
-      <div class="stat-sub">${inventario.totalProductos} productos · ${usdFmt(inventario.valorTotal)} valor total</div>
+      <div class="stat-sub">${inventario.totalProductos} productos · ${usdFmt(inventario.valorTotal)} valor</div>
     </div>
   `;
 
@@ -364,21 +406,21 @@ function renderDashboard(data) {
   document.getElementById('users-count').textContent = `${usuarios.length} usuarios`;
   document.getElementById('users-body').innerHTML = usuarios.map(u => `
     <tr id="user-row-${u.id}">
-      <td>${u.email}</td>
+      <td style="font-family:var(--fm);font-size:.78rem">${u.email}</td>
       <td><span class="badge badge-${u.plan}" id="badge-plan-${u.id}">${u.plan}</span></td>
       <td><span class="badge badge-${u.role}">${u.role}</span></td>
-      <td style="color:var(--mu);font-size:.78rem">${u.created_at ? new Date(u.created_at).toLocaleDateString('es-PY') : '—'}</td>
+      <td style="color:var(--mu);font-size:.75rem;font-family:var(--fm)">${u.created_at ? new Date(u.created_at).toLocaleDateString('es-PY') : '—'}</td>
       <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <select id="plan-sel-${u.id}" style="background:var(--bg3);color:var(--cr);border:1px solid var(--bg5);border-radius:4px;padding:4px 8px;font-size:.75rem;cursor:pointer">
+        <select class="plan-select" id="plan-sel-${u.id}">
           <option value="free"     ${u.plan==='free'     ?'selected':''}>Free</option>
           <option value="pro"      ${u.plan==='pro'      ?'selected':''}>Pro</option>
           <option value="socio"    ${u.plan==='socio'    ?'selected':''}>Socio</option>
           <option value="familiar" ${u.plan==='familiar' ?'selected':''}>Familiar</option>
         </select>
-        <button class="role-btn" style="background:var(--g2);color:#fff;border:1px solid var(--g2);border-radius:var(--rs);padding:6px 12px;font-weight:600;cursor:pointer;transition:all 0.2s" onclick="updateUserPlan('${u.id}')">Actualizar Plan</button>
+        <button class="plan-btn" onclick="updateUserPlan('${u.id}')">Actualizar</button>
         ${u.email !== ADMIN_EMAIL
-          ? `<button class="role-btn" style="background:var(--bg4)" onclick="toggleRole('${u.id}','${u.role}')">${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</button>`
-          : '<span style="color:var(--g);font-size:.75rem">Vos</span>'}
+          ? `<button class="role-btn" onclick="toggleRole('${u.id}','${u.role}')">${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}</button>`
+          : '<span style="color:var(--g);font-size:.72rem;font-family:var(--fm)">◆ vos</span>'}
       </td>
     </tr>
   `).join('');
@@ -387,9 +429,9 @@ function renderDashboard(data) {
   document.getElementById('inv-count').textContent = `${inventario.totalProductos} productos · ${inventario.totalUnidades} u.`;
   document.getElementById('inv-body').innerHTML = productos.length
     ? productos.map(p => `
-      <tr class="inv-row">
+      <tr>
         <td>${p.name}</td>
-        <td style="color:var(--mu);font-size:.78rem">${p.cat}</td>
+        <td style="color:var(--mu);font-size:.76rem">${p.cat}</td>
         <td class="${p.stock <= p.minStock ? 'stock-low' : 'stock-ok'}" style="font-family:var(--fm)">${p.stock}</td>
         <td style="font-family:var(--fm)">$${p.sellPrice.toLocaleString('es-PY', {maximumFractionDigits:0})}</td>
       </tr>`).join('')
@@ -399,16 +441,19 @@ function renderDashboard(data) {
   document.getElementById('content').style.display = 'block';
 }
 
-// ── Actualizar plan de un usuario ─────────────────────────────────────
+// ── Actualizar plan ────────────────────────────────────────────────
 async function updateUserPlan(userId) {
   const sel  = document.getElementById(`plan-sel-${userId}`);
   const plan = sel?.value;
-  if (!plan) return;
+  if (!plan || !userId) return;
 
-  const btn = sel.nextElementSibling;
-  const origText = btn.textContent;
-  btn.disabled    = true;
-  btn.textContent = '...';
+  // Encontrar el botón "Actualizar" de esta fila (es el nextElementSibling del select)
+  const btn = document.getElementById(`plan-sel-${userId}`)?.nextElementSibling;
+  const origText = btn?.textContent || 'Actualizar';
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+  const payload = { userId, plan };
+  console.log('[Admin] updateUserPlan payload:', payload);
 
   try {
     const res = await fetch('/api/update-user-plan', {
@@ -417,35 +462,33 @@ async function updateUserPlan(userId) {
         'Authorization': `Bearer ${currentSession.access_token}`,
         'Content-Type':  'application/json'
       },
-      body: JSON.stringify({ userId, plan })
+      body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
-    if (res.ok && data.ok) {
-      // Actualizar badge en la fila sin recargar todo
+    const responseText = await res.text();
+    let responseData;
+    try { responseData = JSON.parse(responseText); }
+    catch { responseData = { error: responseText }; }
+
+    console.log('[Admin] updateUserPlan response:', res.status, responseData);
+
+    if (res.ok && responseData.ok) {
       const badge = document.getElementById(`badge-plan-${userId}`);
-      if (badge) {
-        badge.textContent  = plan;
-        badge.className    = `badge badge-${plan}`;
-      }
-      btn.textContent = '✓';
-      setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 1500);
+      if (badge) { badge.textContent = plan; badge.className = `badge badge-${plan}`; }
+      if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 1500); }
     } else {
-      const detail = data.detail ? `\n\nDetalle: ${data.detail}` : '';
-      alert(`Error: ${data.error || 'No se pudo actualizar el plan'}${detail}`);
-      console.error('[updateUserPlan] API error:', data);
-      btn.textContent = origText;
-      btn.disabled    = false;
+      const detail = responseData.detail ? `\n\nDetalle Supabase: ${responseData.detail}` : '';
+      alert(`Error: ${responseData.error || 'No se pudo actualizar el plan'}${detail}`);
+      if (btn) { btn.textContent = origText; btn.disabled = false; }
     }
   } catch (e) {
-    console.error('[updateUserPlan]', e.message);
+    console.error('[updateUserPlan]', e);
     alert('Error de conexión al actualizar el plan');
-    btn.textContent = origText;
-    btn.disabled    = false;
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
   }
 }
 
-// ── Cambiar role de un usuario ─────────────────────────────────────────
+// ── Cambiar role ──────────────────────────────────────────────────
 async function toggleRole(userId, currentRole) {
   const newRole = currentRole === 'admin' ? 'user' : 'admin';
   if (!confirm(`¿Cambiar rol de este usuario a "${newRole}"?`)) return;
@@ -454,11 +497,8 @@ async function toggleRole(userId, currentRole) {
     headers: { 'Authorization': `Bearer ${currentSession.access_token}` }
   });
 
-  if (res.ok) {
-    await loadAdminData();
-  } else {
-    alert('Error al cambiar el rol. Verificá en Supabase manualmente.');
-  }
+  if (res.ok) { await loadAdminData(); }
+  else { alert('Error al cambiar el rol. Verificá en Supabase manualmente.'); }
 }
 </script>
 </body>

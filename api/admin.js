@@ -151,7 +151,7 @@ export default async function handler(req, res) {
     usuarios: users.map(u => ({
       id:         u.id,
       email:      u.email      || '',
-      plan:       u.plan       || 'free',
+      plan:       u.plan_type  || u.plan || 'free',
       role:       u.role       || 'user',
       created_at: u.created_at || null
     })),

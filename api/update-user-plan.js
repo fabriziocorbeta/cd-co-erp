@@ -97,7 +97,7 @@ export default async function handler(req, res) {
           'Content-Type':  'application/json',
           'Prefer':        'return=representation'
         },
-        body: JSON.stringify({ plan })
+        body: JSON.stringify({ plan_type: plan })
       }
     );
 
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok:   true,
-      user: { id: user?.id, email: user?.email, plan: user?.plan }
+      user: { id: user?.id, email: user?.email, plan: user?.plan_type || user?.plan }
     });
 
   } catch (e) {
