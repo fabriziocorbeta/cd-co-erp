@@ -301,6 +301,43 @@ function renderAccountsSummary() {
 // ══════════════════════════════════════════
 // ACCOUNT MODAL
 // ══════════════════════════════════════════
+const ACCOUNT_EMOJIS = [
+  '🏦','💳','💵','💰','💼','🏠','🚗','✈️','📈','🛍️',
+  '📱','💎','🏧','💱','🪙','💹','🧾','🎯','🔒','🏪',
+  '⚡','🌐','📦','🎁','🏋️','🎓','🏥','🍽️','🌱','⭐'
+];
+
+function initEmojiPicker() {
+  const grid = g('acc-emoji-grid');
+  if (!grid || grid.childElementCount > 0) return;
+  grid.innerHTML = ACCOUNT_EMOJIS.map(e =>
+    `<button type="button" onclick="selectAccountEmoji('${e}')"
+      style="background:none;border:none;font-size:1.25rem;cursor:pointer;padding:4px;border-radius:6px;transition:background .15s;line-height:1"
+      onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='none'">${e}</button>`
+  ).join('');
+}
+
+function selectAccountEmoji(emoji) {
+  const btn = g('acc-emoji-btn');
+  if (btn) btn.textContent = emoji;
+  const picker = g('acc-emoji-picker');
+  if (picker) picker.style.display = 'none';
+}
+
+function toggleEmojiPicker(e) {
+  e.stopPropagation();
+  initEmojiPicker();
+  const picker = g('acc-emoji-picker');
+  if (!picker) return;
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close picker when clicking outside
+document.addEventListener('click', () => {
+  const picker = g('acc-emoji-picker');
+  if (picker) picker.style.display = 'none';
+});
+
 function openAccountModal(id) {
   editAccountId = id || null;
   g('acc-mttl').textContent = id ? 'Editar cuenta' : 'Nueva cuenta';
@@ -311,6 +348,11 @@ function openAccountModal(id) {
   g('acc-cur').value    = acc ? (acc.cur || acc.currency || '₲') : '₲';
   g('acc-init').value   = acc ? (acc.initialBalance || 0) : 0;
   g('acc-notes').value  = acc ? (acc.notes || '') : '';
+  // Set emoji button
+  const emojiBtn = g('acc-emoji-btn');
+  if (emojiBtn) emojiBtn.textContent = acc?.icon || '🏦';
+  const picker = g('acc-emoji-picker');
+  if (picker) picker.style.display = 'none';
   // Balance adjustment section (edit only)
   const balAdj = g('acc-bal-adj');
   if (balAdj) {
@@ -337,9 +379,10 @@ async function saveAccount() {
   const cur   = g('acc-cur').value;
   const init  = parseFloat(g('acc-init').value) || 0;
   const notes = g('acc-notes').value.trim();
+  const icon  = g('acc-emoji-btn')?.textContent?.trim() || '🏦';
   if (!name) { toast('Ingresá un nombre para la cuenta'); return; }
   const isEdit = !!editAccountId;
-  const acct = { id: isEdit ? editAccountId : uid(), name, type, bank, cur, initialBalance: init, notes };
+  const acct = { id: isEdit ? editAccountId : uid(), name, type, bank, cur, initialBalance: init, notes, icon };
 
   if (isEdit) {
     const i = (S.accounts || []).findIndex(a => a.id === editAccountId);

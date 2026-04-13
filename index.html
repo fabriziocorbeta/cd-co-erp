@@ -1159,7 +1159,20 @@
 
 <div id="account-modal" class="overlay" style="display:none" onclick="oco(event,'account-modal')"><div class="modal">
   <div class="mttl"><span id="acc-mttl">Nueva cuenta</span><button class="mx" onclick="cm('account-modal')">✕</button></div>
-  <div class="fg"><label class="fl">Nombre de la cuenta</label><input class="fi" id="acc-name" placeholder="Ej: Efectivo Caja, Itaú Corriente..."/></div>
+  <div style="display:flex;gap:10px;align-items:flex-end">
+    <div>
+      <label class="fl">Ícono</label>
+      <div style="position:relative">
+        <button id="acc-emoji-btn" onclick="toggleEmojiPicker(event)" type="button"
+          style="width:46px;height:46px;background:var(--bg3);border:1px solid var(--bg5);border-radius:var(--rs);font-size:1.3rem;cursor:pointer;transition:border-color .2s;display:flex;align-items:center;justify-content:center"
+          onmouseover="this.style.borderColor='var(--g2)'" onmouseout="this.style.borderColor='var(--bg5)'">🏦</button>
+        <div id="acc-emoji-picker" style="display:none;position:absolute;top:54px;left:0;z-index:999;background:var(--bg2);border:1px solid var(--bg5);border-radius:12px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:228px">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px" id="acc-emoji-grid"></div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1"><label class="fl">Nombre de la cuenta</label><input class="fi" id="acc-name" placeholder="Ej: Efectivo Caja, Itaú Corriente..."/></div>
+  </div>
   <div class="fr2">
     <div><label class="fl">Tipo de cuenta</label><select class="fs" id="acc-type"><option value="bank">🏦 Banco</option><option value="cash">💵 Efectivo</option><option value="digital">📱 Billetera Digital</option><option value="investment">📈 Inversión (Fondo/Capital)</option></select></div>
     <div><label class="fl">Banco / Entidad</label><input class="fi" id="acc-bank" placeholder="Itaú, Tigo, BCP..."/></div>
