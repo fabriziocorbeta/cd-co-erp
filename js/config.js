@@ -114,6 +114,7 @@ let selPK='pro';
 
 // Helpers
 function g(id){return document.getElementById(id)}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // ══════════════════════════════════════════
 // SUPABASE CRUD FUNCTIONS
@@ -237,7 +238,10 @@ async function sbUpsert(table, row) {
 
 async function sbDelete(table, id) {
   if (!SB_ON || !sb) return true; // offline: pretend success
-  const { error } = await sb.from(table).delete().eq('id', id);
+  const userId = S.user?.id;
+  let query = sb.from(table).delete().eq('id', id);
+  if (userId) query = query.eq('user_id', userId);
+  const { error } = await query;
   if (error) { console.error(`❌ sbDelete(${table}):`, error.message); toast('Error al eliminar'); return false; }
   return true;
 }
@@ -730,7 +734,6 @@ function openEmojiPicker(event, btnId, gridId) {
   // Create picker element once per button
   if (!_emojiPickerEls[btnId]) {
     const pickerEl = new EmojiMart.Picker({
-      data: window['emoji-mart-data'] || undefined,
       theme: 'dark',
       locale: 'es',
       previewPosition: 'none',

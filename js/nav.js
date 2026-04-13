@@ -142,7 +142,7 @@ function populateTxCat(type, selectId, keepVal) {
   if(!el) return;
   const cats = getCats(type || 'expense');
   const cur = keepVal !== undefined ? keepVal : el.value;
-  el.innerHTML = cats.map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join('') + '<option value="ADD_NEW">+ Nueva categoría</option>';
+  el.innerHTML = cats.map(c=>`<option value="${escHtml(c.name)}">${escHtml(c.icon)} ${escHtml(c.name)}</option>`).join('') + '<option value="ADD_NEW">+ Nueva categoría</option>';
   if(cur && cats.find(c=>c.name===cur)) el.value = cur;
   else if(cats.length) el.value = cats[0].name;
 }
@@ -150,9 +150,9 @@ function populateTxCat(type, selectId, keepVal) {
 function populateSelects(){
   const sups=S.contacts.filter(c=>c.type==='supplier'||c.type==='both');
   const clients=S.contacts.filter(c=>c.type==='client'||c.type==='both');
-  ['pr-sup'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="">Sin asignar</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')});
-  ['or-sup'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="">Seleccionar proveedor</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')});
-  ['sl-client'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="">Cliente ocasional</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')});
+  ['pr-sup'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="">Sin asignar</option>'+sups.map(s=>`<option value="${escHtml(s.id)}">${escHtml(s.name)}</option>`).join('')});
+  ['or-sup'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="">Seleccionar proveedor</option>'+sups.map(s=>`<option value="${escHtml(s.id)}">${escHtml(s.name)}</option>`).join('')});
+  ['sl-client'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="">Cliente ocasional</option>'+clients.map(c=>`<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`).join('')});
 
   // tx-cat se pobla dinámicamente según el tipo en setTT() — no tocar aquí
   // bgt-cat usa categorías de gastos
@@ -160,7 +160,7 @@ function populateSelects(){
   if(bgtCat){
     const cur = bgtCat.value;
     const cats = getCats('expense');
-    bgtCat.innerHTML = cats.map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join('') + '<option value="ADD_NEW">+ Nueva categoría</option>';
+    bgtCat.innerHTML = cats.map(c=>`<option value="${escHtml(c.name)}">${escHtml(c.icon)} ${escHtml(c.name)}</option>`).join('') + '<option value="ADD_NEW">+ Nueva categoría</option>';
     if(cur && cats.find(c=>c.name===cur)) bgtCat.value = cur;
   }
 }
@@ -221,45 +221,31 @@ async function saveNewCat() {
   }
 
   const id = 'cu_' + Date.now();
-  const newCatObj = { id, name, icon };
+  // Local-first: always save immediately so offline users are never blocked
+  list.push({ id, name, icon });
+  lsave();
 
-  // 2. LA MAGIA DE SUPABASE (Persistencia Real)
-  try {
+  // Repoblar el select correspondiente
+  const type = catType === 'ingresos' ? 'income' : 'expense';
+  if(window._pendingCatSelect) populateTxCat(type, window._pendingCatSelect, name);
+  populateSelects();
+  cm('new-cat-modal');
+  toast('◆ Categoría agregada');
+
+  // Cloud sync — non-blocking, graceful degradation if offline
+  if (SB_ON && sb) {
     const modal = document.getElementById('new-cat-modal');
     const btnGuardar = modal ? modal.querySelector('button:last-child') : null;
-    const textoOriginal = btnGuardar ? btnGuardar.textContent : 'GUARDAR';
-    if(btnGuardar) btnGuardar.textContent = 'Guardando en la nube...';
-
-    const { error } = await supabase
-      .from('categorias') 
-      .insert([
-        {
-          id: id,
-          nombre: name,
-          icono: icon,
-          tipo: catType
-        }
-      ]);
-
-    if (error) throw error;
-
-    // 3. Si se guardó en la nube, actualizamos la memoria local y cerramos
-    list.push(newCatObj);
-    lsave(); // Mantenemos tu caché intacto
-    toast('Categoría registrada con éxito');
-
-    if(modal) {
-        modal.style.display = 'none';
-        document.getElementById('nc-name').value = ''; 
+    if (btnGuardar) {
+      const orig = btnGuardar.textContent;
+      btnGuardar.textContent = 'Guardando en la nube...';
+      sb.from('categorias').upsert({ id, nombre: name, icono: icon, tipo: catType })
+        .then(({ error }) => { if (error) console.warn('[saveNewCat] SB:', error.message); })
+        .finally(() => { btnGuardar.textContent = orig; });
+    } else {
+      sb.from('categorias').upsert({ id, nombre: name, icono: icon, tipo: catType })
+        .then(({ error }) => { if (error) console.warn('[saveNewCat] SB:', error.message); });
     }
-    if(btnGuardar) btnGuardar.textContent = textoOriginal;
-
-  } catch (err) {
-    console.error("Error crítico guardando la categoría:", err);
-    toast('Error de conexión con la base de datos');
-    
-    const btnGuardar = document.getElementById('new-cat-modal')?.querySelector('button:last-child');
-    if(btnGuardar) btnGuardar.textContent = 'GUARDAR CATEGORÍA';
   }
 }
 
