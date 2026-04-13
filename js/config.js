@@ -701,48 +701,61 @@ async function sbDeleteFuelLog(fuelLogId) {
 // v1.0.99-FINAL-FIX — account_id correcto, tabla txs confirmada — 2026-04-05
 
 // ══════════════════════════════════════════
-// EMOJI PICKER — Global utility (Picmo)
+// EMOJI PICKER — Global utility (Emoji-Mart)
 // ══════════════════════════════════════════
-// Active pickers indexed by btnId
-const _emojiPickers = {};
+// Active picker DOM elements indexed by btnId
+const _emojiPickerEls = {};
 
 /**
  * openEmojiPicker(event, btnId, gridId)
- * Opens/closes a Picmo popup picker anchored to the button.
- * gridId is kept for HTML compatibility but Picmo handles the popup itself.
+ * Opens/closes an Emoji-Mart picker popup anchored below the button.
+ * gridId kept for HTML compatibility (fallback uses it).
  */
 function openEmojiPicker(event, btnId, gridId) {
   event.stopPropagation();
   const btn = document.getElementById(btnId);
   if (!btn) return;
 
-  // Reuse existing picker or create new one
-  if (!_emojiPickers[btnId]) {
-    if (typeof picmo === 'undefined') {
-      // Fallback: simple inline grid if Picmo didn't load
-      _openFallbackPicker(event, btnId, gridId);
-      return;
-    }
+  // Close any other open pickers
+  Object.entries(_emojiPickerEls).forEach(([id, el]) => {
+    if (id !== btnId && el.parentNode) el.style.display = 'none';
+  });
 
-    const picker = picmo.createPopup({
-      theme: 'dark',
-      showPreview: false,
-      showSearch: true,
-      emojiSize: '1.4rem',
-      referenceElement: btn,
-      triggerElement: btn,
-      position: 'bottom-start'
-    });
-
-    picker.addEventListener('emoji:select', result => {
-      btn.textContent = result.emoji;
-      picker.close();
-    });
-
-    _emojiPickers[btnId] = picker;
+  // Emoji-Mart available?
+  if (typeof EmojiMart === 'undefined' || typeof EmojiMart.Picker === 'undefined') {
+    _openFallbackPicker(event, btnId, gridId);
+    return;
   }
 
-  _emojiPickers[btnId].toggle();
+  // Create picker element once per button
+  if (!_emojiPickerEls[btnId]) {
+    const pickerEl = new EmojiMart.Picker({
+      data: window['emoji-mart-data'] || undefined,
+      theme: 'dark',
+      locale: 'es',
+      previewPosition: 'none',
+      skinTonePosition: 'none',
+      onEmojiSelect: (emoji) => {
+        btn.textContent = emoji.native;
+        pickerEl.style.display = 'none';
+      }
+    });
+
+    // Style the container
+    pickerEl.style.cssText = `
+      position:absolute; top:54px; left:0; z-index:1000;
+      border-radius:12px; overflow:hidden;
+      box-shadow:0 8px 40px rgba(0,0,0,.6);
+    `;
+    pickerEl.style.display = 'none';
+
+    // Mount inside the button's wrapper (position:relative parent)
+    btn.parentElement.appendChild(pickerEl);
+    _emojiPickerEls[btnId] = pickerEl;
+  }
+
+  const el = _emojiPickerEls[btnId];
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 function selectEmoji(event, btnId, gridId, emoji) {
@@ -754,7 +767,7 @@ function selectEmoji(event, btnId, gridId, emoji) {
   if (grid) grid.parentElement.style.display = 'none';
 }
 
-// Fallback grid when Picmo CDN fails to load
+// Fallback grid when Emoji-Mart CDN fails to load
 const _FALLBACK_EMOJIS = [
   '🏦','💳','💵','💰','💼','🏠','🚗','✈️','📈','🛍️',
   '📱','💎','🏧','💱','🪙','💹','🧾','🎯','🔒','🏪',
@@ -776,9 +789,8 @@ function _openFallbackPicker(event, btnId, gridId) {
   picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
 }
 
-// Close fallback dropdowns on outside click
+// Close all pickers on outside click
 document.addEventListener('click', () => {
-  document.querySelectorAll('.emoji-picker-dropdown').forEach(el => {
-    el.style.display = 'none';
-  });
+  Object.values(_emojiPickerEls).forEach(el => { el.style.display = 'none'; });
+  document.querySelectorAll('.emoji-picker-dropdown').forEach(el => { el.style.display = 'none'; });
 });
