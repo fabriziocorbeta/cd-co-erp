@@ -189,7 +189,8 @@ document.addEventListener('change', function(e) {
     if(m) {
       m.style.display = 'flex';
       document.getElementById('nc-name').value = '';
-      document.getElementById('nc-icon').value = '🔹';
+      const catBtn = document.getElementById('cat-emoji-btn');
+      if (catBtn) catBtn.textContent = '🔹';
       // Auto-detectar tipo según el selector origen
       const ncType = document.getElementById('nc-type');
       if(ncType) {
