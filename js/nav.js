@@ -204,22 +204,69 @@ document.addEventListener('change', function(e) {
   }
 });
 
-function saveNewCat() {
+async function saveNewCat() {
   const name = document.getElementById('nc-name').value.trim();
   const icon = document.getElementById('cat-emoji-btn')?.textContent?.trim() || '🔹';
   const catType = document.getElementById('nc-type')?.value || 'gastos';
+  
   if(!name) { toast('Ingresá un nombre'); return; }
 
+  // 1. Verificación en memoria local
   if(!S.customCategories) S.customCategories = {gastos:[], ingresos:[]};
   const list = catType === 'ingresos' ? S.customCategories.ingresos : S.customCategories.gastos;
 
   if(list.find(c => c.name.toLowerCase() === name.toLowerCase())) {
-     toast('Esa categoría ya existe'); return;
+     toast('Esa categoría ya existe'); 
+     return;
   }
 
   const id = 'cu_' + Date.now();
-  list.push({ id, name, icon });
-  lsave();
+  const newCatObj = { id, name, icon };
+
+  // 2. LA MAGIA DE SUPABASE (Persistencia Real)
+  try {
+    // Cambiamos el texto del botón para que el usuario sepa que está cargando
+    const modal = document.getElementById('new-cat-modal');
+    const btnGuardar = modal ? modal.querySelector('button:last-child') : null;
+    const textoOriginal = btnGuardar ? btnGuardar.textContent : 'GUARDAR';
+    if(btnGuardar) btnGuardar.textContent = 'Guardando en la nube...';
+
+    // ⚠️ ATENCIÓN: Ajustá 'categorias' por el nombre real de tu tabla en Supabase
+    const { error } = await supabase
+      .from('categorias') 
+      .insert([
+        {
+          id: id,
+          nombre: name,
+          icono: icon,
+          tipo: catType
+          // Nota: Si usas RLS, puede que necesites enviar el user_id aquí
+        }
+      ]);
+
+    if (error) throw error;
+
+    // 3. Si se guardó en la nube, actualizamos la memoria local y cerramos
+    list.push(newCatObj);
+    lsave(); // Mantenemos tu caché intacto
+    toast('Categoría registrada con éxito');
+
+    if(modal) {
+        modal.style.display = 'none';
+        // Limpiar el input para la próxima vez
+        document.getElementById('nc-name').value = ''; 
+    }
+    if(btnGuardar) btnGuardar.textContent = textoOriginal;
+
+  } catch (err) {
+    console.error("Error crítico guardando la categoría:", err);
+    toast('Error de conexión con la base de datos');
+    
+    // Restaurar el botón si falla
+    const btnGuardar = document.getElementById('new-cat-modal').querySelector('button:last-child');
+    if(btnGuardar) btnGuardar.textContent = 'GUARDAR CATEGORÍA';
+  }
+}
 
   // Repoblar el select correspondiente
   const type = catType === 'ingresos' ? 'income' : 'expense';
