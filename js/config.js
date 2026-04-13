@@ -701,50 +701,82 @@ async function sbDeleteFuelLog(fuelLogId) {
 // v1.0.99-FINAL-FIX — account_id correcto, tabla txs confirmada — 2026-04-05
 
 // ══════════════════════════════════════════
-// EMOJI PICKER — Global utility
+// EMOJI PICKER — Global utility (Picmo)
 // ══════════════════════════════════════════
-const EMOJI_PICKER_EMOJIS = [
-  '🏦','💳','💵','💰','💼','🏠','🚗','✈️','📈','🛍️',
-  '📱','💎','🏧','💱','🪙','💹','🧾','🎯','🔒','🏪',
-  '⚡','🌐','📦','🎁','🏋️','🎓','🏥','🍽️','🌱','⭐',
-  '🔹','🔸','🟣','🟡','🟢','🔴','🎨','🎵','📚','🧩',
-  '🛒','🏷️','💡','🔧','⚙️','📊','📋','🗓️','🤝','🌟'
-];
+// Active pickers indexed by btnId
+const _emojiPickers = {};
 
 /**
- * openEmojiPicker(btnId, gridId)
- * Toggles the picker dropdown and populates the emoji grid on first open.
- * Each emoji button calls selectEmoji(btnId, gridId, emoji) when clicked.
+ * openEmojiPicker(event, btnId, gridId)
+ * Opens/closes a Picmo popup picker anchored to the button.
+ * gridId is kept for HTML compatibility but Picmo handles the popup itself.
  */
 function openEmojiPicker(event, btnId, gridId) {
   event.stopPropagation();
-  const grid = document.getElementById(gridId);
-  const btn  = document.getElementById(btnId);
-  if (!grid || !btn) return;
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
 
-  // Populate once
-  if (!grid.childElementCount) {
-    grid.innerHTML = EMOJI_PICKER_EMOJIS.map(e =>
-      `<button type="button" onclick="selectEmoji(event,'${btnId}','${gridId}','${e}')"
-        style="background:none;border:none;font-size:1.25rem;cursor:pointer;padding:4px;border-radius:6px;transition:background .15s;line-height:1"
-        onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='none'">${e}</button>`
-    ).join('');
+  // Reuse existing picker or create new one
+  if (!_emojiPickers[btnId]) {
+    if (typeof picmo === 'undefined') {
+      // Fallback: simple inline grid if Picmo didn't load
+      _openFallbackPicker(event, btnId, gridId);
+      return;
+    }
+
+    const picker = picmo.createPopup({
+      theme: 'dark',
+      showPreview: false,
+      showSearch: true,
+      emojiSize: '1.4rem',
+      referenceElement: btn,
+      triggerElement: btn,
+      position: 'bottom-start'
+    });
+
+    picker.addEventListener('emoji:select', result => {
+      btn.textContent = result.emoji;
+      picker.close();
+    });
+
+    _emojiPickers[btnId] = picker;
   }
 
-  // Toggle visibility
-  const picker = grid.parentElement;
-  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+  _emojiPickers[btnId].toggle();
 }
 
 function selectEmoji(event, btnId, gridId, emoji) {
-  event.stopPropagation();
+  // Used by fallback grid only
+  if (event) event.stopPropagation();
   const btn = document.getElementById(btnId);
   if (btn) btn.textContent = emoji;
   const grid = document.getElementById(gridId);
   if (grid) grid.parentElement.style.display = 'none';
 }
 
-// Close any open emoji picker on outside click
+// Fallback grid when Picmo CDN fails to load
+const _FALLBACK_EMOJIS = [
+  '🏦','💳','💵','💰','💼','🏠','🚗','✈️','📈','🛍️',
+  '📱','💎','🏧','💱','🪙','💹','🧾','🎯','🔒','🏪',
+  '⚡','🌐','📦','🎁','🏋️','🎓','🏥','🍽️','🌱','⭐',
+  '🔹','🔸','🟣','🟡','🟢','🔴','🎨','🎵','📚','🧩'
+];
+
+function _openFallbackPicker(event, btnId, gridId) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  if (!grid.childElementCount) {
+    grid.innerHTML = _FALLBACK_EMOJIS.map(e =>
+      `<button type="button" onclick="selectEmoji(event,'${btnId}','${gridId}','${e}')"
+        style="background:none;border:none;font-size:1.25rem;cursor:pointer;padding:4px;border-radius:6px;transition:background .15s;line-height:1"
+        onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='none'">${e}</button>`
+    ).join('');
+  }
+  const picker = grid.parentElement;
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close fallback dropdowns on outside click
 document.addEventListener('click', () => {
   document.querySelectorAll('.emoji-picker-dropdown').forEach(el => {
     el.style.display = 'none';
