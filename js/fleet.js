@@ -619,7 +619,7 @@ function selectFuelVehicle(id) {
   });
 }
 
-function saveFuelLog() {
+async function saveFuelLog() {
   const vId   = g('fuel-vehicle-id').value;
   const amt   = parseFloat(g('fuel-amt').value);
   const accId = g('fuel-acc').value;

@@ -143,7 +143,7 @@ async function saveOrder(){
   lsave();renderAll();cm('order-modal');toast('◆ Pedido guardado');updateBadges();
 }
 
-function syncOrderPayment(orderId) {
+async function syncOrderPayment(orderId) {
   const o = S.orders.find(ord => ord.id === orderId);
   if (!o) return;
 
