@@ -369,10 +369,12 @@ async function saveAccount() {
         };
         if (SB_ON) {
           const saved = await sbUpsert('txs', adjTx);
-          if (saved) S.txs.unshift(saved);
+          if (saved) S.txs.unshift(saved); else S.txs.unshift(adjTx);
         } else {
           S.txs.unshift(adjTx);
         }
+        // Recompute balance from all txs so it reflects the new adjustment
+        if (typeof recomputeBalances === 'function') recomputeBalances();
       }
     }
     toast('◆ Cuenta actualizada');
@@ -382,7 +384,16 @@ async function saveAccount() {
     toast('◆ Cuenta registrada');
   }
 
-  if (SB_ON) { await sbUpsert('accounts', acct); } else { lsave(); }
+  if (SB_ON) {
+    // Include recomputed balance in the upsert so accounts.balance stays in sync
+    const accIdx = (S.accounts || []).findIndex(a => a.id === acct.id);
+    const balanceToSync = accIdx >= 0 ? S.accounts[accIdx].balance : undefined;
+    await sbUpsert('accounts', balanceToSync !== undefined
+      ? { ...acct, balance: balanceToSync }
+      : acct);
+  } else {
+    lsave();
+  }
   renderAll(); cm('account-modal');
   populateTxAccountSelect();
 }
