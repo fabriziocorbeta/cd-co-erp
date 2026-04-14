@@ -545,13 +545,13 @@ function populateTxAccountSelect() {
   
   if(accs.length) {
     html += '<optgroup label="Cuentas">';
-    html += accs.map(a => `<option value="${a.id}">${acctTypeIcon(a.type)} ${a.name}</option>`).join('');
+    html += accs.map(a => `<option value="${escHtml(a.id)}">${acctTypeIcon(a.type)} ${escHtml(a.name)}</option>`).join('');
     html += '</optgroup>';
   }
-  
+
   if(cards.length) {
     html += '<optgroup label="Tarjetas">';
-    html += cards.map(c => `<option value="${c.id}">💳 ${c.name}</option>`).join('');
+    html += cards.map(c => `<option value="${escHtml(c.id)}">💳 ${escHtml(c.name)}</option>`).join('');
     html += '</optgroup>';
   }
   

@@ -163,6 +163,8 @@ function populateSelects(){
     bgtCat.innerHTML = cats.map(c=>`<option value="${escHtml(c.name)}">${escHtml(c.icon)} ${escHtml(c.name)}</option>`).join('') + '<option value="ADD_NEW">+ Nueva categoría</option>';
     if(cur && cats.find(c=>c.name===cur)) bgtCat.value = cur;
   }
+  // Refresh account+card selector so cards always appear
+  if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
 }
 
 function updateBadges(){

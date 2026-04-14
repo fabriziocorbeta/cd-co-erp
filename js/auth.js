@@ -430,7 +430,7 @@ async function enterApp(name, plan) {
       if (typeof calculateAlerts === 'function') calculateAlerts();
       renderAll();
       if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
-      initFx();
+      if (typeof initFx === 'function') initFx();
       if (typeof applySavedTheme === 'function') applySavedTheme();
       // loadAllUserData will skip network if 'fresh', or silently refresh if 'stale'
       loadAllUserData().catch(() => {});
@@ -448,7 +448,7 @@ async function enterApp(name, plan) {
       if (typeof calculateAlerts === 'function') calculateAlerts();
       renderAll();
       if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
-      initFx();
+      if (typeof initFx === 'function') initFx();
     }
   } else {
     lload();
