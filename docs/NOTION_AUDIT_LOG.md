@@ -1,6 +1,6 @@
 # CD & Co ERP — Audit Log 360
 
-> Fecha: 2026-04-13 | Auditor: Claude Code (Opus 4.6) | Commits: `8769755`, `2cd443d`, `6e930ec`, `e7a02fa`, `23b2df4`, `63d59a9`
+> Fecha: 2026-04-13 → 2026-04-14 | Auditor: Claude Code (Opus 4.6 + Sonnet 4.6) | Commits: `8769755`, `2cd443d`, `6e930ec`, `e7a02fa`, `23b2df4`, `63d59a9`, `b73150f`, `7c82243`
 
 ---
 
@@ -52,37 +52,44 @@
 
 ---
 
+## Completado en Lote 2026-04-14 (commit `7c82243`)
+
+| # | Modulo | Fix aplicado |
+|---|--------|-------------|
+| ✅ P1 | `categorias` table | Migration SQL: `ADD COLUMN user_id`, `ENABLE ROW LEVEL SECURITY`, `CREATE POLICY "categorias_own"` vía Supabase MCP |
+| ✅ P2 | `api/admin.js` | CORS restringido a `ALLOWED_ORIGINS` — devuelve 403 si el origen no está en la lista |
+| ✅ P3 | `api/update-user-plan.js` | Mismo hardening CORS que P2 |
+| ✅ P4 | `subscriptions.js` | Agregado `.eq('user_id', S.user?.id)` al `accounts.update()` de balance sync |
+| ✅ P5 | `debts.js` | Card payment ahora llama `recomputeBalances()` tras insertar la tx |
+| ✅ P6 | `config.js` | `sbDeleteProduct()` añade `&user_id=eq.{userId}` a la URL del fetch |
+| ✅ M1 | `dashboard.js` | `escHtml()` aplicado a nombres de categoría en el resumen de gastos |
+| ✅ M4 | `orders.js` | `escHtml()` aplicado a nombres de producto en el modal de recepción |
+| ✅ M5 | `sw.js` | `CACHE_VERSION = '20260414a'` — invalidación automática en cada deploy |
+| ✅ M6 | `auth.js` | `recomputeBalances()` refactorizado con matching explícito por tipo (`expense`, `transfer-out`, `transfer-in`) — elimina doble negación |
+| ✅ B1 | `categorias` table | Resuelto con la misma migration de P1 |
+
+---
+
 ## Errores Pendientes
 
 ### Prioridad Alta
 
 | # | Modulo | Problema | Impacto | Esfuerzo |
 |---|--------|----------|---------|----------|
-| P1 | `categorias` table | RLS desactivado — cualquier usuario autenticado puede leer/escribir categorias de otros | Fuga de datos | SQL migration |
-| P2 | API `admin.js` | CORS con `*` — cualquier origen puede llamar endpoints admin | Seguridad API | Restringir a dominio |
-| P3 | `api/update-user-plan.js` | CORS con `*` | Seguridad API | Restringir a dominio |
-| P4 | `subscriptions.js` | Balance sync usa `sb.from('accounts').update()` directo (sin `user_id` filter) linea 201 | Multi-tenant leak | Agregar `.eq('user_id')` |
-| P5 | `debts.js` | Card payment flow (lineas 520-563) no usa `recomputeBalances()` — manipula balance manualmente | Desinc de saldo | Refactorizar a pattern estandar |
-| P6 | `accounts.js` | `sbDeleteProduct()` y `sbDeleteFuelLog()` en config.js no usan filtro `user_id` | Multi-tenant | Agregar filtro |
 | P7 | Global | Funciones `async` en onclick handlers no capturan errores — un throw silencioso deja UI colgada | UX | Wrappear en try/catch |
 
 ### Prioridad Media
 
 | # | Modulo | Problema | Impacto |
 |---|--------|----------|---------|
-| M1 | `dashboard.js` | innerHTML con expense category names sin escHtml (linea 364) | XSS potencial |
 | M2 | `settings.js` | Plan cards innerHTML con template literals (linea 73) | XSS bajo riesgo |
 | M3 | `fleet.js` | Alertas de mantenimiento innerHTML con fechas (linea 90) | XSS bajo riesgo |
-| M4 | `orders.js` | Product names en receive modal sin escapar (linea 192) | XSS |
-| M5 | Global | Service Worker cache (`cdco-cache-v3`) no se invalida automaticamente en cada deploy | Cache stale |
-| M6 | `auth.js` | `recomputeBalances()` usa `Math.abs()` incondicional — txs negativos (gastos) se vuelven positivos y luego se niegan | Potencial doble negacion |
 | M7 | Global | No hay rate limiting en API endpoints serverless | Abuso de API |
 
 ### Prioridad Baja
 
 | # | Modulo | Problema | Impacto |
 |---|--------|----------|---------|
-| B1 | `categorias` table | Falta columna `user_id` — no hay aislamiento por usuario | Arquitectura |
 | B2 | Global | localStorage puede crecer indefinidamente (txs array) | Performance |
 | B3 | `fx.js` | Auto-refresh cada 30min via `setInterval` — no se limpia al logout | Memory leak menor |
 | B4 | `receivables.js` | Foreign key apunta a `profiles.id` en vez de `auth.users.id` | Consistencia DB |
@@ -125,4 +132,4 @@ Implementar un array `pendingOps` en localStorage que acumule operaciones offlin
 
 ---
 
-> Generado automaticamente por Claude Code | Sesion 2026-04-13
+> Generado automaticamente por Claude Code | Sesion 2026-04-13 → 2026-04-14
