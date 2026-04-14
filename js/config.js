@@ -27,7 +27,7 @@ if (SB_ON) {
 // STUBS DE SEGURIDAD — evitan ReferenceError si un módulo no cargó a tiempo
 // Cubre TODAS las funciones que nav.js o auth.js llaman directamente (sin typeof guard)
 // ══════════════════════════════════════════
-const _stub = name => function(){ console.warn('[stub] ' + name + ' no disponible aún'); };
+const _stub = _n => function(){};
 window.renderGoals          = window.renderGoals          || _stub('renderGoals');
 window.renderFleet          = window.renderFleet          || _stub('renderFleet');
 window.renderDashboard      = window.renderDashboard      || _stub('renderDashboard');

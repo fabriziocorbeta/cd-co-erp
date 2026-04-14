@@ -313,40 +313,97 @@ function setTT(t){
   g('tt-exp').style.background=t==='expense'?'var(--nb)':'';g('tt-exp').style.borderColor=t==='expense'?'rgba(155,74,74,.3)':'var(--bg5)';g('tt-exp').style.color=t==='expense'?'#d47a7a':'var(--mu)';
   if(typeof populateTxCat==='function') populateTxCat(t, 'tx-cat');
 }
-async function saveTx(){
-  const desc=g('tx-desc').value.trim();const amt=parseFloat(g('tx-amt').value);const cur=g('tx-cur').value;const cat=g('tx-cat').value;const date=g('tx-date').value;
-  if(!desc){toast('Ingresá una descripción');return}if(!amt||amt<=0){toast('Monto inválido');return}if(!date){toast('Seleccioná una fecha');return}
-  const accId=g('tx-account')?.value||'';
-  const isEdit=!!editIds.tx;
-  // Expenses are stored as negative amounts (Audit-First: SUM(amount) = balance)
-  const signedAmt = txType === 'expense' ? -Math.abs(amt) : Math.abs(amt);
-  const tx={type:txType,desc,amount:signedAmt,cur,cat,date,id:isEdit?editIds.tx:uid()};
-  if(accId) tx.account_id=accId;
+// Writes in-memory account balance back to Supabase for a single account.
+// Returns true on success, false on failure.
+async function _syncAccountBalance(accId) {
+  if (!SB_ON || !sb || !accId || !S.user?.id) return true;
+  const acc = (S.accounts || []).find(a => a.id === accId);
+  if (!acc) return true;
+  const { error } = await sb.from('accounts')
+    .update({ balance: acc.balance })
+    .eq('id', accId)
+    .eq('user_id', S.user.id);
+  if (error) { console.error('[balance sync]', error.message); return false; }
+  return true;
+}
 
-  if(SB_ON){
-    const saved=await sbSaveTransaction(tx);
-    if(!saved)return;
-    const i=S.txs.findIndex(t=>t.id===tx.id);
-    if(i>=0)S.txs[i]=saved;else S.txs.unshift(saved);
+async function saveTx() {
+  const desc = g('tx-desc').value.trim();
+  const amt  = parseFloat(g('tx-amt').value);
+  const cur  = g('tx-cur').value;
+  const cat  = g('tx-cat').value;
+  const date = g('tx-date').value;
+  if (!desc) { toast('Ingresá una descripción'); return; }
+  if (!amt || amt <= 0) { toast('Monto inválido'); return; }
+  if (!date) { toast('Seleccioná una fecha'); return; }
+
+  const accId    = g('tx-account')?.value || '';
+  const isEdit   = !!editIds.tx;
+  const signedAmt = txType === 'expense' ? -Math.abs(amt) : Math.abs(amt);
+  const tx = { type: txType, desc, amount: signedAmt, cur, cat, date,
+               id: isEdit ? editIds.tx : uid() };
+  if (accId) tx.account_id = accId;
+
+  if (SB_ON) {
+    // 1. Persist transaction
+    const saved = await sbSaveTransaction(tx);
+    if (!saved) return;
+
+    const i = S.txs.findIndex(t => t.id === tx.id);
+    if (i >= 0) S.txs[i] = saved; else S.txs.unshift(saved);
+
+    // 2. Recompute balance from all in-memory txs
+    if (typeof recomputeBalances === 'function') recomputeBalances();
+
+    // 3. Sync updated balance to Supabase accounts table
+    if (accId) {
+      const synced = await _syncAccountBalance(accId);
+      if (!synced) {
+        // Rollback: remove the tx we just saved
+        await sbDelete('txs', saved.id);
+        const ri = S.txs.findIndex(t => t.id === saved.id);
+        if (ri >= 0) S.txs.splice(ri, 1);
+        if (typeof recomputeBalances === 'function') recomputeBalances();
+        toast('⚠️ Error de sincronización de saldo. Transacción revertida.');
+        renderAll();
+        return;
+      }
+    }
   } else {
-    if(isEdit){const i=S.txs.findIndex(t=>t.id===tx.id);if(i>=0)S.txs[i]={...S.txs[i],...tx};}
-    else S.txs.unshift(tx);
+    if (isEdit) {
+      const i = S.txs.findIndex(t => t.id === tx.id);
+      if (i >= 0) S.txs[i] = { ...S.txs[i], ...tx };
+    } else {
+      S.txs.unshift(tx);
+    }
+    if (typeof recomputeBalances === 'function') recomputeBalances();
     lsave();
   }
 
-  // Recalculate account balances from txs after every save (Audit-First)
-  if(typeof recomputeBalances==='function') recomputeBalances();
-  toast(isEdit?'◆ Actualizado':txType==='income'?'◆ Ingreso registrado':'◆ Gasto registrado');
-  if(txType==='expense'&&typeof checkBudgetAlerts==='function') checkBudgetAlerts();
-  renderAll();cm('tx-modal');
+  toast(isEdit ? '◆ Actualizado' : txType === 'income' ? '◆ Ingreso registrado' : '◆ Gasto registrado');
+  if (txType === 'expense' && typeof checkBudgetAlerts === 'function') checkBudgetAlerts();
+  renderAll();
+  cm('tx-modal');
 }
-async function delTx(id){
-  if(!confirm('¿Eliminar este movimiento?'))return;
-  if(SB_ON){const ok=await sbDelete('txs',id);if(!ok)return;}
-  S.txs=S.txs.filter(t=>t.id!==id);
-  if(!SB_ON)lsave();
-  if(typeof recomputeBalances==='function') recomputeBalances();
-  renderAll();toast('Eliminado');
+
+async function delTx(id) {
+  if (!confirm('¿Eliminar este movimiento?')) return;
+  const accId = (S.txs.find(t => t.id === id))?.account_id || '';
+
+  if (SB_ON) {
+    const ok = await sbDelete('txs', id);
+    if (!ok) return;
+  }
+  S.txs = S.txs.filter(t => t.id !== id);
+  if (!SB_ON) lsave();
+
+  if (typeof recomputeBalances === 'function') recomputeBalances();
+
+  // Sync updated balance after deletion (best-effort, non-blocking)
+  if (accId) _syncAccountBalance(accId).catch(() => {});
+
+  renderAll();
+  toast('Eliminado');
 }
 
 // ══════════════════════════════════════════
