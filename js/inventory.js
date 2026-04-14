@@ -248,7 +248,10 @@ async function saveStock(){
   const notes=g('stk-notes').value;
   // auto tx if set reason is purchase
   if(reason==='Compra a proveedor'&&type==='in'&&p.buyPrice>0){
-    S.txs.push({id:uid(),type:'expense',desc:`Compra stock: ${p.name} (${qty} u.)`,amount:qty*p.buyPrice,cur:'$',cat:'Stock / Compras',date:today()});
+    const stockTx={id:uid(),type:'expense',desc:`Compra stock: ${p.name} (${qty} u.)`,amount:qty*p.buyPrice,cur:'$',cat:'Stock / Compras',date:today()};
+    if(SB_ON){ const saved=await sbSaveTransaction(stockTx); S.txs.push(saved||stockTx); }
+    else S.txs.push(stockTx);
+    if(typeof recomputeBalances==='function') recomputeBalances();
   }
   toast(`◆ Stock actualizado: ${prev} → ${p.stock} u.`);
   lsave();renderAll();cm('stock-modal');
@@ -264,8 +267,8 @@ function syncShopify(){
 function openImportModal() {
   const sel = g('imp-prod');
   if(!sel) return;
-  sel.innerHTML = '<option value="">Selecciona un producto del inventario...</option>' + 
-    S.products.map(p => `<option value="${p.id}">${p.cat} · ${p.name} (${p.sku})</option>`).join('');
+  sel.innerHTML = '<option value="">Selecciona un producto del inventario...</option>' +
+    S.products.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.cat)} · ${escHtml(p.name)} (${escHtml(p.sku)})</option>`).join('');
   
   g('imp-qty').value = '';
   g('imp-cost-usd').value = '';

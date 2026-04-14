@@ -421,12 +421,12 @@ function openTransferModal() {
   let opts = '';
   if(accs.length) {
     opts += '<optgroup label="Cuentas">';
-    opts += accs.map(a => `<option value="${a.id}">${acctTypeIcon(a.type)} ${a.name}</option>`).join('');
+    opts += accs.map(a => `<option value="${escHtml(a.id)}">${acctTypeIcon(a.type)} ${escHtml(a.name)}</option>`).join('');
     opts += '</optgroup>';
   }
   if(cards.length) {
     opts += '<optgroup label="Tarjetas">';
-    opts += cards.map(c => `<option value="${c.id}">💳 ${c.name}</option>`).join('');
+    opts += cards.map(c => `<option value="${escHtml(c.id)}">💳 ${escHtml(c.name)}</option>`).join('');
     opts += '</optgroup>';
   }
   g('tr-from').innerHTML = opts;
@@ -462,6 +462,10 @@ async function saveTransfer() {
     S.txs.unshift(s2); S.txs.unshift(s1);
   } else {
     S.txs.push(txOut); S.txs.push(txIn); lsave();
+  }
+  if (typeof recomputeBalances === 'function') recomputeBalances();
+  if (typeof _syncAccountBalance === 'function') {
+    await Promise.all([_syncAccountBalance(fromId), _syncAccountBalance(toId)]);
   }
   renderAll(); cm('transfer-modal');
   toast(`◆ Transferencia de ${fmt(amt, cur)} registrada`);

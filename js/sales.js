@@ -118,7 +118,7 @@ function updateSaleTotal(){
 }
 g('sl-cur')?.addEventListener('change',updateSaleTotal);
 
-function saveSale(){
+async function saveSale(){
   // Validate required fields
   if(!saleLines.length||!saleLines[0].prodId){
     toast('Agregá al menos un producto');
@@ -278,7 +278,11 @@ function saveSale(){
   }
   // Create/update transaction
   S.txs=S.txs.filter(t=>t._saleId!==saleId);
-  S.txs.push({id:uid(),type:'income',desc:`Venta #${String(num).padStart(4,'0')} — ${items.length} producto(s)`,amount:total,cur,cat:'Relojes',date,_saleId:saleId});
+  const saleTx={id:uid(),type:'income',desc:`Venta #${String(num).padStart(4,'0')} — ${items.length} producto(s)`,amount:total,cur,cat:'Relojes',date,_saleId:saleId};
+  if(SB_ON){ const saved=await sbSaveTransaction(saleTx); S.txs.push(saved||saleTx); }
+  else S.txs.push(saleTx);
+
+  if(typeof recomputeBalances==='function') recomputeBalances();
 
   const msg=editIds.sale?'◆ Venta actualizada':'◆ Venta registrada';
   toast(msg+' · Stock actualizado');

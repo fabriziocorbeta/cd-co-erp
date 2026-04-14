@@ -98,7 +98,7 @@ function renderOrderLines(){
 }
 function onOrdProd(i,pid){orderLines[i].prodId=pid;const p=S.products.find(x=>x.id===pid);if(p)orderLines[i].price=p.buyPrice;renderOrderLines()}
 function updateOrderTotal(){const t=orderLines.reduce((a,l)=>a+l.qty*l.price,0);g('or-total').textContent=fmt(t)}
-function saveOrder(){
+async function saveOrder(){
   const items=orderLines.filter(l=>l.prodId&&l.qty>0);
   if(!items.length){toast('Agregá al menos un producto');return}
   const num=parseInt(g('or-num').value) || S.orders.length+1;
@@ -166,12 +166,18 @@ function syncOrderPayment(orderId) {
     const existingTx = S.txs.find(t => t.orderId === o.id);
     if (existingTx) {
       Object.assign(existingTx, txData);
+      if(SB_ON) sbSaveTransaction({...existingTx});
     } else {
-      S.txs.push({ ...txData, id: uid() });
+      const newTx = { ...txData, id: uid() };
+      if(SB_ON){ const saved=await sbSaveTransaction(newTx); S.txs.push(saved||newTx); }
+      else S.txs.push(newTx);
     }
+    if(typeof recomputeBalances==='function') recomputeBalances();
+    if(txData.account_id && typeof _syncAccountBalance==='function') _syncAccountBalance(txData.account_id);
   } else {
     // Remove tx if status is pending
     S.txs = S.txs.filter(t => t.orderId !== o.id);
+    if(typeof recomputeBalances==='function') recomputeBalances();
   }
 }
 function delOrder(id){
@@ -187,13 +193,13 @@ function openOrderRecvModal(id){
   const o=S.orders.find(x=>x.id===id);if(!o)return;
   const sup=S.contacts.find(c=>c.id===o.supId);
   g('recv-content').innerHTML=`
-    <p style="font-size:.8rem;color:var(--mu);margin-bottom:14px">Confirmá la recepción del pedido <strong style="color:var(--cr)">#${String(o.num).padStart(4,'0')}</strong>${sup?' de '+sup.name:''}. Se actualizará el stock automáticamente.</p>
+    <p style="font-size:.8rem;color:var(--mu);margin-bottom:14px">Confirmá la recepción del pedido <strong style="color:var(--cr)">#${String(o.num).padStart(4,'0')}</strong>${sup?' de '+escHtml(sup.name):''}. Se actualizará el stock automáticamente.</p>
     <div style="background:var(--bg3);border-radius:var(--rs);padding:12px;margin-bottom:12px">
       ${o.items.map(i=>{const p=S.products.find(x=>x.id===i.prodId);return`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bg5);font-size:.78rem"><span style="color:var(--cr)">${p?.name||'?'}</span><span class="mono" style="color:var(--pos)">+${i.qty} u. → ${(p?.stock||0)+i.qty} u.</span></div>`}).join('')}
     </div>`;
   g('recv-modal').style.display='flex';
 }
-function confirmReceive(){
+async function confirmReceive(){
   const o=S.orders.find(x=>x.id===recvOrderId);if(!o)return;
   o.status='received';
   const total=o.items.reduce((a,i)=>a+i.qty*(i.price||S.products.find(p=>p.id===i.prodId)?.buyPrice||0),0);
@@ -203,12 +209,15 @@ function confirmReceive(){
   // auto expense tx ONLY if not already paid/handled
   const hasTx = S.txs.find(t => t.orderId === o.id);
   if(total > 0 && !hasTx) {
-    S.txs.push({id:uid(),type:'expense',desc:`Pedido #${String(o.num).padStart(4,'0')} recibido`,amount:total,cur:o.cur||'$',cat:'Stock / Compras',date:today(),orderId:o.id});
+    const recvTx={id:uid(),type:'expense',desc:`Pedido #${String(o.num).padStart(4,'0')} recibido`,amount:total,cur:o.cur||'$',cat:'Stock / Compras',date:today(),orderId:o.id};
+    if(SB_ON){ const saved=await sbSaveTransaction(recvTx); S.txs.push(saved||recvTx); }
+    else S.txs.push(recvTx);
   } else if (hasTx) {
-    // Ensure the tx has the latest info if needed, but usually payment is the main event
-    hasTx.amount = total; 
+    hasTx.amount = total;
+    if(SB_ON) sbSaveTransaction({...hasTx});
   }
 
+  if(typeof recomputeBalances==='function') recomputeBalances();
   toast('◆ Pedido recibido · Stock actualizado');
   lsave();renderAll();cm('recv-modal');updateBadges();
 }

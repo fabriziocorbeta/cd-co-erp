@@ -685,11 +685,13 @@ async function saveDebtPay() {
     const tx = { id: uid(), type: 'expense', desc: 'Pago Deuda: ' + d.creditor, amount: amt, cur: d.cur || '$', cat, date };
     if (accId) tx.account_id = accId;
     if (SB_ON) {
-      const saved = await sbUpsert('txs', tx);
+      const saved = await sbSaveTransaction(tx);
       if (saved) S.txs.unshift(saved);
     } else {
       S.txs.push(tx); lsave();
     }
+    if (typeof recomputeBalances === 'function') recomputeBalances();
+    if (accId && typeof _syncAccountBalance === 'function') _syncAccountBalance(accId);
   }
 
   renderAll();

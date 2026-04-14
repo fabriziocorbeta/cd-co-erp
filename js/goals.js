@@ -217,7 +217,7 @@ function deleteGoal(id) {
 
   // Delete from Supabase
   if (SB_ON && S.user) {
-    sb.from('goals').delete().eq('id', id).then(({ error }) => {
+    sb.from('goals').delete().eq('id', id).eq('user_id', S.user.id).then(({ error }) => {
       if (error) console.error('[Goals] delete error:', error);
       else try { localStorage.removeItem('cdco_swr_v2'); } catch(e) {}
     });

@@ -221,7 +221,7 @@ function openRecvPayModal(id) {
   if (typeof populateTxCat === 'function') populateTxCat('income', 'recvp-cat');
 }
 
-function saveRecvPay() {
+async function saveRecvPay() {
   const el = i => document.getElementById(i);
   const id = el('recvp-id').value;
   const amt = parseFloat(el('recvp-amt').value);
@@ -253,15 +253,10 @@ function saveRecvPay() {
   // Registrar ingreso automáticamente
   if (registerTx) {
     const cat = el('recvp-cat')?.value || 'Otros Ingresos';
-    S.txs.push({
-      id: uid(),
-      type: 'income',
-      desc: 'Cobro: ' + r.name,
-      amount: amt,
-      cur: r.cur,
-      cat,
-      date
-    });
+    const recvTx = { id: uid(), type: 'income', desc: 'Cobro: ' + r.name, amount: amt, cur: r.cur, cat, date };
+    if (SB_ON) { const saved = await sbSaveTransaction(recvTx); S.txs.push(saved || recvTx); }
+    else S.txs.push(recvTx);
+    if (typeof recomputeBalances === 'function') recomputeBalances();
     if (typeof checkBudgetAlerts === 'function') checkBudgetAlerts();
   }
 

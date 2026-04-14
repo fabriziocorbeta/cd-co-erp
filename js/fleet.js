@@ -671,8 +671,15 @@ function saveFuelLog() {
   if (accId) tx.account_id = accId;
 
   if (!S.txs) S.txs = [];
-  S.txs.unshift(tx);
-  if (SB_ON) sbUpsert('txs', tx);
+  if (SB_ON) {
+    const saved = await sbSaveTransaction(tx);
+    S.txs.unshift(saved || tx);
+  } else {
+    S.txs.unshift(tx);
+  }
+
+  if (typeof recomputeBalances === 'function') recomputeBalances();
+  if (accId && typeof _syncAccountBalance === 'function') _syncAccountBalance(accId);
 
   if (typeof lsave === 'function') lsave();
   toast('✅ Carga de combustible registrada');
@@ -711,7 +718,7 @@ function editVehicle(id) {
 async function deleteVehicle(id) {
   if (!confirm('¿Borrar este vehículo? Esta acción no se puede deshacer.')) return;
   if (SB_ON && sb && S.user?.id) {
-    const { error } = await sb.from('vehicles').delete().eq('id', id);
+    const { error } = await sb.from('vehicles').delete().eq('id', id).eq('user_id', S.user.id);
     if (error) { toast('Error al borrar: ' + error.message); return; }
   }
   S.vehicles = (S.vehicles || []).filter(v => v.id !== id);
