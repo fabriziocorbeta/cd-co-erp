@@ -338,6 +338,7 @@ function openAccountModal(id) {
 }
 
 async function saveAccount() {
+  try {
   const name  = g('acc-name').value.trim();
   const type  = g('acc-type').value;
   const bank  = g('acc-bank').value.trim();
@@ -396,6 +397,7 @@ async function saveAccount() {
   }
   renderAll(); cm('account-modal');
   populateTxAccountSelect();
+  } catch(err) { console.error('[saveAccount]', err); toast('❌ Error inesperado al guardar cuenta'); }
 }
 
 async function delAccount(id) {
@@ -441,6 +443,7 @@ function openTransferModal() {
 }
 
 async function saveTransfer() {
+  try {
   const fromId = g('tr-from').value;
   const toId   = g('tr-to').value;
   const amt    = parseFloat(g('tr-amt').value);
@@ -469,6 +472,7 @@ async function saveTransfer() {
   }
   renderAll(); cm('transfer-modal');
   toast(`◆ Transferencia de ${fmt(amt, cur)} registrada`);
+  } catch(err) { console.error('[saveTransfer]', err); toast('❌ Error inesperado en la transferencia'); }
 }
 
 // ══════════════════════════════════════════

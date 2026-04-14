@@ -124,10 +124,13 @@ function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 // 📝 INSERT or UPDATE product in Supabase
 async function sbSaveProduct(prod, isNew = true) {
   if (!SB_ON) { return null; }
+  const userId = S.user?.id;
+  if (!userId) { toast('Sesión expirada'); return null; }
 
   try {
-    // Preparar datos para Supabase
+    // Preparar datos para Supabase — user_id obligatorio para RLS
     const data = {
+      user_id: userId,
       sku: prod.sku,
       name: prod.name,
       category: prod.cat,
@@ -166,8 +169,9 @@ async function sbSaveProduct(prod, isNew = true) {
       result = await response.json();
       return result[0];
     } else {
-      // UPDATE producto existente
-      const response = await fetch(`${SB_URL}/rest/v1/products?id=eq.${prod.id}`, {
+      // UPDATE producto existente — filtrar por user_id para evitar cross-tenant write
+      const url = `${SB_URL}/rest/v1/products?id=eq.${encodeURIComponent(prod.id)}&user_id=eq.${encodeURIComponent(userId)}`;
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'apikey': SB_KEY,

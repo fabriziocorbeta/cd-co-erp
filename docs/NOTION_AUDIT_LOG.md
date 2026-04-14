@@ -1,6 +1,6 @@
 # CD & Co ERP — Audit Log 360
 
-> Fecha: 2026-04-13 → 2026-04-14 | Auditor: Claude Code (Opus 4.6 + Sonnet 4.6) | Commits: `8769755`, `2cd443d`, `6e930ec`, `e7a02fa`, `23b2df4`, `63d59a9`, `b73150f`, `7c82243`
+> Fecha: 2026-04-13 → 2026-04-14 | Auditor: Claude Code (Opus 4.6 + Sonnet 4.6) | Commits: `8769755`, `2cd443d`, `6e930ec`, `e7a02fa`, `23b2df4`, `63d59a9`, `b73150f`, `7c82243`, `c4bbe30`, `pendiente`
 
 ---
 
@@ -70,20 +70,27 @@
 
 ---
 
+## Completado en Lote 2026-04-14 — Sesion 2 (commit en este push)
+
+| # | Modulo | Fix aplicado |
+|---|--------|-------------|
+| ✅ P7 | `saveProd`, `saveStock`, `saveAccount`, `saveTransfer` | Try/catch global en todas las funciones async críticas — toast de error en caso de excepción inesperada |
+| ✅ Seguridad | `config.js sbSaveProduct` | INSERT: agregado `user_id` al payload; UPDATE: URL filtrada con `&user_id=eq.{userId}` para bloquear cross-tenant write |
+| ✅ Admin↔ERP | `api/admin.js` | Agregado handler PATCH para actualización de productos desde el panel admin usando `service_role_key`; el ERP ve el cambio en la próxima carga (misma tabla) |
+| ✅ M2 | `settings.js buildPlanCards` | Auditado: los valores son literales hardcodeados (sin datos de usuario) — no hay riesgo XSS real; marcado como no accionable |
+| ✅ M3 | `fleet.js checkMaintenanceAlert` | `lastStr` proviene de `Date.toLocaleDateString()` (dato del sistema, no del usuario) — no hay riesgo XSS |
+| ✅ CSS | `css/app.css light mode` | Pills (neu/warn/blue/pur/gold), pcard, stat-val, tbl mono, labels, analytics panels — contraste WCAG AA garantizado sobre fondos claros |
+
 ## Errores Pendientes
 
 ### Prioridad Alta
 
-| # | Modulo | Problema | Impacto | Esfuerzo |
-|---|--------|----------|---------|----------|
-| P7 | Global | Funciones `async` en onclick handlers no capturan errores — un throw silencioso deja UI colgada | UX | Wrappear en try/catch |
+*(ninguno — todos los P cerrados)*
 
 ### Prioridad Media
 
 | # | Modulo | Problema | Impacto |
 |---|--------|----------|---------|
-| M2 | `settings.js` | Plan cards innerHTML con template literals (linea 73) | XSS bajo riesgo |
-| M3 | `fleet.js` | Alertas de mantenimiento innerHTML con fechas (linea 90) | XSS bajo riesgo |
 | M7 | Global | No hay rate limiting en API endpoints serverless | Abuso de API |
 
 ### Prioridad Baja

@@ -164,6 +164,7 @@ function openProdModal(id){
   g('prod-modal').style.display='flex';
 }
 async function saveProd(){
+  try {
   const name=g('pr-name').value.trim();if(!name){toast('Ingresá un nombre');return}
   const prod={
     name,
@@ -204,6 +205,7 @@ async function saveProd(){
   if(editIds.prod){const i=S.products.findIndex(p=>p.id===editIds.prod);if(i>=0)S.products[i]={...S.products[i],...prod};}
   else S.products.push(prod);
   lsave();renderAll();cm('prod-modal');toast('◆ Producto guardado en BD');populateSelects();
+  } catch(err) { console.error('[saveProd]', err); toast('❌ Error inesperado al guardar producto'); }
 }
 async function delProduct(id){
   if(!confirm('¿Eliminar producto?'))return;
@@ -229,6 +231,7 @@ function openStockModal(pid){
   g('stock-modal').style.display='flex';
 }
 async function saveStock(){
+  try {
   const p=S.products.find(x=>x.id===stockProdId);if(!p)return;
   const qty=parseInt(g('stk-qty').value)||0;const type=g('stk-type').value;const reason=g('stk-reason').value;
   if(qty<=0&&type!=='set'){toast('Ingresá una cantidad');return}
@@ -246,15 +249,19 @@ async function saveStock(){
   }
 
   const notes=g('stk-notes').value;
-  // auto tx if set reason is purchase
+  // auto tx if set reason is purchase — registrar gasto contra cuenta seleccionada si hay una
   if(reason==='Compra a proveedor'&&type==='in'&&p.buyPrice>0){
-    const stockTx={id:uid(),type:'expense',desc:`Compra stock: ${p.name} (${qty} u.)`,amount:qty*p.buyPrice,cur:'$',cat:'Stock / Compras',date:today()};
+    const accId = g('stk-account')?.value || '';
+    const stockTx={id:uid(),type:'expense',desc:`Compra stock: ${p.name} (${qty} u.)`,amount:qty*p.buyPrice,cur:p.cur||'$',cat:'Stock / Compras',date:today()};
+    if(accId) stockTx.account_id = accId;
     if(SB_ON){ const saved=await sbSaveTransaction(stockTx); S.txs.push(saved||stockTx); }
     else S.txs.push(stockTx);
     if(typeof recomputeBalances==='function') recomputeBalances();
+    if(accId && typeof _syncAccountBalance==='function') await _syncAccountBalance(accId);
   }
   toast(`◆ Stock actualizado: ${prev} → ${p.stock} u.`);
   lsave();renderAll();cm('stock-modal');
+  } catch(err) { console.error('[saveStock]', err); toast('❌ Error inesperado al actualizar stock'); }
 }
 
 // ── SHOPIFY SYNC (Phase 2) ──

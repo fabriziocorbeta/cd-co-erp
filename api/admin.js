@@ -32,11 +32,11 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'PATCH') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── 1. Extraer JWT del header ──────────────────────────────────────────
   const auth = req.headers.authorization;
@@ -88,6 +88,46 @@ export default async function handler(req, res) {
       console.error(`[Admin] Acceso denegado para ${user.email} (role: ${role})`);
       return res.status(403).json({ error: 'Acceso denegado — se requiere rol admin' });
     }
+  }
+
+  // ── 4a. PATCH — Actualizar producto desde el panel admin ────────────────
+  // Permite al admin ajustar stock/precio de cualquier producto de cualquier usuario.
+  // Escribe directamente a Supabase con service_role_key (bypasa RLS).
+  // El ERP verá el cambio en la próxima carga porque lee la misma tabla.
+  if (req.method === 'PATCH') {
+    const { productId, stock, sell_price, buy_price } = req.body || {};
+    if (!productId) return res.status(400).json({ error: 'productId requerido' });
+
+    const patch = {};
+    if (stock !== undefined)      patch.stock      = parseInt(stock)       ?? undefined;
+    if (sell_price !== undefined) patch.sell_price = parseFloat(sell_price) ?? undefined;
+    if (buy_price  !== undefined) patch.buy_price  = parseFloat(buy_price)  ?? undefined;
+
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'Ningún campo para actualizar' });
+
+    const patchRes = await fetch(
+      `${SB_URL}/rest/v1/products?id=eq.${encodeURIComponent(productId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey':        SB_SERVICE_KEY,
+          'Authorization': `Bearer ${SB_SERVICE_KEY}`,
+          'Content-Type':  'application/json',
+          'Prefer':        'return=representation'
+        },
+        body: JSON.stringify(patch)
+      }
+    );
+
+    if (!patchRes.ok) {
+      const err = await patchRes.json().catch(() => ({}));
+      console.error('[Admin PATCH product]', err);
+      return res.status(patchRes.status).json({ error: 'Error al actualizar producto', detail: err });
+    }
+
+    const updated = await patchRes.json();
+    console.log(`[Admin] Producto ${productId} actualizado por ${user.email}:`, patch);
+    return res.status(200).json({ ok: true, product: updated[0] || null });
   }
 
   // ── 4. Obtener datos agregados (solo el admin llega hasta aquí) ─────────
