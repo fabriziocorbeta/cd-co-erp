@@ -160,6 +160,69 @@ body.light-mode .fx-w { background: #fff !important; border-color: rgba(15,27,62
 body.light-mode .fx-side { background: #f4f7fc !important; }
 body.light-mode .fx-brand { color: #0d1b3e !important; }
 
+/* ── Pills faltantes en light mode (WCAG AA) ──────────────────────────── */
+body.light-mode .pill-neu  { background: rgba(15,27,62,0.07) !important; color: #374151 !important; }
+body.light-mode .pill-warn { background: rgba(180,100,0,0.09) !important; color: #92400e !important; }
+body.light-mode .pill-blue { background: rgba(67,97,238,0.10) !important; color: #2d3bce !important; }
+body.light-mode .pill-pur  { background: rgba(109,40,217,0.10) !important; color: #6d28d9 !important; }
+body.light-mode .pill-gold { background: rgba(196,154,58,0.12) !important; color: #7c5c00 !important; }
+body.light-mode .pill-g    { background: rgba(196,154,58,0.12) !important; color: #7c5c00 !important; }
+
+/* ── Botón eliminar en modales ─────────────────────────────────────────── */
+body.light-mode .mb-d { background: rgba(220,38,38,0.07) !important; color: #dc2626 !important; border: 1px solid rgba(220,38,38,0.20) !important; }
+body.light-mode .mb-d:hover { background: rgba(220,38,38,0.13) !important; }
+
+/* ── Paneles analíticos (donut + barras) — texto hardcoded oscuro ─────── */
+/* Los templates JS usan colores Slate (#e2e8f0, #cbd5e1, #94a3b8) que son
+   invisibles sobre fondo blanco en light-mode. Estos selectores los re-colorean. */
+body.light-mode #tx-donut-list div,
+body.light-mode #tx-donut-list span { color: #374151 !important; }
+body.light-mode #tx-bars-exp > div span,
+body.light-mode #tx-bars-inc > div span { color: #374151 !important; }
+/* Los porcentajes y totales de analítica */
+body.light-mode #tx-ana-exp-tot,
+body.light-mode #tx-ana-inc-tot { color: #0d1b3e !important; }
+
+/* ── pcard (tarjetas de inventario) en light mode ─────────────────────── */
+body.light-mode .pcard {
+  background: #ffffff !important;
+  border: 1px solid rgba(15,27,62,0.10) !important;
+  box-shadow: 0 2px 12px rgba(15,27,62,0.07) !important;
+  color: #0d1b3e !important;
+}
+body.light-mode .pcard-name  { color: #0d1b3e !important; }
+body.light-mode .pcard-cat   { color: #6b7a99 !important; background: rgba(15,27,62,0.05) !important; }
+body.light-mode .pcard-price-l { color: #8896b3 !important; }
+body.light-mode .pcard-price-v { color: #0d1b3e !important; }
+
+/* ── Jerarquía tipográfica en modales — montos legibles de un vistazo ─── */
+/* Importes principales en los stat cards */
+body.light-mode .sv, body.light-mode .sv2 {
+  color: #0d1b3e !important;
+  font-weight: 700 !important;
+}
+/* Tabla: columna monto — fuente más legible */
+body.light-mode .tbl .mono {
+  color: #0d1b3e !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+/* Stat labels */
+body.light-mode .sl { color: #6b7a99 !important; }
+
+/* ── KPI cards del dashboard en light mode ─────────────────────────────── */
+body.light-mode .stat-val  { color: #0d1b3e !important; font-weight: 700 !important; }
+body.light-mode .stat-lbl  { color: #6b7a99 !important; }
+body.light-mode .stat-icon { opacity: 0.7 !important; }
+
+/* ── Headers de sección ────────────────────────────────────────────────── */
+body.light-mode .ph { color: #0d1b3e !important; }
+body.light-mode .ph2 { color: #374151 !important; }
+
+/* ── Formularios: labels de campos ─────────────────────────────────────── */
+body.light-mode label,
+body.light-mode .fl { color: #374151 !important; font-weight: 500 !important; }
+
 /* ═══════════════ THEMES ═══════════════ */
 /* Default (Gold) is defined in :root */
 
@@ -5254,3 +5317,123 @@ body.light-mode .cmd-item-active { background: rgba(67,97,238,0.08) !important; 
 
 /* ── END SPRINT 2026-04-06 ── */
 /* ── END REDESIGN 2026 ── */
+/* ═══════════════════════════════════════════════════════════════════
+   HOTFIX CONTRASTE LIGHT MODE — 2026-04-14
+   Corrige colores inviables (fantasmas sobre blanco / oscuros sobre
+   dark-bg). Reglas al final del archivo = mayor prioridad en cascada.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. SIDEBAR — logo, etiquetas de sección y badge de usuario ── */
+/* .sb-logo hereda color: #dae2fd (blanco-azulado) del bloque Stitch,
+   que es invisible sobre el fondo blanco del sidebar en light mode  */
+body.light-mode .sb-logo {
+  color: #0d1b3e !important;
+  text-shadow: none !important;
+}
+/* .sb-ey (rol/subtítulo bajo el logo) usa rgba(218,226,253,.4) → invisible */
+body.light-mode .sb-ey {
+  color: #8896b3 !important;
+}
+/* .sb-sec (separadores de sección) sale con #c8d0e0 → contraste 1.6:1 */
+body.light-mode .sb-sec {
+  color: #6b7a99 !important;
+}
+/* Username: refuerzo para que nunca sea más claro que el fondo */
+body.light-mode .sb-un {
+  color: #0d1b3e !important;
+  font-weight: 600 !important;
+}
+body.light-mode .sb-up {
+  color: #4361ee !important;
+  font-weight: 500 !important;
+}
+
+/* ── 2. PATRIMONIO CARD (fondo oscuro en light mode) ────────────── */
+/* La tarjeta conserva su degradado azul marino — todo el texto debe
+   ser blanco para mantener contraste WCAG AA sobre ese fondo.      */
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child > * {
+  color: rgba(255,255,255,0.90) !important;
+}
+/* El monto total: dorado → blanco puro con antialiasing */
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child #d-total-balance {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 0 0 20px rgba(255,255,255,0.15) !important;
+}
+/* Botones dentro de la tarjeta Patrimonio: glassmorphism */
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child .btn-g {
+  background: rgba(255,255,255,0.20) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.30) !important;
+  backdrop-filter: blur(6px) !important;
+}
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child .btn-g:hover {
+  background: rgba(255,255,255,0.30) !important;
+}
+body.light-mode #page-dashboard .eth-top-row .glass-card:first-child .btn-o {
+  background: transparent !important;
+  color: rgba(255,255,255,0.90) !important;
+  border: 1px solid rgba(255,255,255,0.35) !important;
+}
+
+/* ── 3. HERO BANNER (ft-hero) — fechas y acciones ──────────────── */
+/* La fecha usa rgba(255,255,255,.5) → contraste 3.3:1 → mejorarlo  */
+body.light-mode .ft-hero-date {
+  color: rgba(255,255,255,0.80) !important;
+}
+body.light-mode .ft-hero-greeting {
+  color: rgba(200,210,255,0.92) !important;
+}
+/* Botón "Ocultar datos" y mini-acciones dentro del banner oscuro:
+   los estilos de btn-s del light mode (fondo blanco #f0f4fb) ya los
+   hacen visibles como botones flotantes; sólo mejoramos el texto   */
+body.light-mode .ft-hero-actions .btn-s {
+  background: rgba(255,255,255,0.15) !important;
+  color: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.28) !important;
+  backdrop-filter: blur(6px) !important;
+}
+body.light-mode .ft-hero-actions .ib {
+  background: rgba(255,255,255,0.12) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  color: rgba(255,255,255,0.88) !important;
+}
+
+/* ── 4. PIZARRA DE CAMBIOS FX — labels y timestamps ────────────── */
+/* fx-csub ("Dólar", "Euro"): estaba en #8896b3 → contraste 3.5:1  */
+body.light-mode .fx-csub { color: #4a5568 !important; }
+/* fx-cl ("C", "V"): igual problema */
+body.light-mode .fx-cl   { color: #4a5568 !important; }
+/* fx-up "Actualizado: HH:MM" usa var(--m2) = #8896b3 → bajo        */
+body.light-mode .fx-up   { color: #4a5568 !important; }
+/* fx-src fuente de datos: var(--m3) = #a8b5cc → contraste 2.9:1   */
+body.light-mode .fx-src  { color: #64748b !important; }
+/* fx-rb "Actualizar" botón */
+body.light-mode .fx-rb {
+  background: rgba(67,97,238,0.07) !important;
+  border-color: rgba(67,97,238,0.22) !important;
+  color: #4361ee !important;
+}
+body.light-mode .fx-rb span { color: #4361ee !important; }
+body.light-mode .fx-ri { color: #4361ee !important; }
+/* fx-dot "en vivo" */
+body.light-mode .fx-dot { background: #8896b3 !important; box-shadow: none !important; }
+body.light-mode .fx-dot.live {
+  background: #059669 !important;
+  box-shadow: 0 0 6px rgba(5,150,105,0.40) !important;
+}
+/* fx-sl (labels Compra/Venta en conversor) */
+body.light-mode .fx-sl { color: #6b7a99 !important; }
+/* fx-ss (subtexto debajo de las tasas) */
+body.light-mode .fx-ss { color: #6b7a99 !important; }
+
+/* ── 5. TARJETAS INGRESOS / GASTOS del mes ─────────────────────── */
+/* Fondo blanco — labels con var(--mu) = #6b7a99 (4.0:1, OK para
+   labels) — los montos usan var(--cr) = #0d1b3e → contraste 16:1  */
+/* Mejoramos la variación % para que sea legible */
+body.light-mode .eth-week-metrics .sh-lbl,
+body.light-mode .eth-week-metrics > div > div:first-child {
+  color: #4a5568 !important;
+}
+
+/* ── END HOTFIX 2026-04-14 ── */
