@@ -49,6 +49,7 @@ window.renderProfitability  = window.renderProfitability  || _stub('renderProfit
 window.renderAll            = window.renderAll            || _stub('renderAll');
 window.buildPlanCards       = window.buildPlanCards       || _stub('buildPlanCards');
 window.populateSelects      = window.populateSelects      || _stub('populateSelects');
+window.initFx               = window.initFx               || _stub('initFx');
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════

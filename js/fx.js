@@ -208,3 +208,7 @@ function initFx(){
   // 3. Auto-refresh cada 30min
   setInterval(()=>{ if(!FX.manual) fetchRate(); }, 30*60*1000);
 }
+
+// Self-invoke: runs when fx.js finishes loading so FX initializes
+// even if the auth callback fired before this script was ready.
+initFx();
