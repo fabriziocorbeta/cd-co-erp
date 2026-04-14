@@ -157,26 +157,29 @@ function renderNotifs() {
     return;
   }
   
-  c.innerHTML = as.map(a => `
-    <div style="display:flex;align-items:center;gap:14px;padding:12px;margin-bottom:8px;border:1px solid ${a.type==='danger'?'rgba(201,74,74,.2)':'rgba(74,155,111,.2)'};border-radius:8px;background:${a.type==='danger'?'rgba(201,74,74,.05)':'rgba(74,155,111,.05)'};cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='${a.type==='danger'?'rgba(201,74,74,.1)':'rgba(74,155,111,.1)'}'" onmouseout="this.style.background='${a.type==='danger'?'rgba(201,74,74,.05)':'rgba(74,155,111,.05)'}'" onclick="${a.action}">
-      <div style="font-size:1.6rem;width:40px;height:40px;border-radius:10px;background:${a.type==='danger'?'rgba(201,74,74,.15)':'rgba(74,155,111,.15)'};display:flex;align-items:center;justify-content:center">${a.icon}</div>
-      <div style="flex:1">
-        <div style="font-weight:600;font-size:.9rem;color:${a.type==='danger'?'#d47a7a':'var(--pos)'};margin-bottom:2px">${a.title}</div>
-        <div style="font-size:.8rem;color:var(--mu)">${a.msg}</div>
+  const isLight = document.body.classList.contains('light-mode');
+  const muColor  = isLight ? '#4a5568' : 'var(--mu)';
+  const arrColor = isLight ? '#94a3b8' : 'var(--mu)';
+
+  c.innerHTML = as.map(a => {
+    const isDanger   = a.type === 'danger';
+    const bgBase     = isDanger ? 'rgba(201,74,74,.08)'  : 'rgba(74,155,111,.08)';
+    const bgHover    = isDanger ? 'rgba(201,74,74,.16)'  : 'rgba(74,155,111,.16)';
+    const borderClr  = isDanger ? 'rgba(201,74,74,.25)'  : 'rgba(74,155,111,.25)';
+    const iconBg     = isDanger ? 'rgba(201,74,74,.18)'  : 'rgba(74,155,111,.18)';
+    const titleColor = isDanger ? '#c94a4a'              : '#2a7a52';
+    return `
+    <div style="display:flex;align-items:center;gap:14px;padding:14px;margin-bottom:8px;border:1px solid ${borderClr};border-radius:10px;background:${bgBase};cursor:pointer;transition:background 0.2s"
+         onmouseover="this.style.background='${bgHover}'" onmouseout="this.style.background='${bgBase}'"
+         onclick="${a.action}">
+      <div style="font-size:1.6rem;width:42px;height:42px;border-radius:10px;background:${iconBg};display:flex;align-items:center;justify-content:center;flex-shrink:0">${escHtml(a.icon)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:.9rem;color:${titleColor};margin-bottom:3px">${escHtml(a.title)}</div>
+        <div style="font-size:.82rem;color:${muColor};line-height:1.4">${escHtml(a.msg)}</div>
       </div>
-      <div style="color:var(--bg5);font-size:1.2rem;font-weight:bold">→</div>
-    </div>
-  `).join('');
+      <div style="color:${arrColor};font-size:1.1rem;font-weight:600;flex-shrink:0">›</div>
+    </div>`;
+  }).join('');
 }
 
-// Hook into navigation
-const notifGoPage = typeof goPage === 'function' ? goPage : null;
-if(notifGoPage && !window.notifsGoPagePatched) {
-  window.notifsGoPagePatched = true;
-  const oldGP = goPage;
-  window.goPage = function(p) {
-    if(p !== 'notifs') calculateAlerts();
-    oldGP(p);
-    if(p === 'notifs') renderNotifs();
-  };
-}
+// Navigation is handled by nav.js renderPageData → calls calculateAlerts() + renderNotifs() when pg === 'notifs'

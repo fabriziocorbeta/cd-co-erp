@@ -51,6 +51,7 @@ async function renderPageData(pg){
   else if(pg==='patrimonio')renderPatrimonio();
   else if(pg==='profitability')renderProfitability();
   else if(pg==='fleet'){if(typeof renderFleet==='function')renderFleet();}
+  else if(pg==='notifs'){if(typeof calculateAlerts==='function')calculateAlerts();if(typeof renderNotifs==='function')renderNotifs();}
   else if(pg==='plan'){buildPlanCards();loadEmpresaForm();if(typeof loadAdminUsers==='function')loadAdminUsers();}
 }
 // ── Dirty-flag render guard ──────────────────────────────────────────────────
