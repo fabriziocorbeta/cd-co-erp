@@ -1,4 +1,6 @@
-const CACHE_NAME = 'cdco-cache-v3';
+// Cache version — bump on each deploy to auto-invalidate stale assets
+const CACHE_VERSION = '20260414a';
+const CACHE_NAME = 'cdco-cache-' + CACHE_VERSION;
 const STATIC_ASSETS = [
   '/',
   '/index.html',

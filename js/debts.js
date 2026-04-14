@@ -543,6 +543,7 @@ async function saveCardPayment() {
         account_id: fromId
       };
       S.txs.unshift(newTx);
+      if (typeof recomputeBalances === 'function') recomputeBalances();
       renderAll();
       cm('pay-card-modal');
       toast(`✅ Pago de ₲${amt.toLocaleString('es-PY')} registrado. Saldo: ₲${result.account.balanceAfter.toLocaleString('es-PY')}`);

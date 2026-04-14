@@ -195,7 +195,7 @@ function openOrderRecvModal(id){
   g('recv-content').innerHTML=`
     <p style="font-size:.8rem;color:var(--mu);margin-bottom:14px">Confirmá la recepción del pedido <strong style="color:var(--cr)">#${String(o.num).padStart(4,'0')}</strong>${sup?' de '+escHtml(sup.name):''}. Se actualizará el stock automáticamente.</p>
     <div style="background:var(--bg3);border-radius:var(--rs);padding:12px;margin-bottom:12px">
-      ${o.items.map(i=>{const p=S.products.find(x=>x.id===i.prodId);return`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bg5);font-size:.78rem"><span style="color:var(--cr)">${p?.name||'?'}</span><span class="mono" style="color:var(--pos)">+${i.qty} u. → ${(p?.stock||0)+i.qty} u.</span></div>`}).join('')}
+      ${o.items.map(i=>{const p=S.products.find(x=>x.id===i.prodId);return`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bg5);font-size:.78rem"><span style="color:var(--cr)">${escHtml(p?.name||'?')}</span><span class="mono" style="color:var(--pos)">+${i.qty} u. → ${(p?.stock||0)+i.qty} u.</span></div>`}).join('')}
     </div>`;
   g('recv-modal').style.display='flex';
 }

@@ -200,7 +200,10 @@ async function sbDeleteProduct(prodId) {
   if (!SB_ON) { return true; }
 
   try {
-    const response = await fetch(`${SB_URL}/rest/v1/products?id=eq.${prodId}`, {
+    const userId = S.user?.id;
+    let url = `${SB_URL}/rest/v1/products?id=eq.${encodeURIComponent(prodId)}`;
+    if (userId) url += `&user_id=eq.${encodeURIComponent(userId)}`;
+    const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         'apikey': SB_KEY,

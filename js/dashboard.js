@@ -364,7 +364,7 @@ function renderEtherealCharts() {
       else g('d-expense-list').innerHTML = `<div style="max-height:220px;overflow-y:auto;padding-right:4px">${sorted.map(c=> {
         const p = totalExp>0 ? Math.round((c[1]/totalExp)*100) : 0;
         return `<div style="display:flex;justify-content:space-between;color:${colorCR};padding:4px 0">
-                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">${c[0]}</span>
+                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">${typeof escHtml==='function'?escHtml(c[0]):c[0]}</span>
                   <span style="color:var(--mu);font-weight:600;white-space:nowrap">${p}% · ${fmt(c[1],unified.dCur)}</span>
                 </div>`;
       }).join('')}</div>`;

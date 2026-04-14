@@ -255,17 +255,20 @@ async function loadAllUserData() {
 // ── AUDIT-FIRST: balance = SUM(amount) — gastos son negativos en DB ─────────
 function recomputeBalances() {
   if (!S.accounts || !S.txs) return;
-  // Fórmula: sum de todos los txs de la cuenta con signo correcto.
-  // Siempre desde 0 — no usamos initialBalance como base porque los txs ya
-  // incluyen el tx de ajuste inicial (isBalanceAdj). Math.abs normaliza
-  // amounts que puedan estar almacenados como negativos en la DB.
+  // Fórmula: cada tx guarda amount con signo (expenses = negative).
+  // Transfers y otros tipos usan el amount tal como está almacenado.
   S.accounts = S.accounts.map(acc => ({
     ...acc,
     balance: S.txs
       .filter(t => (t.account_id || t.accountId) === acc.id)
       .reduce((sum, t) => {
-        const amt = Math.abs(parseFloat(t.amount) || 0);
-        return sum + (t.type === 'expense' ? -amt : amt);
+        const raw = parseFloat(t.amount) || 0;
+        // Expenses are stored as negative. If positive expense found (legacy), negate it.
+        if (t.type === 'expense') return sum - Math.abs(raw);
+        if (t.type === 'transfer-out') return sum - Math.abs(raw);
+        if (t.type === 'transfer-in') return sum + Math.abs(raw);
+        // income, balance adj, other — always add positive
+        return sum + Math.abs(raw);
       }, 0)
   }));
 }

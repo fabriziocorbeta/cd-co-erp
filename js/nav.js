@@ -241,11 +241,11 @@ async function saveNewCat() {
     if (btnGuardar) {
       const orig = btnGuardar.textContent;
       btnGuardar.textContent = 'Guardando en la nube...';
-      sb.from('categorias').upsert({ id, nombre: name, icono: icon, tipo: catType })
+      sb.from('categorias').upsert({ id, nombre: name, icono: icon, tipo: catType, user_id: S.user?.id })
         .then(({ error }) => { if (error) console.warn('[saveNewCat] SB:', error.message); })
         .finally(() => { btnGuardar.textContent = orig; });
     } else {
-      sb.from('categorias').upsert({ id, nombre: name, icono: icon, tipo: catType })
+      sb.from('categorias').upsert({ id, nombre: name, icono: icon, tipo: catType, user_id: S.user?.id })
         .then(({ error }) => { if (error) console.warn('[saveNewCat] SB:', error.message); });
     }
   }

@@ -198,7 +198,7 @@ async function markSubPaid(id) {
       // ── 2b. Si es cuenta bancaria: RESTAR del saldo ──
       if (linkedAcc) {
         const newBal = (parseFloat(linkedAcc.balance) || 0) - amt;
-        const { error: accErr } = await sb.from('accounts').update({ balance: newBal }).eq('id', accId);
+        const { error: accErr } = await sb.from('accounts').update({ balance: newBal }).eq('id', accId).eq('user_id', S.user?.id);
         if (!accErr) {
           linkedAcc.balance = newBal;
           console.log(`[markSubPaid] ✓ Account balance actualizado: ${newBal}`);

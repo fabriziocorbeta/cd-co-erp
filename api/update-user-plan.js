@@ -6,7 +6,12 @@ const ADMIN_EMAIL   = 'fabriziocorbeta@gmail.com';
 const ALLOWED_PLANS = ['free', 'pro', 'socio', 'familiar'];
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const ALLOWED_ORIGINS = ['https://cd-co-hub.vercel.app', 'http://localhost:3000'];
+  const origin = req.headers.origin || '';
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
