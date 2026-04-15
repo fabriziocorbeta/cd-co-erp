@@ -206,13 +206,14 @@ async function loadAllUserData() {
 
   const _bgRefresh = () => {
     // Main tables: refresh + render immediately when done (don't wait for fleet)
-    Promise.allSettled(ALL.map(t => fetchTable(t, 12000))).then(results => {
+    Promise.allSettled(ALL.map(t => fetchTable(t, 12000))).then(async results => {
       applyResults(ALL, results);
-      console.log('[DEBUG] debts[0]:', S.debts?.[0], '| sales[0]:', S.sales?.[0]);
+      await syncCategorias();
       recomputeBalances();
       swrSave();
       if (typeof renderAll === 'function') renderAll();
       if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
+      if (typeof populateSelects === 'function') populateSelects();
     });
     // Fleet runs in background — no gate on it
     applyFleet().then(() => swrSave());
@@ -241,16 +242,43 @@ async function loadAllUserData() {
   // FASE 2 — everything else in background (no await)
   const rest = ['products','sales','orders','contacts','cards','debts',
                 'budgets','subscriptions','receivables','goals'];
-  Promise.allSettled(rest.map(t => fetchTable(t, 12000))).then(results => {
+  Promise.allSettled(rest.map(t => fetchTable(t, 12000))).then(async results => {
     applyResults(rest, results);
-    console.log('[DEBUG] debts[0]:', S.debts?.[0], '| sales[0]:', S.sales?.[0]);
+    await syncCategorias();
     recomputeBalances();
     swrSave();
     if (typeof renderAll === 'function') renderAll();
     if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
+    if (typeof populateSelects === 'function') populateSelects();
   });
   // Fleet runs independently — no gate
   applyFleet().then(() => swrSave());
+}
+
+// ── Sync custom categories from Supabase 'categorias' table ─────────────────
+// Called after data load so user categories appear in all dropdowns.
+// Maps DB columns (nombre, icono, tipo) → local format (name, icon, list key).
+async function syncCategorias() {
+  if (!SB_ON || !sb || !S.user?.id) return;
+  try {
+    const { data, error } = await sb
+      .from('categorias')
+      .select('id,nombre,icono,tipo')
+      .eq('user_id', S.user.id);
+    if (error) { console.warn('[syncCategorias] SB error:', error.message); return; }
+    if (!data?.length) return;
+    if (!S.customCategories) S.customCategories = { gastos: [], ingresos: [] };
+    data.forEach(cat => {
+      const listKey = cat.tipo === 'ingresos' ? 'ingresos' : 'gastos';
+      const list = S.customCategories[listKey];
+      if (!list.find(c => c.id === cat.id)) {
+        list.push({ id: cat.id, name: cat.nombre, icon: cat.icono || '🔹' });
+      }
+    });
+    lsave(); // persist merged state to localStorage for next SWR hit
+  } catch (e) {
+    console.warn('[syncCategorias] exception:', e.message);
+  }
 }
 // ── AUDIT-FIRST: balance = SUM(amount) — gastos son negativos en DB ─────────
 function recomputeBalances() {

@@ -668,18 +668,47 @@ async function saveDebtPay() {
   if (idx < 0) return;
 
   const d = S.debts[idx];
-  const nextI = calcNextInst(d.totalAmount, d.paidAmount, d.installments, d.paidInstallments);
-  const newPaid = (parseFloat(d.paidAmount) || 0) + amt;
-  const completed = newPaid >= parseFloat(d.totalAmount);
+  // Normalise: DB may return 'paid' (snake) or 'paidAmount' (camel) — read both
+  const totalAmt  = parseFloat(d.totalAmount || d.total || 0);
+  const prevPaid  = parseFloat(d.paidAmount  || d.paid  || 0);
+  const prevInst  = parseInt(d.paidInstallments || d.paid_inst || 0);
 
-  S.debts[idx].paidAmount = newPaid;
-  S.debts[idx].remaining = Math.max(0, parseFloat(d.totalAmount) - newPaid);
-  if (completed) S.debts[idx].status = 'paid';
-  if (d.installments > 0 && amt >= (nextI - 0.01)) {
-    S.debts[idx].paidInstallments = Math.min(d.installments, (parseInt(d.paidInstallments || 0) + 1));
+  const nextI     = calcNextInst(totalAmt, prevPaid, d.installments, prevInst);
+  const newPaid   = prevPaid + amt;
+  const completed = newPaid >= totalAmt;
+  const newRemain = Math.max(0, totalAmt - newPaid);
+  const newStatus = completed ? 'paid' : (d.status || 'active');
+  const newPaidInst = (d.installments > 0 && amt >= (nextI - 0.01))
+    ? Math.min(d.installments, prevInst + 1)
+    : prevInst;
+
+  // Update local state — keep BOTH naming variants in sync
+  S.debts[idx].paid              = newPaid;
+  S.debts[idx].paidAmount        = newPaid;
+  S.debts[idx].remaining         = newRemain;
+  S.debts[idx].status            = newStatus;
+  S.debts[idx].paidInstallments  = newPaidInst;
+  S.debts[idx].paid_inst         = newPaidInst;
+
+  if (SB_ON) {
+    // Targeted UPDATE — covers both DB column naming conventions in one patch
+    const userId = S.user?.id;
+    const dbPatch = {
+      paid:             newPaid,
+      paidAmount:       newPaid,
+      remaining:        newRemain,
+      status:           newStatus,
+      paidInstallments: newPaidInst,
+      paid_inst:        newPaidInst,
+    };
+    const { error: debtErr } = await sb.from('debts')
+      .update(dbPatch)
+      .eq('id', d.id)
+      .eq('user_id', userId);
+    if (debtErr) console.error('[saveDebtPay] debt UPDATE failed:', debtErr.message);
+  } else {
+    lsave();
   }
-
-  if (SB_ON) { await sbUpsert('debts', S.debts[idx]); } else { lsave(); }
 
   if (registerTx) {
     const cat = g('debtp-cat')?.value || 'Deudas';
