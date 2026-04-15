@@ -1,5 +1,5 @@
 // Cache version — bump on each deploy to auto-invalidate stale assets
-const CACHE_VERSION = '20260414a';
+const CACHE_VERSION = '20260414b';
 const CACHE_NAME = 'cdco-cache-' + CACHE_VERSION;
 const STATIC_ASSETS = [
   '/',
@@ -39,9 +39,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Ignorar peticiones a Supabase RPC o APIs externas
-  if (event.request.url.includes('supabase.co') || event.request.url.includes('/rest/v1/') || event.request.url.includes('/rpc/') || event.request.method !== 'GET') {
-    return;
+  // Network-only: API routes, Supabase, and any non-GET request must bypass cache entirely.
+  // Reason: SW re-fetches strip the Origin header, causing CORS 403 on /api/* endpoints.
+  const url = event.request.url;
+  if (
+    event.request.method !== 'GET' ||
+    url.includes('/api/')           ||
+    url.includes('supabase.co')     ||
+    url.includes('/rest/v1/')       ||
+    url.includes('/rpc/')           ||
+    url.includes('supabase.in')
+  ) {
+    return; // Let the browser handle it directly — no SW interception
   }
 
   // Stale-While-Revalidate para recursos locales

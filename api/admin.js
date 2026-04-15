@@ -28,10 +28,19 @@ async function safeFetch(url, headers) {
 export default async function handler(req, res) {
   const ALLOWED_ORIGINS = ['https://cd-co-hub.vercel.app', 'http://localhost:3000'];
   const origin = req.headers.origin || '';
-  if (!ALLOWED_ORIGINS.includes(origin)) {
+
+  // CORS enforcement:
+  // - If Origin header is present and NOT in the allowlist → 403 (cross-origin attack)
+  // - If Origin header is absent → allow through to JWT check.
+  //   Browsers ALWAYS send Origin for cross-origin requests; absence means same-origin
+  //   or a server-to-server call (Service Worker re-fetch, Vercel internal, curl, etc.)
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  res.setHeader('Access-Control-Allow-Origin', origin);
+
+  // Set CORS headers for browser requests that did send an Origin
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
