@@ -273,8 +273,36 @@ async function saveSale(){
   // deduct stock & auto income tx (NEW SALES ONLY — edits already handled above)
   const saleId=editIds.sale||S.sales[S.sales.length-1].id;
   if(!editIds.sale){
-    // New sale: deduct full quantity
-    items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p){p.stock-=l.qty;p.stock=Math.max(0,p.stock)}});
+    if(SB_ON && sb && S.user?.id){
+      // ── Descuento atómico via RPC (FOR UPDATE — resuelve race condition C-1) ──
+      // Garantiza que dos ventas concurrentes no puedan sobrepasar el stock real en DB.
+      let rpcFailed=false;
+      for(const l of items){
+        const {data:rpcData,error:rpcErr}=await sb.rpc('deduct_stock_atomic',{
+          p_product_id:l.prodId,
+          p_qty:l.qty,
+          p_user_id:S.user.id
+        });
+        if(rpcErr||!rpcData?.ok){
+          const avail=rpcData?.available??'?';
+          const prod=S.products.find(x=>x.id===l.prodId);
+          toast(`❌ ${rpcErr?.message||`Sin stock suficiente: ${prod?.name||'Producto'} (${avail} u. disponibles en BD)`}`,3500);
+          rpcFailed=true;break;
+        }
+        // Actualizar estado local desde respuesta de DB (source of truth)
+        const prod=S.products.find(x=>x.id===l.prodId);
+        if(prod) prod.stock=rpcData.new_stock;
+      }
+      if(rpcFailed){
+        // Rollback: revertir venta de S.sales y de Supabase
+        S.sales=S.sales.filter(s=>s.id!==saleId);
+        sb.from('sales').delete().eq('id',saleId).eq('user_id',S.user.id).catch(()=>{});
+        lsave();return;
+      }
+    } else {
+      // Offline fallback: descuento local (sin garantía de atomicidad)
+      items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p){p.stock-=l.qty;p.stock=Math.max(0,p.stock)}});
+    }
   }
   // Create/update transaction
   S.txs=S.txs.filter(t=>t._saleId!==saleId);

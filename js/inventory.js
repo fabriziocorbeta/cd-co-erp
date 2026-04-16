@@ -236,16 +236,26 @@ async function saveStock(){
   const qty=parseInt(g('stk-qty').value)||0;const type=g('stk-type').value;const reason=g('stk-reason').value;
   if(qty<=0&&type!=='set'){toast('Ingresá una cantidad');return}
   const prev=p.stock;
-  if(type==='in')p.stock+=qty;else if(type==='out'){if(qty>p.stock){toast('No hay suficiente stock');return}p.stock-=qty;}else p.stock=qty;
-
-  // 🔄 ACTUALIZAR STOCK EN SUPABASE
-  if (SB_ON) {
-    const updateResult = await sbSaveProduct(p, false);
-    if (!updateResult) {
-      p.stock = prev; // Revertir cambio si falla
-      toast('❌ Error al actualizar stock en BD');
-      return;
+  if(SB_ON && sb && S.user?.id){
+    // ── Ajuste atómico via RPC (FOR UPDATE — resuelve race condition C-1) ──
+    // Soporta in / out / set con bloqueo pesimista en PostgreSQL.
+    const {data:rpcData,error:rpcErr}=await sb.rpc('adjust_stock_atomic',{
+      p_product_id:p.id,
+      p_qty:qty,
+      p_type:type,
+      p_user_id:S.user.id
+    });
+    if(rpcErr||!rpcData?.ok){
+      const avail=rpcData?.available??prev;
+      toast(`❌ ${rpcErr?.message||`Sin stock suficiente (${avail} u. disponibles en BD)`}`,3500);
+      return; // No continuar — DB no fue modificada
     }
+    p.stock=rpcData.new_stock; // DB ya actualizada por RPC, sincronizar estado local
+  } else {
+    // Offline fallback: ajuste local sin garantía de atomicidad
+    if(type==='in') p.stock+=qty;
+    else if(type==='out'){if(qty>p.stock){toast('No hay suficiente stock');return}p.stock-=qty;}
+    else p.stock=qty;
   }
 
   const notes=g('stk-notes').value;

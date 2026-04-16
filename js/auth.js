@@ -6,7 +6,53 @@
 // ══════════════════════════════════════════
 const LS='cdco_erp_v1';
 function lsave(){
-  try{localStorage.setItem(LS,JSON.stringify({txs:S.txs,products:S.products,sales:S.sales,orders:S.orders,contacts:S.contacts,plan:S.plan,cards:S.cards,debts:S.debts,accounts:S.accounts,budgets:S.budgets,subscriptions:S.subscriptions,appMode:S.appMode,goals:S.goals,historical:S.historical,receivables:S.receivables,vehicles:S.vehicles,fx:FX,user:S.user}))}catch(e){}
+  // ── C-3 Guard: tamaño + QuotaExceededError ───────────────────────────────
+  // Límite conservador: 4 MB (localStorage real ≈ 5-10 MB según browser/OS).
+  // Si el payload completo supera el límite, guarda una versión "slim" con
+  // solo los datos críticos y avisa al usuario con un toast visible.
+  const LIMIT_BYTES = 4 * 1024 * 1024; // 4 MB
+
+  const FULL_PAYLOAD = {
+    txs:S.txs, products:S.products, sales:S.sales, orders:S.orders,
+    contacts:S.contacts, plan:S.plan, cards:S.cards, debts:S.debts,
+    accounts:S.accounts, budgets:S.budgets, subscriptions:S.subscriptions,
+    appMode:S.appMode, goals:S.goals, historical:S.historical,
+    receivables:S.receivables, vehicles:S.vehicles, fx:FX, user:S.user
+  };
+
+  // Versión slim: solo lo imprescindible para que la app arranque sin datos de Supabase
+  const SLIM_PAYLOAD = {
+    plan:S.plan, user:S.user, fx:FX,
+    accounts:S.accounts, products:S.products
+  };
+
+  let serialized;
+  try { serialized = JSON.stringify(FULL_PAYLOAD); }
+  catch(e) { serialized = JSON.stringify(SLIM_PAYLOAD); } // JSON.stringify puede fallar en refs circulares
+
+  // Medir tamaño real en bytes (más preciso que .length para caracteres UTF-8)
+  const byteSize = new Blob([serialized]).size;
+
+  if (byteSize > LIMIT_BYTES) {
+    // Payload demasiado grande — guardar solo slim y avisar
+    try { localStorage.setItem(LS, JSON.stringify(SLIM_PAYLOAD)); } catch(e) {}
+    toast('⚠️ Memoria local casi llena — Solo datos críticos guardados localmente. Los datos completos están seguros en la nube.', 5000);
+  } else {
+    try {
+      localStorage.setItem(LS, serialized);
+    } catch(e) {
+      // QuotaExceededError: el browser rechazó la escritura
+      if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+        // Último recurso: limpiar datos pesados y guardar slim
+        try {
+          localStorage.removeItem(LS);
+          localStorage.setItem(LS, JSON.stringify(SLIM_PAYLOAD));
+        } catch(_) {}
+        toast('⚠️ Límite de almacenamiento local alcanzado — Guardando solo datos esenciales. Los datos completos están en la nube.', 5000);
+      }
+    }
+  }
+
   try{localStorage.setItem('cdco_custom_cats',JSON.stringify(S.customCategories||{gastos:[],ingresos:[]}))}catch(e){}
   // Supabase writes are handled by write-through CRUD helpers (sbUpsert/sbDelete)
 }
