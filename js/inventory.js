@@ -69,8 +69,9 @@ function renderInventory(){
     p.cat      = p.cat      || 'Otros';
     p.buyPrice = parseFloat(p.buyPrice)  || 0;
     p.sellPrice= parseFloat(p.sellPrice) || 0;
-    p.stock    = parseInt(p.stock)       || 0;
-    p.minStock = parseInt(p.minStock)    || 2;
+    p.stock         = parseInt(p.stock)         || 0;
+    p.stock_transit = parseInt(p.stock_transit) || 0;
+    p.minStock      = parseInt(p.minStock)      || 2;
 
     const sup=S.contacts.find(c=>c.id===p.sup);
     const stockClass=p.stock<=0?'stock-out':p.stock<=p.minStock?'stock-low':'stock-ok';
@@ -129,6 +130,10 @@ function renderInventory(){
           ${p.stock<=0?'<span class="pill pill-neg">Sin stock</span>':p.stock<=p.minStock?'<span class="pill pill-warn">Stock bajo</span>':'<span class="pill pill-pos">En stock</span>'}
           ${dias !== null ? `<span class="pill" style="background:var(--bg4);color:var(--mu);font-size:.6rem">${dias}d en stock${isLiquidation?' · Liquidar':''}</span>` : ''}
         </div>
+        <div class="stock-dual-row">
+          <span class="badge-physical">🟢 Físico: ${p.stock}</span>
+          ${p.stock_transit > 0 ? `<span class="badge-transit">🟠 Tránsito: ${p.stock_transit}</span>` : ''}
+        </div>
       </div>
       <div style="padding:12px;background:var(--bg2);border-radius:var(--rs);margin-top:8px;border-left:3px solid var(--g)">
         <div style="font-size:.7rem;color:var(--m3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">💰 Valor Acumulado</div>
@@ -156,7 +161,7 @@ function openProdModal(id){
   g('pr-sn').value=p?.serialNumber||'';
   g('pr-sup').value=p?.sup||'';g('pr-buy').value=p?.buyPrice||'';g('pr-sell').value=p?.sellPrice||'';
   g('pr-cur').value=p?.cur||'₲';
-  g('pr-stock').value=p?.stock??'';g('pr-min').value=p?.minStock??2;g('pr-desc').value=p?.desc||'';
+  g('pr-stock').value=p?.stock??'';g('pr-transit').value=p?.stock_transit??0;g('pr-min').value=p?.minStock??2;g('pr-desc').value=p?.desc||'';
   g('pr-fx').value=p?.exchangeRate||'';  // 💱 Cargar tipo de cambio histórico
   g('prod-acts').innerHTML=id
     ?`<button class="mb mb-d" onclick="delProduct('${id}');cm('prod-modal')">Eliminar</button><button class="mb mb-gh" onclick="cm('prod-modal')">Cancelar</button><button class="mb mb-g" onclick="saveProd()">Guardar</button>`
@@ -177,6 +182,7 @@ async function saveProd(){
     sellPrice:parseFloat(g('pr-sell').value)||0,
     cur:g('pr-cur').value,
     stock:parseInt(g('pr-stock').value)||0,
+    stock_transit:parseInt(g('pr-transit').value)||0,
     minStock:parseInt(g('pr-min').value)||2,
     desc:g('pr-desc').value.trim(),
     exchangeRate: parseFloat(g('pr-fx').value) || null  // 💱 Tipo de cambio histórico
@@ -234,29 +240,52 @@ async function saveStock(){
   try {
   const p=S.products.find(x=>x.id===stockProdId);if(!p)return;
   const qty=parseInt(g('stk-qty').value)||0;const type=g('stk-type').value;const reason=g('stk-reason').value;
+  const field=g('stk-field')?.value||'physical'; // 'physical' | 'transit'
   if(qty<=0&&type!=='set'){toast('Ingresá una cantidad');return}
-  const prev=p.stock;
+  const prev = field==='transit' ? (p.stock_transit||0) : p.stock;
   if(SB_ON && sb && S.user?.id){
-    // ── Ajuste atómico via RPC (FOR UPDATE — resuelve race condition C-1) ──
-    // Soporta in / out / set con bloqueo pesimista en PostgreSQL.
-    const {data:rpcData,error:rpcErr}=await sb.rpc('adjust_stock_atomic',{
-      p_product_id:p.id,
-      p_qty:qty,
-      p_type:type,
-      p_user_id:S.user.id
-    });
-    if(rpcErr||!rpcData?.ok){
-      const avail=rpcData?.available??prev;
-      vibrate([30,30,30]); // Haptic: error
-      toast(`❌ ${rpcErr?.message||`Sin stock suficiente (${avail} u. disponibles en BD)`}`,3500);
-      return; // No continuar — DB no fue modificada
+    if(field==='transit'){
+      // ── Ajuste atómico de stock EN TRÁNSITO via RPC ──
+      const {data:rpcData,error:rpcErr}=await sb.rpc('adjust_transit_atomic',{
+        p_product_id:p.id,
+        p_qty:qty,
+        p_type:type,
+        p_user_id:S.user.id
+      });
+      if(rpcErr||!rpcData?.ok){
+        const avail=rpcData?.available??prev;
+        vibrate([30,30,30]);
+        toast(`❌ ${rpcErr?.message||`Sin stock en tránsito suficiente (${avail} u.)`}`,3500);
+        return;
+      }
+      p.stock_transit=rpcData.new_stock;
+    } else {
+      // ── Ajuste atómico de stock FÍSICO via RPC (FOR UPDATE — C-1) ──
+      const {data:rpcData,error:rpcErr}=await sb.rpc('adjust_stock_atomic',{
+        p_product_id:p.id,
+        p_qty:qty,
+        p_type:type,
+        p_user_id:S.user.id
+      });
+      if(rpcErr||!rpcData?.ok){
+        const avail=rpcData?.available??prev;
+        vibrate([30,30,30]);
+        toast(`❌ ${rpcErr?.message||`Sin stock suficiente (${avail} u. disponibles en BD)`}`,3500);
+        return;
+      }
+      p.stock=rpcData.new_stock;
     }
-    p.stock=rpcData.new_stock; // DB ya actualizada por RPC, sincronizar estado local
   } else {
     // Offline fallback: ajuste local sin garantía de atomicidad
-    if(type==='in') p.stock+=qty;
-    else if(type==='out'){if(qty>p.stock){toast('No hay suficiente stock');return}p.stock-=qty;}
-    else p.stock=qty;
+    if(field==='transit'){
+      if(type==='in') p.stock_transit=(p.stock_transit||0)+qty;
+      else if(type==='out'){if(qty>(p.stock_transit||0)){toast('No hay suficiente stock en tránsito');return}p.stock_transit-=qty;}
+      else p.stock_transit=Math.max(0,qty);
+    } else {
+      if(type==='in') p.stock+=qty;
+      else if(type==='out'){if(qty>p.stock){toast('No hay suficiente stock');return}p.stock-=qty;}
+      else p.stock=qty;
+    }
   }
 
   const notes=g('stk-notes').value;
@@ -270,8 +299,10 @@ async function saveStock(){
     if(typeof recomputeBalances==='function') recomputeBalances();
     if(accId && typeof _syncAccountBalance==='function') await _syncAccountBalance(accId);
   }
+  const newVal = field==='transit' ? p.stock_transit : p.stock;
+  const fieldLabel = field==='transit' ? '🟠 Tránsito' : '🟢 Físico';
   vibrate(50); // Haptic: confirmación de ajuste de stock
-  toast(`◆ Stock actualizado: ${prev} → ${p.stock} u.`);
+  toast(`◆ ${fieldLabel}: ${prev} → ${newVal} u.`);
   lsave();renderAll();cm('stock-modal');
   } catch(err) { console.error('[saveStock]', err); toast('❌ Error inesperado al actualizar stock'); }
 }
