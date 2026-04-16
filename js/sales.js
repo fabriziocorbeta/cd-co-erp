@@ -286,6 +286,7 @@ async function saveSale(){
         if(rpcErr||!rpcData?.ok){
           const avail=rpcData?.available??'?';
           const prod=S.products.find(x=>x.id===l.prodId);
+          vibrate([30,30,30]); // Haptic: error
           toast(`❌ ${rpcErr?.message||`Sin stock suficiente: ${prod?.name||'Producto'} (${avail} u. disponibles en BD)`}`,3500);
           rpcFailed=true;break;
         }
@@ -313,6 +314,7 @@ async function saveSale(){
   if(typeof recomputeBalances==='function') recomputeBalances();
 
   const msg=editIds.sale?'◆ Venta actualizada':'◆ Venta registrada';
+  vibrate(50); // Haptic: confirmación de venta
   toast(msg+' · Stock actualizado');
   lsave();renderAll();cm('sale-modal');populateSelects();
   editIds.sale=null;

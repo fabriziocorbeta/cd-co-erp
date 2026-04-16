@@ -373,6 +373,192 @@ function _prefetchTables(tables, extraTables) {
   });
 }
 
+// ══════════════════════════════════════════
+// COMMAND PALETTE — Cmd+K / Ctrl+K
+// Spotlight global: busca productos, contactos, txs y acciones rápidas.
+// El modal se crea lazily la primera vez que se invoca.
+// ══════════════════════════════════════════
+(function initCmdPalette() {
+  let _el = null;   // elemento raíz inyectado en body
+  let _open = false;
+
+  // ── Lazy DOM creation ──────────────────────────────────────────────────
+  function _build() {
+    if (_el) return;
+    _el = document.createElement('div');
+    _el.id = 'cmd-palette';
+    _el.setAttribute('role', 'dialog');
+    _el.setAttribute('aria-label', 'Búsqueda global');
+    _el.innerHTML = `
+      <div id="cmd-backdrop"></div>
+      <div id="cmd-modal">
+        <div id="cmd-search-wrap">
+          <span class="material-symbols-rounded" id="cmd-search-icon">search</span>
+          <input id="cmd-input" type="text"
+            placeholder="Buscar transacciones, productos, contactos..."
+            autocomplete="off" spellcheck="false"/>
+          <kbd id="cmd-esc-hint">ESC</kbd>
+        </div>
+        <div id="cmd-results"></div>
+        <div id="cmd-footer">
+          <span><kbd>↑↓</kbd> navegar</span>
+          <span><kbd>↵</kbd> abrir</span>
+          <span><kbd>ESC</kbd> cerrar</span>
+        </div>
+      </div>`;
+    document.body.appendChild(_el);
+
+    _el.querySelector('#cmd-backdrop').addEventListener('click', close);
+
+    const inp = _el.querySelector('#cmd-input');
+    inp.addEventListener('input', e => _render(e.target.value));
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Escape')    { e.preventDefault(); close(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); _move(1); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); _move(-1); }
+      if (e.key === 'Enter')     { e.preventDefault(); _select(); }
+    });
+  }
+
+  // ── Open / Close ───────────────────────────────────────────────────────
+  function open() {
+    _build();
+    _el.classList.add('open');
+    _open = true;
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => {
+      const inp = document.getElementById('cmd-input');
+      if (inp) { inp.value = ''; inp.focus(); }
+      _render('');
+    }, 40);
+  }
+
+  function close() {
+    if (!_el) return;
+    _el.classList.remove('open');
+    _open = false;
+    document.body.style.overflow = '';
+  }
+
+  // ── Keyboard navigation ────────────────────────────────────────────────
+  function _move(dir) {
+    const items = [...document.querySelectorAll('#cmd-results .cmd-item')];
+    if (!items.length) return;
+    let idx = items.indexOf(document.activeElement);
+    items[Math.max(0, Math.min(items.length - 1, idx + dir))]?.focus();
+  }
+
+  function _exec(action) {
+    close();
+    try { (new Function(action))(); } catch(e) { console.warn('[CmdPalette]', e.message); }
+  }
+
+  function _select() {
+    const el = document.activeElement;
+    if (el?.classList.contains('cmd-item') && el.dataset.action) _exec(el.dataset.action);
+  }
+
+  // ── Render results ─────────────────────────────────────────────────────
+  function _render(q) {
+    const el = document.getElementById('cmd-results');
+    if (!el) return;
+    const ql = (q || '').toLowerCase().trim();
+
+    if (!ql) {
+      // Accesos rápidos cuando el campo está vacío
+      const shortcuts = [
+        { icon: 'add_shopping_cart', label: 'Nueva venta',         type: 'Acción',   action: "goPage('sales');openSaleModal()" },
+        { icon: 'add_card',          label: 'Nueva transacción',   type: 'Acción',   action: "goPage('txs');openTxModal()" },
+        { icon: 'inventory_2',       label: 'Inventario',          type: 'Página',   action: "goPage('inventory')" },
+        { icon: 'contacts',          label: 'Contactos',           type: 'Página',   action: "goPage('contacts')" },
+        { icon: 'dashboard',         label: 'Dashboard',           type: 'Página',   action: "goPage('dashboard')" },
+        { icon: 'currency_exchange', label: 'Tipo de cambio',      type: 'Página',   action: "goPage('txs');openFxModal()" },
+        { icon: 'bar_chart',         label: 'Rentabilidad',        type: 'Página',   action: "goPage('profitability')" },
+        { icon: 'account_balance',   label: 'Patrimonio',          type: 'Página',   action: "goPage('patrimonio')" },
+      ];
+      el.innerHTML = `<div class="cmd-section">ACCESOS RÁPIDOS</div>` +
+        shortcuts.map(s => _itemHtml(s)).join('');
+    } else {
+      const results = [];
+
+      // Productos
+      (S.products || [])
+        .filter(p => (p.name||'').toLowerCase().includes(ql) || (p.sku||'').toLowerCase().includes(ql))
+        .slice(0, 4)
+        .forEach(p => results.push({
+          icon: 'inventory_2',
+          label: escHtml(p.name),
+          sub: `SKU: ${escHtml(p.sku||'—')} · Stock: ${p.stock} u.`,
+          type: 'Producto',
+          action: `goPage('inventory');openProdModal('${p.id}')`
+        }));
+
+      // Contactos
+      (S.contacts || [])
+        .filter(c => (c.name||'').toLowerCase().includes(ql) || (c.phone||'').includes(ql))
+        .slice(0, 3)
+        .forEach(c => results.push({
+          icon: c.type === 'supplier' ? 'local_shipping' : 'person',
+          label: escHtml(c.name),
+          sub: escHtml(c.phone || c.email || c.type || ''),
+          type: 'Contacto',
+          action: `goPage('contacts');openConModal('${c.id}')`
+        }));
+
+      // Transacciones
+      (S.txs || [])
+        .filter(t => (t.desc||'').toLowerCase().includes(ql) || (t.cat||'').toLowerCase().includes(ql))
+        .slice(0, 4)
+        .forEach(t => {
+          const sign = t.type === 'income' ? '+' : '-';
+          const sym  = t.cur === '₲' ? '₲' : '$';
+          results.push({
+            icon: t.type === 'income' ? 'trending_up' : 'shopping_bag',
+            label: escHtml(t.desc || t.cat || '—'),
+            sub: `${sign}${sym}${Math.abs(t.amount||0).toLocaleString('es')} · ${t.date||''}`,
+            type: 'Movimiento',
+            action: `goPage('txs')`
+          });
+        });
+
+      if (!results.length) {
+        el.innerHTML = `<div class="cmd-empty">Sin resultados para "<strong>${escHtml(q)}</strong>"</div>`;
+      } else {
+        el.innerHTML = `<div class="cmd-section">RESULTADOS (${results.length})</div>` +
+          results.map(r => _itemHtml(r)).join('');
+      }
+    }
+
+    // Bind clicks
+    el.querySelectorAll('.cmd-item').forEach(item => {
+      item.addEventListener('click', () => { if (item.dataset.action) _exec(item.dataset.action); });
+    });
+  }
+
+  function _itemHtml(r) {
+    return `<div class="cmd-item" data-action="${escHtml(r.action)}" tabindex="-1">
+      <span class="material-symbols-rounded cmd-item-icon">${r.icon}</span>
+      <div class="cmd-item-info">
+        <span class="cmd-item-label">${r.label}</span>
+        ${r.sub ? `<span class="cmd-item-sub">${r.sub}</span>` : ''}
+      </div>
+      <span class="cmd-item-type">${r.type}</span>
+    </div>`;
+  }
+
+  // ── Global shortcut: Cmd+K / Ctrl+K ───────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      _open ? close() : open();
+    }
+  });
+
+  // Expose globally
+  window.openCmdPalette = open;
+  window.closeCmdPalette = close;
+})();
+
 // ── CONNECTION WARM-UP PING ─────────────────────────────────────────────────
 // Fires a single lightweight query (1 row) on first user interaction or
 // on tab becoming visible — "wakes up" the Supabase connection pool so the

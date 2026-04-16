@@ -117,6 +117,14 @@ let selPK='pro';
 function g(id){return document.getElementById(id)}
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+// ── Haptic feedback ─────────────────────────────────────────────────────────
+// vibrate(50)         → pulso corto (confirmación)
+// vibrate([30,30,30]) → triple pulso (error / advertencia)
+// No-op en escritorio o browsers que no soportan la API.
+function vibrate(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch(e) {}
+}
+
 // ══════════════════════════════════════════
 // SUPABASE CRUD FUNCTIONS
 // ══════════════════════════════════════════

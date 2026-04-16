@@ -247,6 +247,7 @@ async function saveStock(){
     });
     if(rpcErr||!rpcData?.ok){
       const avail=rpcData?.available??prev;
+      vibrate([30,30,30]); // Haptic: error
       toast(`❌ ${rpcErr?.message||`Sin stock suficiente (${avail} u. disponibles en BD)`}`,3500);
       return; // No continuar — DB no fue modificada
     }
@@ -269,6 +270,7 @@ async function saveStock(){
     if(typeof recomputeBalances==='function') recomputeBalances();
     if(accId && typeof _syncAccountBalance==='function') await _syncAccountBalance(accId);
   }
+  vibrate(50); // Haptic: confirmación de ajuste de stock
   toast(`◆ Stock actualizado: ${prev} → ${p.stock} u.`);
   lsave();renderAll();cm('stock-modal');
   } catch(err) { console.error('[saveStock]', err); toast('❌ Error inesperado al actualizar stock'); }
