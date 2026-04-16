@@ -1,6 +1,33 @@
 // CD & Co ERP — SALES
 // ====================================
 
+// ── SHOPIFY: Fire-and-forget post-sale stock push ─────────────────────────
+// Envía la rebaja de stock a Shopify de forma no bloqueante.
+// Solo se ejecuta si el producto tiene un SKU válido registrado.
+// No lanza ni muestra errores al usuario — se loguea silenciosamente.
+async function pushSkusToShopify(skuList) {
+  if (!SB_ON || !sb || !skuList.length) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) return;
+    const res = await fetch('/api/shopify_sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'syncStock', products: skuList }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.updated > 0) {
+      console.log(`[Shopify] Background sync: ${data.updated} SKU(s) actualizados`);
+    }
+  } catch (err) {
+    // Silencioso: el ERP ya procesó la venta, Shopify es best-effort
+    console.warn('[Shopify] Background sync failed (non-blocking):', err.message);
+  }
+}
+
 // ══════════════════════════════════════════
 // SALES
 // ══════════════════════════════════════════
@@ -317,6 +344,20 @@ async function saveSale(){
   vibrate(50); // Haptic: confirmación de venta
   toast(msg+' · Stock actualizado');
   lsave();renderAll();cm('sale-modal');populateSelects();
+
+  // ── Shopify: rebaja de stock post-venta (fire-and-forget, no bloqueante) ──
+  // Solo para ventas nuevas. Sincroniza el stock físico actualizado de cada
+  // producto vendido que tenga un SKU registrado en la tienda web.
+  if (!editIds.sale) {
+    const soldWithSku = items
+      .map(l => {
+        const p = S.products.find(x => x.id === l.prodId);
+        return p?.sku && p.sku !== '—' ? { sku: p.sku, qty: p.stock || 0 } : null;
+      })
+      .filter(Boolean);
+    if (soldWithSku.length) pushSkusToShopify(soldWithSku); // sin await — no bloquea la UI
+  }
+
   editIds.sale=null;
 }
 function openEditSaleModal(id) {

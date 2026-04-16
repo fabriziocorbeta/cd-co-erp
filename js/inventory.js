@@ -329,10 +329,85 @@ async function saveStock(){
   } catch(err) { console.error('[saveStock]', err); toast('❌ Error inesperado al actualizar stock'); }
 }
 
-// ── SHOPIFY SYNC (Phase 2) ──
-function syncShopify(){
-  toast('🔄 Sincronización con Shopify — Próximamente');
-  // Fase 2: Conectar con Shopify API real
+// ── SHOPIFY SYNC ──────────────────────────────────────────────────────────
+// Empuja el stock físico de todos los productos con SKU hacia Shopify.
+// Autenticado con el JWT de Supabase del usuario activo.
+async function syncShopify() {
+  const btn = g('btn-sync-shopify');
+  try {
+    const products = (S.products || [])
+      .filter(p => p.sku && p.sku !== '—')
+      .map(p => ({ sku: p.sku, qty: p.stock || 0 }));
+
+    if (!products.length) {
+      toast('⚠️ No hay productos con SKU para sincronizar con Shopify');
+      return;
+    }
+
+    // UI: loading state
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Sincronizando...'; }
+    toast(`🔄 Sincronizando ${products.length} producto(s) con Shopify...`);
+
+    // Obtener JWT de la sesión activa de Supabase
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Sesión expirada — volvé a iniciar sesión');
+
+    const res = await fetch('/api/shopify_sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'syncStock', products }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    // Resultado
+    const parts = [];
+    if (data.updated)  parts.push(`${data.updated} actualizados`);
+    if (data.skipped)  parts.push(`${data.skipped} sin SKU web`);
+    if (data.errors?.length) parts.push(`${data.errors.length} con error`);
+    toast(`✅ Shopify sync: ${parts.join(' · ')}`, 5000);
+
+    if (data.errors?.length) {
+      console.warn('[Shopify Sync] SKUs con error:', data.errors);
+    }
+  } catch (err) {
+    console.error('[Shopify Sync]', err);
+    toast(`❌ Shopify: ${err.message}`, 5000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync Shopify'; }
+  }
+}
+
+// ── SHOPIFY FETCH ORDERS ──────────────────────────────────────────────────
+// Trae órdenes web pagadas / sin procesar de las últimas N horas.
+// Retorna el array de órdenes o [] en caso de error.
+async function fetchShopifyOrders(hours = 24) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) return [];
+
+    const res = await fetch('/api/shopify_sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'fetchOrders', hours }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    console.log(`[Shopify Orders] ${data.count} órdenes (last ${hours}h)`);
+    return data.orders || [];
+  } catch (err) {
+    console.error('[Shopify Orders]', err);
+    return [];
+  }
 }
 
 // ── LANDED COST CALCULATOR ──
