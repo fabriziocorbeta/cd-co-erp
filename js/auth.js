@@ -203,10 +203,13 @@ async function loadAllUserData() {
   const qTimeout = ms => new Promise(res => setTimeout(() => res({data:[], error:{message:'timeout'}}), ms));
 
   // Helper: fetch one table with specific columns + timeout
-  const fetchTable = (t, ms) => Promise.race([
-    sb.from(t).select(TABLE_COLS[t] || '*').order('created_at', { ascending: false }),
-    qTimeout(ms)
-  ]);
+  // C-2: txs limitadas a 500 filas más recientes para evitar OOM en sesiones largas.
+  // El historial completo se carga bajo demanda via fetchMoreTxs(offset).
+  const fetchTable = (t, ms) => {
+    let q = sb.from(t).select(TABLE_COLS[t] || '*').order('created_at', { ascending: false });
+    if (t === 'txs') q = q.order('date', { ascending: false }).limit(500);
+    return Promise.race([q, qTimeout(ms)]);
+  };
 
   // Helper: apply fetch results to S and run goals column mapping
   const applyResults = (tables, results) => {
@@ -539,6 +542,39 @@ async function enterApp(name, plan) {
     if (typeof populateTxAccountSelect === 'function') populateTxAccountSelect();
     initFx();
     if (typeof applySavedTheme === 'function') applySavedTheme();
+  }
+}
+
+// ── C-2: Paginación de transacciones ─────────────────────────────────────────
+// Carga el siguiente bloque de 500 txs desde Supabase y lo fusiona con S.txs.
+// Llamar con offset = S.txs.length para obtener las siguientes 500.
+// El módulo de Movimientos muestra un botón "Cargar más" que invoca esto.
+async function fetchMoreTxs(offset) {
+  if (!SB_ON || !sb || !S.user?.id) return [];
+  const off = parseInt(offset) || 0;
+  try {
+    const { data, error } = await sb
+      .from('txs')
+      .select(TABLE_COLS.txs)
+      .eq('user_id', S.user.id)
+      .order('date', { ascending: false })
+      .range(off, off + 499); // 500 registros por página
+    if (error) { console.warn('[fetchMoreTxs]', error.message); return []; }
+    if (!data || !data.length) return []; // no hay más páginas
+    // Merge: evitar duplicados por id (el usuario puede haber agregado txs nuevas)
+    const existingIds = new Set(S.txs.map(t => t.id));
+    const newTxs = data.filter(t => !existingIds.has(t.id));
+    if (newTxs.length) {
+      S.txs = [...S.txs, ...newTxs];
+      S._txsLastFetch = Date.now();
+      lsave();
+      if (typeof renderTxs === 'function') renderTxs();
+      if (typeof recomputeBalances === 'function') recomputeBalances();
+    }
+    return data; // devuelve los datos crudos para que el caller sepa si hay más
+  } catch (e) {
+    console.warn('[fetchMoreTxs] exception:', e.message);
+    return [];
   }
 }
 

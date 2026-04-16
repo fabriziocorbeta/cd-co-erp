@@ -28,10 +28,20 @@ async function renderPageData(pg){
   if(pg==='dashboard')renderDashboard();
   else if(pg==='txs'){
     if(SB_ON && sb){
-      const {data, error} = await sb.from('txs')
-        .select('id,type,amount,cur,cat,date,desc,account_id,transferPairId')
-        .order('date', {ascending: false});
-      if(!error && data) S.txs = data;
+      // C-2: Guard de frescura — no re-fetch si S.txs fue cargado hace < 2 min.
+      // Evita un round-trip a Supabase en cada navegación a la pestaña Movimientos.
+      const TXS_MAX_AGE = 2 * 60 * 1000; // 2 minutos
+      const needsRefresh = !S.txs?.length || (Date.now() - (S._txsLastFetch || 0)) > TXS_MAX_AGE;
+      if (needsRefresh) {
+        const {data, error} = await sb.from('txs')
+          .select('id,type,amount,cur,cat,date,desc,account_id,transferPairId')
+          .order('date', {ascending: false})
+          .limit(500); // C-2: traer solo las últimas 500 txs
+        if (!error && data) {
+          S.txs = data;
+          S._txsLastFetch = Date.now(); // marcar timestamp para el guard
+        }
+      }
     }
     renderTxs();
   }

@@ -60,9 +60,14 @@ async function loadDashboardSummary() {
     return;
   }
 
-  // Sin caché o vencido — fetch
+  // Sin caché o vencido — fetch via dashboard_stats RPC (C-2: server-side aggregation)
+  // Pasamos FX.sell para que el servidor convierta USD→PYG con el tipo actual.
   try {
-    const { data, error } = await sb.rpc('get_dashboard_summary', { p_user_id: S.user?.id });
+    const fxRate = (typeof FX !== 'undefined' && FX.sell && FX.sell > 1000) ? FX.sell : 7500;
+    const { data, error } = await sb.rpc('dashboard_stats', {
+      p_user_id: S.user?.id,
+      p_fx_rate: fxRate
+    });
     if (error) {
       console.error('[Dashboard RPC] Error:', error.message);
       return;
@@ -71,7 +76,7 @@ async function loadDashboardSummary() {
       _dashboardSummaryCache = data;
       _saveDashboardSummary(data);
       renderDashboardSummary();
-      console.log('[Dashboard] Resumen cargado vía RPC');
+      console.log('[Dashboard] KPIs desde RPC server-side (C-2 ✓)');
     }
   } catch (err) {
     console.error('[Dashboard RPC] Exception:', err.message);
@@ -81,13 +86,17 @@ async function loadDashboardSummary() {
 async function _revalidateDashboardSummary() {
   if (!SB_ON || !sb) return;
   try {
-    const { data, error } = await sb.rpc('get_dashboard_summary', { p_user_id: S.user?.id });
+    const fxRate = (typeof FX !== 'undefined' && FX.sell && FX.sell > 1000) ? FX.sell : 7500;
+    const { data, error } = await sb.rpc('dashboard_stats', {
+      p_user_id: S.user?.id,
+      p_fx_rate: fxRate
+    });
     if (error) return;
     if (data && JSON.stringify(data) !== JSON.stringify(_dashboardSummaryCache)) {
       _dashboardSummaryCache = data;
       _saveDashboardSummary(data);
-      renderDashboardSummary(); // Actualizar UI si cambió
-      console.log('[Dashboard] Resumen actualizado en background');
+      renderDashboardSummary(); // Actualizar UI solo si los datos cambiaron
+      console.log('[Dashboard] KPIs revalidados en background (C-2 ✓)');
     }
   } catch (err) {}
 }
@@ -131,12 +140,21 @@ function renderDashboardSummary() {
 // DASHBOARD RENDER (en dos fases)
 // ══════════════════════════════════════════
 function renderDashboard() {
-  // Fase 1: stats desde S (siempre disponible — cache o red)
-  if (!_dashboardSummaryCache) {
-    renderEtherealStats();
+  // Fase 0: KPI via RPC server-side (C-2 — elimina forEach masivos sobre S.txs)
+  // Dispara en background — cuando llega actualiza KPIs via renderDashboardSummary().
+  // No bloquea el render: la Fase 1 muestra datos locales mientras tanto.
+  if (SB_ON && sb && S.user?.id) {
+    loadDashboardSummary();
   }
 
-  // Fase 2: gráficos y listas — solo si hay txs
+  // Fase 1: stats locales como fallback inmediato (SB_OFF, o cache aún ausente)
+  if (_dashboardSummaryCache) {
+    renderDashboardSummary(); // RPC cache disponible — source of truth
+  } else {
+    renderEtherealStats();    // Cálculo local sobre S.txs (500 filas paginadas)
+  }
+
+  // Fase 2: gráficos y listas — operan sobre S.txs (paginado, últimas 500)
   if (S.txs && S.txs.length) {
     renderEtherealCharts();
     renderEtherealRecentTxs();
