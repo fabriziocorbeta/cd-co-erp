@@ -471,18 +471,29 @@
             <button class="btn btn-o" style="white-space:nowrap" onclick="exportInventoryCSV()">📥 Exportar CSV</button>
           </div>
           <!-- Panel resumen de valor de inventario -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px">
+            <!-- KPI: Total Productos -->
             <div class="panel pp" style="padding:14px">
               <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Total Productos</div>
               <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--cr)" id="inv-total-cnt">0 productos</div>
             </div>
+            <!-- KPI: Valor Inventario Costo — dual currency -->
             <div class="panel pp" style="padding:14px">
-              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Valor Inventario (Costo ₲)</div>
-              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--g2)" id="inv-total-pyg">₲0</div>
+              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Valor Inventario (Costo)</div>
+              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--g2);font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1" id="inv-total-pyg">₲0</div>
+              <div style="font-family:var(--fm);font-size:.72rem;color:var(--mu);margin-top:3px;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1" id="inv-cost-usd">$0.00</div>
             </div>
+            <!-- KPI: Valor a Precio Venta — dual currency -->
             <div class="panel pp" style="padding:14px">
-              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Valor a Precio Venta ($)</div>
-              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--pos)" id="inv-total-usd">$0.00</div>
+              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Valor a Precio Venta</div>
+              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--pos);font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1" id="inv-sell-pyg">₲0</div>
+              <div style="font-family:var(--fm);font-size:.72rem;color:var(--mu);margin-top:3px;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1" id="inv-total-usd">$0.00</div>
+            </div>
+            <!-- KPI: TDC Global -->
+            <div class="panel pp" style="padding:14px">
+              <div style="font-size:.65rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">💱 TDC Utilizado</div>
+              <div style="font-family:var(--fm);font-weight:600;font-size:1.1rem;color:var(--g3);font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1" id="inv-tdc-val">₲ —</div>
+              <div style="font-size:.62rem;color:var(--mu);margin-top:3px" id="inv-tdc-source">Cambios Chaco</div>
             </div>
           </div>
           <div class="card-grid" id="inv-grid"></div>

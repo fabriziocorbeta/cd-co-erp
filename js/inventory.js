@@ -46,20 +46,42 @@ function renderInventory(){
   // ── Actualizar panel resumen de valor total ──
   const fxS = (FX && FX.sell) ? FX.sell : 7200;
   const allProds = S.products || [];
-  const totalValPYG = allProds.reduce((s,p)=>{
+
+  // Costo total en ₲ (todos los productos: si están en $ se convierten con fxS)
+  const totalCostPYG = allProds.reduce((s,p)=>{
     const bp = parseFloat(p.buyPrice)||0, sk = parseInt(p.stock)||0;
     return s + (p.cur==='$' ? bp*sk*fxS : bp*sk);
   },0);
-  const totalValUSD = allProds.reduce((s,p)=>{
+  // Costo total en $ (convertido desde ₲)
+  const totalCostUSD = fxS > 0 ? totalCostPYG / fxS : 0;
+
+  // Precio de venta total en ₲
+  const totalSellPYG = allProds.reduce((s,p)=>{
     const sp = parseFloat(p.sellPrice)||0, sk = parseInt(p.stock)||0;
-    return s + (p.cur==='$' ? sp*sk : sp*sk/fxS);
+    return s + (p.cur==='$' ? sp*sk*fxS : sp*sk);
   },0);
-  const elTotPYG = g('inv-total-pyg');
-  const elTotUSD = g('inv-total-usd');
-  const elTotCnt = g('inv-total-cnt');
-  if(elTotPYG) elTotPYG.textContent = fmt(totalValPYG,'₲');
-  if(elTotUSD) elTotUSD.textContent = fmt(totalValUSD,'$');
-  if(elTotCnt) elTotCnt.textContent = allProds.length + ' productos';
+  // Precio de venta total en $ (convertido desde ₲)
+  const totalSellUSD = fxS > 0 ? totalSellPYG / fxS : 0;
+
+  // Mantener alias para compatibilidad con código externo
+  const totalValPYG = totalCostPYG;
+  const totalValUSD = totalSellUSD;
+
+  const elTotPYG    = g('inv-total-pyg');
+  const elCostUSD   = g('inv-cost-usd');
+  const elSellPYG   = g('inv-sell-pyg');
+  const elTotUSD    = g('inv-total-usd');
+  const elTotCnt    = g('inv-total-cnt');
+  const elTdcVal    = g('inv-tdc-val');
+  const elTdcSource = g('inv-tdc-source');
+
+  if(elTotPYG)    elTotPYG.textContent    = fmt(totalCostPYG, '₲');
+  if(elCostUSD)   elCostUSD.textContent   = fmt(totalCostUSD, '$');
+  if(elSellPYG)   elSellPYG.textContent   = fmt(totalSellPYG, '₲');
+  if(elTotUSD)    elTotUSD.textContent    = fmt(totalSellUSD, '$');
+  if(elTotCnt)    elTotCnt.textContent    = allProds.length + ' productos';
+  if(elTdcVal)    elTdcVal.textContent    = '₲ ' + (fxS).toLocaleString('es-PY', {maximumFractionDigits:0});
+  if(elTdcSource) elTdcSource.textContent = (FX && FX.source) ? FX.source : 'Cambios Chaco';
 
   if(!prods.length){grid.innerHTML='<div class="tbl-empty" style="grid-column:1/-1;padding:32px">Sin productos. Agregá el primero.</div>';return}
   grid.innerHTML=prods.map(p=>{
