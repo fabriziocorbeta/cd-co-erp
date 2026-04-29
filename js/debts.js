@@ -66,40 +66,64 @@ function getCardUsed(cardId) {
   return used > 0 ? used : 0;
 }
 
-// ── Edición inline de "Monto Utilizado" en la tabla de tarjetas ──────────────
-async function onCardUsedBlur(el) {
-  const cardId = el.dataset.cardId;
-  const cur    = el.dataset.cardCur;
-  el.style.background = '';
+// ── Input-swap para editar "Monto Utilizado" (doble clic) ────────────────────
+function cardUsedStartEdit(span) {
+  if (span.querySelector('input')) return; // ya en modo edición
 
-  // Parsear: limpiar todo lo que no sea dígito ni punto/coma decimal
-  const raw = el.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
-  const newDisplayed = parseFloat(raw) || 0;
+  const cardId = span.dataset.cardId;
+  const cur    = span.dataset.cardCur;
+  const rawVal = parseFloat(span.dataset.raw) || 0;
 
-  if (newDisplayed < 0) { el.textContent = fmt(parseFloat(el.dataset.raw)||0, cur); return; }
+  // Crear input real
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.min  = '0';
+  inp.step = cur === '₲' ? '1000' : '0.01';
+  inp.value = rawVal;
+  inp.style.cssText = [
+    'width:110px', 'padding:3px 6px', 'border:1.5px solid var(--g2,#c9960c)',
+    'border-radius:4px', 'background:#1a1a1a', 'color:#fff',
+    'font-family:var(--fm,"DM Mono",monospace)', 'font-size:.82rem',
+    'outline:none', 'position:relative', 'z-index:10000',
+    '-webkit-appearance:none', 'appearance:none',
+    'box-shadow:0 0 0 3px rgba(201,150,12,.25)'
+  ].join(';');
 
+  // Reemplazar contenido del span
+  span.textContent = '';
+  span.appendChild(inp);
+  inp.focus();
+  inp.select();
+
+  const commit = () => {
+    const newDisplayed = Math.max(0, parseFloat(inp.value) || 0);
+    span.textContent = fmt(newDisplayed, cur);
+    span.dataset.raw = String(newDisplayed);
+    cardUsedSave(cardId, cur, newDisplayed);
+  };
+
+  inp.addEventListener('blur',  commit, { once: true });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
+    if (e.key === 'Escape') { span.textContent = fmt(rawVal, cur); }
+  });
+}
+
+async function cardUsedSave(cardId, cur, newDisplayed) {
   const card = (S.cards || []).find(c => c.id === cardId);
   if (!card) return;
 
-  // txSum = suma de transacciones ligadas a esta tarjeta (mismo cálculo que getCardUsed)
   const txSum = (S.txs || []).reduce((acc, tx) => {
     if ((tx.account_id || tx.accountId) === cardId) acc += parseFloat(tx.amount) || 0;
     return acc;
   }, 0);
 
-  // c.used tal que getCardUsed() devuelva exactamente newDisplayed
-  const newCUsed = newDisplayed + txSum;
-
-  // Actualizar estado local
+  const newCUsed = newDisplayed + txSum; // c.used tal que getCardUsed() = newDisplayed
   card.used = newCUsed;
-  el.dataset.raw = String(newDisplayed);
-  el.textContent = fmt(newDisplayed, cur);
 
-  // Persistir en localStorage + SWR
   if (typeof lsave === 'function') lsave();
   if (typeof swrSave === 'function') swrSave();
 
-  // Supabase UPDATE
   if (SB_ON && sb && S.user?.id) {
     const { error } = await sb.from('cards')
       .update({ used: newCUsed })
@@ -110,10 +134,9 @@ async function onCardUsedBlur(el) {
       toast('⚠️ Error al guardar: ' + error.message);
       return;
     }
-    console.log('[Cards] Monto utilizado guardado en Supabase:', newCUsed);
+    console.log('[Cards] Monto guardado en Supabase:', newCUsed, '→ display:', newDisplayed);
   }
 
-  // Refrescar gráfico de uso por tarjeta
   if (typeof renderCardsDashboard === 'function') renderCardsDashboard();
 }
 
@@ -242,13 +265,10 @@ function renderCardsDashboard() {
        <td><strong style="color:${accent}">${c.brand||c.name}</strong><div style="font-size:.6rem;color:var(--m3);margin-top:2px">**${c.last4 || '----'}</div></td>
        <td class="mono" style="color:var(--cr)">
          <span
-           contenteditable="true" spellcheck="false"
            data-card-id="${c.id}" data-card-cur="${escHtml(cur)}" data-raw="${used}"
-           style="cursor:text;outline:none;border-radius:3px;padding:2px 4px;display:inline-block;min-width:60px;transition:background .15s;pointer-events:auto !important;user-select:text !important;-webkit-user-select:text !important;position:relative;z-index:999"
-           onfocus="this.textContent=this.dataset.raw;this.style.background='rgba(201,150,12,.12)';document.execCommand('selectAll',false,null)"
-           onblur="onCardUsedBlur(this)"
-           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
-           onclick="this.focus()"
+           style="cursor:pointer;border-radius:3px;padding:2px 4px;display:inline-block;min-width:60px;transition:background .15s"
+           title="Doble clic para editar"
+           ondblclick="cardUsedStartEdit(this)"
          >${fmt(used, cur)}</span>
        </td>
        <td class="mono" style="color:var(--mu)">El ${c.cutDay}</td>
