@@ -80,9 +80,10 @@ function renderSales(){
 
 function openSaleModal(id){
   editIds.sale=id||null;saleLines=[];
+  populateSelects(); // re-poblar con S.contacts actual (puede haber cargado desde Supabase después del init)
   const s=id?S.sales.find(x=>x.id===id):null;
   g('sale-mttl').textContent=id?'Editar venta':'Nueva venta';
-  g('sl-client').value=s?.clientId||'';g('sl-date').value=s?.date||today();
+  g('sl-client').value=s?.clientId||s?.client_id||'';g('sl-date').value=s?.date||today();
   g('sl-cur').value=s?.cur||'$';g('sl-status').value=s?.status||'paid';
   g('sl-notes').value=s?.notes||'';
   if(g('sl-condicion'))g('sl-condicion').value=s?.condicion||'contado';
@@ -373,6 +374,7 @@ function openEditSaleModal(id) {
   const sale = S.sales.find(s => s.id === id);
   if (!sale) return;
 
+  populateSelects(); // re-poblar antes de asignar el valor del cliente
   editIds.sale = id;
   saleLines = safeItems(sale.items).map(i => ({...i}));
   // Store original items for stock recalculation
