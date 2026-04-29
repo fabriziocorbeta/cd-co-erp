@@ -78,9 +78,21 @@ function renderSales(){
   }).join('');
 }
 
-function openSaleModal(id){
+async function _ensureContacts(){
+  console.log('[sales] Contactos en S.contacts:', S.contacts.length, S.contacts);
+  if(S.contacts.length>0) return;
+  if(!SB_ON||!sb) return;
+  try{
+    const{data,error}=await sb.from('contacts').select('id,name,type,phone,email,ruc,notes');
+    if(!error&&data){S.contacts=data;console.log('[sales] Contactos cargados desde Supabase:',data.length,data);}
+    else console.warn('[sales] Error cargando contactos:',error?.message);
+  }catch(e){console.warn('[sales] _ensureContacts exception:',e.message);}
+}
+
+async function openSaleModal(id){
   editIds.sale=id||null;saleLines=[];
-  populateSelects(); // re-poblar con S.contacts actual (puede haber cargado desde Supabase después del init)
+  await _ensureContacts();
+  populateSelects();
   const s=id?S.sales.find(x=>x.id===id):null;
   g('sale-mttl').textContent=id?'Editar venta':'Nueva venta';
   g('sl-client').value=s?.clientId||s?.client_id||'';g('sl-date').value=s?.date||today();
@@ -370,18 +382,19 @@ async function saveSale(){
 
   editIds.sale=null;
 }
-function openEditSaleModal(id) {
+async function openEditSaleModal(id) {
   const sale = S.sales.find(s => s.id === id);
   if (!sale) return;
 
-  populateSelects(); // re-poblar antes de asignar el valor del cliente
+  await _ensureContacts();
+  populateSelects();
   editIds.sale = id;
   saleLines = safeItems(sale.items).map(i => ({...i}));
   // Store original items for stock recalculation
   originalSaleItems = safeItems(sale.items).map(i => ({...i}));
 
   g('sale-mttl').textContent = 'Editar venta';
-  g('sl-client').value = sale.clientId || '';
+  g('sl-client').value = sale.clientId || sale.client_id || '';
   g('sl-date').value = sale.date || today();
   g('sl-cur').value = sale.cur || '$';
   g('sl-status').value = sale.status || 'paid';
