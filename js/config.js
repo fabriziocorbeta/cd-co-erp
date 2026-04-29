@@ -116,6 +116,9 @@ let selPK='pro';
 // Helpers
 function g(id){return document.getElementById(id)}
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Valida formato UUID v4 estricto. Supabase rechaza cualquier otro string en columnas uuid.
+// Necesario para ignorar IDs cortos (_sqkdx8k) generados pre-Supabase y guardados en localStorage.
+function isUUID(s){return typeof s==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);}
 
 // ── Haptic feedback ─────────────────────────────────────────────────────────
 // vibrate(50)         → pulso corto (confirmación)
