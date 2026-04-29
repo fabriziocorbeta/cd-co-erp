@@ -66,6 +66,57 @@ function getCardUsed(cardId) {
   return used > 0 ? used : 0;
 }
 
+// ── Edición inline de "Monto Utilizado" en la tabla de tarjetas ──────────────
+async function onCardUsedBlur(el) {
+  const cardId = el.dataset.cardId;
+  const cur    = el.dataset.cardCur;
+  el.style.background = '';
+
+  // Parsear: limpiar todo lo que no sea dígito ni punto/coma decimal
+  const raw = el.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+  const newDisplayed = parseFloat(raw) || 0;
+
+  if (newDisplayed < 0) { el.textContent = fmt(parseFloat(el.dataset.raw)||0, cur); return; }
+
+  const card = (S.cards || []).find(c => c.id === cardId);
+  if (!card) return;
+
+  // txSum = suma de transacciones ligadas a esta tarjeta (mismo cálculo que getCardUsed)
+  const txSum = (S.txs || []).reduce((acc, tx) => {
+    if ((tx.account_id || tx.accountId) === cardId) acc += parseFloat(tx.amount) || 0;
+    return acc;
+  }, 0);
+
+  // c.used tal que getCardUsed() devuelva exactamente newDisplayed
+  const newCUsed = newDisplayed + txSum;
+
+  // Actualizar estado local
+  card.used = newCUsed;
+  el.dataset.raw = String(newDisplayed);
+  el.textContent = fmt(newDisplayed, cur);
+
+  // Persistir en localStorage + SWR
+  if (typeof lsave === 'function') lsave();
+  if (typeof swrSave === 'function') swrSave();
+
+  // Supabase UPDATE
+  if (SB_ON && sb && S.user?.id) {
+    const { error } = await sb.from('cards')
+      .update({ used: newCUsed })
+      .eq('id', cardId)
+      .eq('user_id', S.user.id);
+    if (error) {
+      console.error('[Cards] UPDATE used error:', error.message);
+      toast('⚠️ Error al guardar: ' + error.message);
+      return;
+    }
+    console.log('[Cards] Monto utilizado guardado en Supabase:', newCUsed);
+  }
+
+  // Refrescar gráfico de uso por tarjeta
+  if (typeof renderCardsDashboard === 'function') renderCardsDashboard();
+}
+
 // ══════════════════════════════════════════
 // RENDER PAGE
 // ══════════════════════════════════════════
@@ -189,7 +240,16 @@ function renderCardsDashboard() {
     
     html += `<tr>
        <td><strong style="color:${accent}">${c.brand||c.name}</strong><div style="font-size:.6rem;color:var(--m3);margin-top:2px">**${c.last4 || '----'}</div></td>
-       <td class="mono" style="color:var(--cr)">${fmt(used, cur)}</td>
+       <td class="mono" style="color:var(--cr)">
+         <span
+           contenteditable="true" spellcheck="false"
+           data-card-id="${c.id}" data-card-cur="${escHtml(cur)}" data-raw="${used}"
+           style="cursor:text;outline:none;border-radius:3px;padding:2px 4px;display:inline-block;min-width:60px;transition:background .15s"
+           onfocus="this.textContent=this.dataset.raw;this.style.background='rgba(201,150,12,.12)';document.execCommand('selectAll',false,null)"
+           onblur="onCardUsedBlur(this)"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
+         >${fmt(used, cur)}</span>
+       </td>
        <td class="mono" style="color:var(--mu)">El ${c.cutDay}</td>
        <td class="mono" ${urgentC ? 'style="color:#d47a7a"' : 'style="color:var(--pos)"'}>${daysC}d</td>
        <td><button class="btn btn-s" style="font-size:.6rem;padding:4px 9px" onclick="openPayCardModal('${c.id}')">💳 Pagar</button></td>
