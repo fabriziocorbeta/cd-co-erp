@@ -162,6 +162,7 @@ function renderDashboard() {
 
   renderEtherealCardsStock();
   renderEtherealSubs();
+  renderSalesMetrics(); // KPI ventas del mes + gráfico tendencia 7 días
   if (typeof renderBudgetsSummary === 'function') renderBudgetsSummary();
   if (typeof renderGoalsSummary === 'function') renderGoalsSummary();
 }
@@ -490,6 +491,98 @@ function renderEtherealSubs() {
       <div style="font-size:.8rem;font-weight:600;color:var(--cr)">-${fmt(s.amount, s.cur)}</div>
     </div>
   `).join('');
+}
+
+// ══════════════════════════════════════════
+// VENTAS DEL MES — KPI + Tendencia 7 días
+// Fuente de datos: S.sales (cargado desde Supabase via loadAllUserData)
+// ══════════════════════════════════════════
+let dSalesTrendChart = null;
+
+function renderSalesMetrics() {
+  const tm = typeof thisMo === 'function' ? thisMo() : new Date().toISOString().slice(0,7);
+  const fxRate = (typeof FX !== 'undefined' && FX.sell && FX.sell > 1000) ? FX.sell : 7500;
+
+  // Ventas del mes actual
+  const monthSales = (S.sales || []).filter(s => s.date && s.date.slice(0,7) === tm);
+
+  // Sumar totales unificando monedas a ₲
+  let totalGs = 0;
+  monthSales.forEach(s => {
+    const amt = parseFloat(s.total) || 0;
+    totalGs += (s.cur === '$' || s.cur === 'USD') ? amt * fxRate : amt;
+  });
+
+  const count = monthSales.length;
+
+  // Renderizar KPI card
+  const elTotal = g('d-sales-month-total');
+  const elCount = g('d-sales-month-count');
+  if (elTotal) elTotal.textContent = fmt(totalGs, '₲');
+  if (elCount) elCount.textContent = count === 1 ? '1 venta' : `${count} ventas`;
+
+  // Gráfico de tendencia 7 días
+  renderSalesTrendChart();
+}
+
+function renderSalesTrendChart() {
+  const ctxEl = document.getElementById('d-sales-trend-chart');
+  if (!ctxEl || !window.Chart) return;
+
+  const fxRate = (typeof FX !== 'undefined' && FX.sell && FX.sell > 1000) ? FX.sell : 7500;
+  const style = getComputedStyle(document.body);
+  const colorG  = style.getPropertyValue('--g2').trim()  || '#c9960c';
+  const colorMU = style.getPropertyValue('--mu').trim()  || '#8a8278';
+
+  // Construir array de los últimos 7 días
+  const labels = [];
+  const data   = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0,10);
+    labels.push(d.toLocaleDateString('es', { weekday: 'short', day: 'numeric' }));
+
+    // Sumar ventas de ese día en ₲
+    const dayTotal = (S.sales || [])
+      .filter(s => s.date === dateStr)
+      .reduce((sum, s) => {
+        const amt = parseFloat(s.total) || 0;
+        return sum + ((s.cur === '$' || s.cur === 'USD') ? amt * fxRate : amt);
+      }, 0);
+    data.push(dayTotal);
+  }
+
+  // Destruir instancia anterior si existe
+  if (dSalesTrendChart) { dSalesTrendChart.destroy(); dSalesTrendChart = null; }
+  const orphan = Chart.getChart(ctxEl); if (orphan) orphan.destroy();
+
+  dSalesTrendChart = new Chart(ctxEl.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Ventas (₲)',
+        data,
+        borderColor: colorG,
+        backgroundColor: 'rgba(201,150,12,0.12)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: colorG,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: colorMU, font: { size: 10 } } },
+        y: { display: false }
+      }
+    }
+  });
 }
 
 function renderEtherealStockAlerts() {

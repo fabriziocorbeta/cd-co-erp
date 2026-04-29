@@ -360,6 +360,11 @@
                        <div class="sens" style="font-size:1.6rem;font-weight:700;color:var(--cr)" id="d-wk-exp">₲0.00</div>
                        <div style="margin-top:8px" id="d-wk-exp-var"></div>
                     </div>
+                    <div class="panel pp glass-card" style="padding:24px;flex:1;display:flex;flex-direction:column;justify-content:center;min-height:90px">
+                       <div style="font-size:.75rem;color:var(--mu);margin-bottom:6px">Ventas (Mes)</div>
+                       <div class="sens" style="font-size:1.6rem;font-weight:700;color:var(--g2)" id="d-sales-month-total">₲0.00</div>
+                       <div style="margin-top:6px;font-size:.65rem;color:var(--mu)" id="d-sales-month-count">0 ventas</div>
+                    </div>
                  </div>
               </div>
 
@@ -373,6 +378,15 @@
                     </div>
                  </div>
                  <div class="sens" style="position:relative;width:100%;height:180px"><canvas id="d-revenue-chart"></canvas></div>
+              </div>
+
+              <!-- Tendencia de Ventas (7 días) -->
+              <div class="panel pp glass-card" style="padding:16px;margin-top:16px">
+                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <div class="sh-t" style="margin:0">Tendencia de Ventas — Últimos 7 días</div>
+                    <button class="btn btn-o" style="padding:4px 10px;font-size:.65rem" onclick="goPage('sales')">Ver ventas</button>
+                 </div>
+                 <div class="sens" style="position:relative;width:100%;height:140px"><canvas id="d-sales-trend-chart"></canvas></div>
               </div>
 
               <!-- Expense Split & Recent -->
