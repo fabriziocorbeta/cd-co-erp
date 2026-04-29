@@ -244,10 +244,11 @@ function renderCardsDashboard() {
          <span
            contenteditable="true" spellcheck="false"
            data-card-id="${c.id}" data-card-cur="${escHtml(cur)}" data-raw="${used}"
-           style="cursor:text;outline:none;border-radius:3px;padding:2px 4px;display:inline-block;min-width:60px;transition:background .15s"
+           style="cursor:text;outline:none;border-radius:3px;padding:2px 4px;display:inline-block;min-width:60px;transition:background .15s;pointer-events:auto !important;user-select:text !important;-webkit-user-select:text !important;position:relative;z-index:999"
            onfocus="this.textContent=this.dataset.raw;this.style.background='rgba(201,150,12,.12)';document.execCommand('selectAll',false,null)"
            onblur="onCardUsedBlur(this)"
            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
+           onclick="this.focus()"
          >${fmt(used, cur)}</span>
        </td>
        <td class="mono" style="color:var(--mu)">El ${c.cutDay}</td>
