@@ -69,8 +69,8 @@ BEGIN
   FROM txs
   WHERE user_id = p_user_id
     AND type    = 'income'
-    AND to_char(date, 'YYYY-MM') = v_curr_month
-    AND (desc IS NULL OR desc NOT ILIKE '%ajuste%');
+    AND to_char(date::date, 'YYYY-MM') = v_curr_month
+    AND ("desc" IS NULL OR "desc" NOT ILIKE '%ajuste%');
 
   -- ── Gastos del mes actual ────────────────────────────────────────────────
   SELECT COALESCE(SUM(
@@ -83,8 +83,8 @@ BEGIN
   FROM txs
   WHERE user_id = p_user_id
     AND type    = 'expense'
-    AND to_char(date, 'YYYY-MM') = v_curr_month
-    AND (desc IS NULL OR desc NOT ILIKE '%ajuste%');
+    AND to_char(date::date, 'YYYY-MM') = v_curr_month
+    AND ("desc" IS NULL OR "desc" NOT ILIKE '%ajuste%');
 
   -- ── Ingresos del mes anterior (para variación %) ─────────────────────────
   SELECT COALESCE(SUM(
@@ -98,7 +98,7 @@ BEGIN
   WHERE user_id = p_user_id
     AND type    = 'income'
     AND to_char(date, 'YYYY-MM') = v_prev_month
-    AND (desc IS NULL OR desc NOT ILIKE '%ajuste%');
+    AND ("desc" IS NULL OR "desc" NOT ILIKE '%ajuste%');
 
   -- ── Gastos del mes anterior ──────────────────────────────────────────────
   SELECT COALESCE(SUM(
@@ -112,7 +112,7 @@ BEGIN
   WHERE user_id = p_user_id
     AND type    = 'expense'
     AND to_char(date, 'YYYY-MM') = v_prev_month
-    AND (desc IS NULL OR desc NOT ILIKE '%ajuste%');
+    AND ("desc" IS NULL OR "desc" NOT ILIKE '%ajuste%');
 
   RETURN jsonb_build_object(
     'patrimonio_neto',   v_patrimonio,

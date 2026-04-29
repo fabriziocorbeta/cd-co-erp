@@ -61,7 +61,8 @@ function renderSales(){
         ${s.method ? `<div style="font-size:9px;color:var(--mu);margin-top:4px;white-space:nowrap">${s.method}</div>` : ''}
       </td>
       <td><div class="actions">
-        <button class="btn btn-pur" style="padding:4px 8px;font-size:.62rem" onclick="viewInvoice('${s.id}')">🧾</button>
+        <button class="btn btn-pur" style="padding:4px 8px;font-size:.62rem" onclick="viewInvoice('${s.id}')" title="Ver factura">🧾</button>
+        <button class="btn btn-ship" style="padding:4px 8px;font-size:.62rem" onclick="viewShippingLabel('${s.id}')" title="Imprimir etiqueta de envío">📦</button>
         <button class="btn btn-o" style="padding:4px 8px;font-size:.62rem;border-color:var(--g2);color:var(--g2)" onclick="openEditSaleModal('${s.id}')">✏</button>
         <button class="btn btn-danger" style="padding:4px 8px;font-size:.62rem" onclick="delSale('${s.id}')">✕</button>
       </div></td>

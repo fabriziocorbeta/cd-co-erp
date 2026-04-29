@@ -64,3 +64,5 @@ backups/*.json
 secrets.json
 service-account.json
 google-credentials.json
+# Added by code-review-graph
+.code-review-graph/

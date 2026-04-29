@@ -4,11 +4,15 @@
 // Auth: Supabase JWT (Authorization: Bearer <token>)
 //       Mismo patrón que /api/business.js y /api/goals.js
 //
-// Env vars requeridas (configurar en Vercel Dashboard → Settings → Env Variables):
+// Shopify Auth: Client Credentials Grant (Dev Dashboard / Partner apps)
+//   Se obtiene un token temporal por invocación via POST a /admin/oauth/access_token.
+//
+// Env vars requeridas (Vercel Dashboard → Settings → Environment Variables):
 //   SUPABASE_URL              — URL del proyecto Supabase
-//   SUPABASE_SERVICE_ROLE_KEY — Service Role Key (solo en servidor, nunca en frontend)
+//   SUPABASE_SERVICE_ROLE_KEY — Service Role Key (solo servidor)
 //   SHOPIFY_STORE_DOMAIN      — ej. mi-tienda.myshopify.com
-//   SHOPIFY_ACCESS_TOKEN      — Admin API token (Custom App → API credentials)
+//   SHOPIFY_CLIENT_ID         — Client ID del Dev Dashboard (shpss_...)
+//   SHOPIFY_CLIENT_SECRET     — Client Secret del Dev Dashboard
 //
 // Acciones disponibles (POST body: { action, ...payload }):
 //   syncStock   — Sincroniza inventario físico de N productos hacia Shopify (batch)
@@ -17,6 +21,26 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SHOPIFY_API_VERSION = '2024-10';
+
+// ── Obtener token temporal de Shopify via Client Credentials Grant ────────────
+async function getShopifyToken(domain, clientId, clientSecret) {
+  const res = await fetch(`https://${domain}/admin/oauth/access_token`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      client_id:     clientId,
+      client_secret: clientSecret,
+      grant_type:    'client_credentials',
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Shopify OAuth ${res.status}: ${text.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  if (!data.access_token) throw new Error('Shopify OAuth: respuesta sin access_token');
+  return data.access_token;
+}
 
 export default async function handler(req, res) {
   // ── CORS ──────────────────────────────────────────────────────────────────
@@ -35,18 +59,19 @@ export default async function handler(req, res) {
   }
   const jwt = auth.split(' ')[1];
 
-  const SB_URL         = process.env.SUPABASE_URL;
-  const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN;
-  const SHOPIFY_TOKEN  = process.env.SHOPIFY_ACCESS_TOKEN;
+  const SB_URL           = process.env.SUPABASE_URL;
+  const SB_SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const SHOPIFY_DOMAIN   = process.env.SHOPIFY_STORE_DOMAIN;
+  const SHOPIFY_CLIENT_ID     = process.env.SHOPIFY_CLIENT_ID;
+  const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET;
 
   if (!SB_URL || !SB_SERVICE_KEY) {
     console.error('[ShopifySync] Faltan vars de Supabase');
     return res.status(500).json({ error: 'Configuración de Supabase incompleta' });
   }
-  if (!SHOPIFY_DOMAIN || !SHOPIFY_TOKEN) {
+  if (!SHOPIFY_DOMAIN || !SHOPIFY_CLIENT_ID || !SHOPIFY_CLIENT_SECRET) {
     return res.status(500).json({
-      error: 'Shopify no configurado — agrega SHOPIFY_STORE_DOMAIN y SHOPIFY_ACCESS_TOKEN en Vercel → Settings → Environment Variables',
+      error: 'Shopify no configurado — agrega SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID y SHOPIFY_CLIENT_SECRET en Vercel → Settings → Environment Variables',
     });
   }
 
@@ -66,18 +91,24 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Error interno de autenticación' });
   }
 
+  // ── Obtener token temporal de Shopify (Client Credentials) ──────────────
+  let shopifyToken;
+  try {
+    shopifyToken = await getShopifyToken(SHOPIFY_DOMAIN, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET);
+    console.log('[ShopifySync] Token Shopify obtenido correctamente');
+  } catch (e) {
+    console.error('[ShopifySync] Error obteniendo token Shopify:', e.message);
+    return res.status(502).json({ error: `No se pudo autenticar con Shopify: ${e.message}` });
+  }
+
   // ── Shopify helpers ───────────────────────────────────────────────────────
   const shopifyBase = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}`;
 
-  /**
-   * shopifyFetch — wrapper autenticado para la Admin REST API de Shopify.
-   * Lanza error si el status HTTP no es 2xx.
-   */
   const shopifyFetch = async (path, opts = {}) => {
     const r = await fetch(`${shopifyBase}${path}`, {
       ...opts,
       headers: {
-        'X-Shopify-Access-Token': SHOPIFY_TOKEN,
+        'X-Shopify-Access-Token': shopifyToken,
         'Content-Type': 'application/json',
         ...(opts.headers || {}),
       },
