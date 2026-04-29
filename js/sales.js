@@ -250,7 +250,12 @@ async function _saveSaleImpl(){
   if(editIds.sale){
     // EDIT MODE: apply stock differences only, update sale, sync to Supabase
     const idx=S.sales.findIndex(s=>s.id===editIds.sale);
-    const updatedSale={...S.sales[idx],items,total,cur,date,clientId,status,notes,condicion,nroFactura,method};
+    // Unify under client_id (snake_case) — drop legacy clientId so lookup always hits client_id
+    const resolvedClientId=isUUID(clientId)?clientId:null;
+    const updatedSale={...S.sales[idx],items,total,cur,date,
+      client_id:resolvedClientId,  // source of truth for rendering + shipping
+      clientId:resolvedClientId,   // keep in sync (legacy field used by some renderers)
+      status,notes,condicion,nroFactura,method};
     S.sales[idx]=updatedSale;
 
     // Apply stock differences (not full restore + re-deduct)
@@ -296,7 +301,11 @@ async function _saveSaleImpl(){
   } else {
     // NEW SALE MODE
     const saleId=uid();
-    const newSale={id:saleId,num:num||S.sales.length+1,items,total,cur,date,client_id:clientId||null,clientId,status,notes,condicion,nroFactura,method};
+    const resolvedClientId=isUUID(clientId)?clientId:null;
+    const newSale={id:saleId,num:num||S.sales.length+1,items,total,cur,date,
+      client_id:resolvedClientId,  // canonical field
+      clientId:resolvedClientId,   // kept in sync
+      status,notes,condicion,nroFactura,method};
     S.sales.push(newSale);
 
     // Supabase insert
