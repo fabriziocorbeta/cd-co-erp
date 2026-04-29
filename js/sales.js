@@ -1,6 +1,14 @@
 // CD & Co ERP — SALES
 // ====================================
 
+// ── safeItems: normaliza s.items sea array, string JSON, o null ──────────
+// Supabase puede devolver JSONB insertado con JSON.stringify() como string.
+function safeItems(raw){
+  if(Array.isArray(raw)) return raw;
+  if(typeof raw==='string'){try{const p=JSON.parse(raw);return Array.isArray(p)?p:[];}catch(e){return[];}}
+  return [];
+}
+
 // ── SHOPIFY: Fire-and-forget post-sale stock push ─────────────────────────
 // Envía la rebaja de stock a Shopify de forma no bloqueante.
 // Solo se ejecuta si el producto tiene un SKU válido registrado.
@@ -53,7 +61,7 @@ function renderSales(){
       <td class="mono">${fmtDate(s.date)}</td>
       <td class="mono">#${String(s.num).padStart(4,'0')}</td>
       <td>${clientLabel}</td>
-      <td style="font-size:.72rem;color:var(--mu)">${s.items.map(i=>{const p=S.products.find(x=>x.id===i.prodId);return`${p?.name||'Producto'} x${i.qty}`}).join(', ')}</td>
+      <td style="font-size:.72rem;color:var(--mu)">${safeItems(s.items).map(i=>{const p=S.products.find(x=>x.id===i.prodId);return`${p?.name||'Producto'} x${i.qty}`}).join(', ')}</td>
       <td class="mono" style="color:var(--pos)">${fmt(s.total,s.cur)}</td>
       <td class="mono">${s.cur}</td>
       <td>
@@ -80,7 +88,7 @@ function openSaleModal(id){
   if(g('sl-condicion'))g('sl-condicion').value=s?.condicion||'contado';
   if(g('sl-nrofactura'))g('sl-nrofactura').value=s?.nroFactura||'';
   if(g('sl-method'))g('sl-method').value=s?.method||'Efectivo';
-  if(s)saleLines=s.items.map(i=>({...i}));
+  if(s)saleLines=safeItems(s.items).map(i=>({...i}));
   else addSaleLine();
   renderSaleLines();
   g('sale-acts').innerHTML=id
@@ -366,9 +374,9 @@ function openEditSaleModal(id) {
   if (!sale) return;
 
   editIds.sale = id;
-  saleLines = sale.items.map(i => ({...i}));
+  saleLines = safeItems(sale.items).map(i => ({...i}));
   // Store original items for stock recalculation
-  originalSaleItems = sale.items.map(i => ({...i}));
+  originalSaleItems = safeItems(sale.items).map(i => ({...i}));
 
   g('sale-mttl').textContent = 'Editar venta';
   g('sl-client').value = sale.clientId || '';
