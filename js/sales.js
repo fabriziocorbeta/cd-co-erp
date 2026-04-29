@@ -41,11 +41,15 @@ async function pushSkusToShopify(skuList) {
 // ══════════════════════════════════════════
 let saleFlt='all';
 let originalSaleItems=[];
+let _savingSale=false; // lock anti-doble-submit
 function setSaleFlt(f,btn){saleFlt=f;document.querySelectorAll('#page-sales .flt').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderSales()}
 function renderSales(){
   const q=(g('sale-search')?.value||'').toLowerCase();
   const tm=thisMo();
-  let sales=[...S.sales].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  // Dedup by ID before render — safety net against duplicate S.sales entries
+  const seen=new Set();
+  const uniqueSales=S.sales.filter(s=>{if(!s?.id||seen.has(s.id))return false;seen.add(s.id);return true;});
+  let sales=[...uniqueSales].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(saleFlt==='today')sales=sales.filter(s=>s.date===today());
   else if(saleFlt==='month')sales=sales.filter(s=>mkey(s.date)===tm);
   if(q)sales=sales.filter(s=>{const c=S.contacts.find(x=>x.id===(s.client_id||s.clientId));return(c?.name||'').toLowerCase().includes(q)||String(s.num).includes(q)});
@@ -168,6 +172,12 @@ function updateSaleTotal(){
 g('sl-cur')?.addEventListener('change',updateSaleTotal);
 
 async function saveSale(){
+  // Anti-double-submit lock
+  if(_savingSale){console.warn('[Sales] saveSale() blocked — already saving');return;}
+  _savingSale=true;
+  try{ await _saveSaleImpl(); } finally{ _savingSale=false; }
+}
+async function _saveSaleImpl(){
   // Validate required fields
   if(!saleLines.length||!saleLines[0].prodId){
     toast('Agregá al menos un producto');

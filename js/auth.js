@@ -126,16 +126,36 @@ function swrSave() {
 // 'fresh' = data loaded, within TTL  (skip background refresh)
 // 'stale' = data loaded, expired TTL (trigger background refresh)
 // 'miss'  = no usable cache           (cold start with skeletons)
+function _swrDedupById(arr) {
+  if(!Array.isArray(arr)) return arr;
+  const seen = new Set();
+  return arr.filter(item => {
+    if(!item?.id || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
 function swrLoad() {
   try {
     const d = JSON.parse(localStorage.getItem(SWR_KEY) || '{}');
     if (!d.ts || !d.accounts || !d.txs) return 'miss';
     // Always hydrate S from cache — even if stale, show data immediately
+    // Dedup by id on load: fixes caches that were persisted in a bad state
+    let hadDuplicates = false;
     ['txs','accounts','products','sales','orders','contacts',
      'debts','budgets','subscriptions','receivables','goals',
      'vehicles','fuelLogs']
-      .forEach(k => { if (d[k] !== undefined) S[k] = d[k]; });
-    return (Date.now() - d.ts <= SWR_TTL) ? 'fresh' : 'stale';
+      .forEach(k => {
+        if (d[k] !== undefined) {
+          const deduped = _swrDedupById(d[k]);
+          if (Array.isArray(d[k]) && deduped.length !== d[k].length) hadDuplicates = true;
+          S[k] = deduped;
+        }
+      });
+    // If cache had duplicates, force stale so background refresh rewrites a clean cache
+    const age = Date.now() - d.ts;
+    if (hadDuplicates) { console.warn('[SWR] Cache tenía duplicados — forzando revalidación'); return 'stale'; }
+    return age <= SWR_TTL ? 'fresh' : 'stale';
   } catch(e) { return 'miss'; }
 }
 
@@ -212,6 +232,15 @@ async function loadAllUserData() {
   };
 
   // Helper: apply fetch results to S and run goals column mapping
+  const _dedupById = (arr) => {
+    if(!Array.isArray(arr)) return arr;
+    const seen = new Set();
+    return arr.filter(item => {
+      if(!item?.id || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  };
   const applyResults = (tables, results) => {
     tables.forEach((t, i) => {
       const r = results[i];
@@ -220,7 +249,7 @@ async function loadAllUserData() {
       } else if (r.value?.error) {
         console.error(`[Supabase Error en tabla '${t}'] ${r.value.error.message}`, '| code:', r.value.error.code, '| details:', r.value.error.details, '| hint:', r.value.error.hint);
       } else if (r.status === 'fulfilled' && r.value?.data) {
-        S[t] = r.value.data;
+        S[t] = _dedupById(r.value.data); // always replace, never merge; dedup by id
       }
     });
     if (S.goals && S.goals.length) {
