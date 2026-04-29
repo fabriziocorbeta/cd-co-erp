@@ -54,14 +54,98 @@ function openContactModal(id){
     :`<button class="mb mb-gh" onclick="cm('contact-modal')">Cancelar</button><button class="mb mb-g" onclick="saveContact()">Guardar</button>`;
   g('contact-modal').style.display='flex';
 }
-function saveContact(){
-  const name=g('co-name').value.trim();if(!name){toast('Ingresá un nombre');return}
-  const con={name,type:g('co-type').value,phone:g('co-phone').value.trim(),email:g('co-email').value.trim(),ruc:g('co-ruc').value.trim(),notes:g('co-notes').value.trim()};
-  if(editIds.con){const i=S.contacts.findIndex(c=>c.id===editIds.con);if(i>=0)S.contacts[i]={...S.contacts[i],...con};}
-  else S.contacts.push({...con,id:uid()});
-  lsave();renderAll();cm('contact-modal');toast('◆ Contacto guardado');populateSelects();
+async function saveContact(){
+  const name=g('co-name').value.trim();
+  if(!name){toast('Ingresá un nombre');return;}
+
+  const fields={
+    name,
+    type:  g('co-type').value,
+    phone: g('co-phone').value.trim(),
+    email: g('co-email').value.trim(),
+    ruc:   g('co-ruc').value.trim(),
+    notes: g('co-notes').value.trim(),
+  };
+
+  if(editIds.con){
+    // ── EDIT ────────────────────────────────────────────────────────────────
+    const idx=S.contacts.findIndex(c=>c.id===editIds.con);
+    if(idx<0){toast('Contacto no encontrado','error');return;}
+    const updated={...S.contacts[idx],...fields};
+
+    // Supabase UPDATE — await para detectar errores
+    if(SB_ON&&sb&&S.user?.id){
+      const {error}=await sb.from('contacts')
+        .update({name:fields.name,type:fields.type,phone:fields.phone||null,email:fields.email||null,ruc:fields.ruc||null,notes:fields.notes||null})
+        .eq('id',editIds.con)
+        .eq('user_id',S.user.id);
+      if(error){
+        console.error('[Contacts] UPDATE error:',error.message,error.details);
+        toast('⚠️ Error al guardar en Supabase: '+error.message);
+        return; // no actualizar UI si DB falló
+      }
+    }
+
+    S.contacts[idx]=updated;
+
+  } else {
+    // ── NEW ─────────────────────────────────────────────────────────────────
+    const newId=uid();
+    const newContact={...fields,id:newId};
+
+    // Supabase INSERT — await para detectar errores
+    if(SB_ON&&sb&&S.user?.id){
+      const {error}=await sb.from('contacts').insert({
+        id:      newId,
+        user_id: S.user.id,
+        name:    fields.name,
+        type:    fields.type,
+        phone:   fields.phone||null,
+        email:   fields.email||null,
+        ruc:     fields.ruc||null,
+        notes:   fields.notes||null,
+        created_at: new Date().toISOString(),
+      });
+      if(error){
+        console.error('[Contacts] INSERT error:',error.message,error.details);
+        toast('⚠️ Error al guardar en Supabase: '+error.message);
+        return; // no agregar a UI si DB falló
+      }
+    }
+
+    S.contacts.push(newContact);
+  }
+
+  lsave();
+  swrSave(); // actualizar cache SWR con el nuevo estado
+  renderAll();
+  cm('contact-modal');
+  toast('◆ Contacto guardado');
+  populateSelects();
 }
-function delContact(id){if(!confirm('¿Eliminar contacto?'))return;S.contacts=S.contacts.filter(c=>c.id!==id);lsave();renderAll();toast('Eliminado');populateSelects()}
+
+async function delContact(id){
+  if(!confirm('¿Eliminar contacto?'))return;
+
+  if(SB_ON&&sb&&S.user?.id){
+    const {error}=await sb.from('contacts')
+      .delete()
+      .eq('id',id)
+      .eq('user_id',S.user.id);
+    if(error){
+      console.error('[Contacts] DELETE error:',error.message);
+      toast('⚠️ Error al eliminar: '+error.message);
+      return;
+    }
+  }
+
+  S.contacts=S.contacts.filter(c=>c.id!==id);
+  lsave();
+  swrSave();
+  renderAll();
+  toast('Eliminado');
+  populateSelects();
+}
 
 // ══════════════════════════════════════════
 // NUM TO LETRAS (simplified PY)
