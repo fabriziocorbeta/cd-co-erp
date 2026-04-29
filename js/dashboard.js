@@ -408,7 +408,25 @@ function renderEtherealCharts() {
 function renderEtherealRecentTxs() {
   const el = g('d-recent-txs');
   if(!el) return;
-  const recent = [...S.txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+
+  // Dedup pass 1 — by UUID id (catches same-row duplicates from bad cache)
+  const seenIds = new Set();
+  // Dedup pass 2 — by _saleId (catches 5× saveSale() race: different UUIDs, same sale)
+  const seenSaleIds = new Set();
+  const deduped = [...S.txs]
+    .sort((a,b) => new Date(b.date) - new Date(a.date)) // newest first so we keep the latest tx per sale
+    .filter(tx => {
+      if (!tx?.id || seenIds.has(tx.id)) return false;
+      seenIds.add(tx.id);
+      if (tx._saleId) {
+        if (seenSaleIds.has(tx._saleId)) return false;
+        seenSaleIds.add(tx._saleId);
+      }
+      return true;
+    });
+
+  el.innerHTML = ''; // limpia antes de re-renderizar
+  const recent = deduped.slice(0, 5);
   if(!recent.length){ el.innerHTML='<div style="font-size:.7rem;color:var(--mu);padding:10px 0">Sin transacciones recientes</div>'; return; }
   const isLight = document.body.classList.contains('light-mode');
   el.innerHTML = recent.map(tx => {
