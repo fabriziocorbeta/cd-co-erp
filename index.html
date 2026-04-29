@@ -140,8 +140,31 @@
   background: var(--navy,#1a3564) !important;
   color: #fff !important;
 }
+/* ── Campos editables (contenteditable) ─────────────────────────────── */
+.sl-editable {
+  cursor: text;
+  border-radius: 2px;
+  outline: none;
+  min-width: 24px;
+  transition: background .15s, outline .15s;
+}
+.sl-editable:hover {
+  background: rgba(26,53,100,.07);
+  outline: 1px dashed rgba(26,53,100,.38);
+  outline-offset: 2px;
+}
+.sl-editable:focus {
+  background: rgba(26,53,100,.1);
+  outline: 1.5px dashed var(--navy);
+  outline-offset: 2px;
+}
 /* ── @media print — oculta toda la SPA, muestra solo la etiqueta ─────── */
 @media print {
+  .sl-editable {
+    background: transparent !important;
+    outline: none !important;
+    cursor: default !important;
+  }
   body > *:not(#shipping-label-modal) { display: none !important; }
   #shipping-label-modal {
     position: static !important;
@@ -1877,18 +1900,18 @@
       <!-- Destinatario -->
       <div class="sl-dest-box">
         <div class="sl-section-title">Destinatario</div>
-        <div class="sl-dest-name" id="sl-dest-nombre">—</div>
+        <div class="sl-dest-name sl-editable" id="sl-dest-nombre" contenteditable="true" spellcheck="false">—</div>
         <div class="sl-field-row">
           <span class="sl-field-lbl">Tel.:</span>
-          <span class="sl-field-val" id="sl-dest-tel">—</span>
+          <span class="sl-field-val sl-editable" id="sl-dest-tel" contenteditable="true" spellcheck="false">—</span>
         </div>
         <div class="sl-field-row">
           <span class="sl-field-lbl">Dir.:</span>
-          <span class="sl-field-val" id="sl-dest-dir">—</span>
+          <span class="sl-field-val sl-editable" id="sl-dest-dir" contenteditable="true" spellcheck="false">—</span>
         </div>
         <div class="sl-field-row" id="sl-email-row">
           <span class="sl-field-lbl">Email:</span>
-          <span class="sl-field-val" id="sl-dest-email" style="font-size:.64rem;color:#666"></span>
+          <span class="sl-field-val sl-editable" id="sl-dest-email" contenteditable="true" spellcheck="false" style="font-size:.64rem;color:#666"></span>
         </div>
       </div>
     </div>
@@ -1907,7 +1930,7 @@
         </div>
         <div style="grid-column:span 2">
           <span class="sl-field-lbl">Artículos:</span>
-          <span class="sl-field-val" id="sl-sale-items" style="display:block;margin-top:2px;padding-left:4px;border-left:2px solid var(--navy)">—</span>
+          <span class="sl-field-val sl-editable" id="sl-sale-items" contenteditable="true" spellcheck="false" style="display:block;margin-top:2px;padding-left:4px;border-left:2px solid var(--navy)">—</span>
         </div>
         <div style="grid-column:span 2">
           <span class="sl-field-lbl">Total:</span>
