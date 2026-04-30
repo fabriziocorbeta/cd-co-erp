@@ -1,47 +1,27 @@
 // Cache version — bump on each deploy to auto-invalidate stale assets
-const CACHE_VERSION = '20260414b';
+const CACHE_VERSION = '20260429';
 const CACHE_NAME = 'cdco-cache-' + CACHE_VERSION;
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/css/vars.css',
-  '/css/base.css',
-  '/css/layout.css',
-  '/css/components.css',
-  '/css/utilities.css'
-];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(STATIC_ASSETS).catch(err => {
-        console.warn('Algunos recursos estáticos no pudieron ser cacheados', err);
-      });
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
+  // Nuke ALL caches — clean slate on every new SW version
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.map(k => {
-        if (k !== CACHE_NAME) return caches.delete(k);
-      })
-    ))
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
-  // Ignorar peticiones que no sean http/https
   if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
     return;
   }
 
-  // Network-only: API routes, Supabase, and any non-GET request must bypass cache entirely.
-  // Reason: SW re-fetches strip the Origin header, causing CORS 403 on /api/* endpoints.
   const url = event.request.url;
+
+  // Network-only: non-GET, API, Supabase
   if (
     event.request.method !== 'GET' ||
     url.includes('/api/')           ||
@@ -50,36 +30,41 @@ self.addEventListener('fetch', event => {
     url.includes('/rpc/')           ||
     url.includes('supabase.in')
   ) {
-    return; // Let the browser handle it directly — no SW interception
+    return;
   }
 
-  // Stale-While-Revalidate para recursos locales
+  // HTML documents: network-only — never serve stale index.html from cache
+  if (event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // JS/CSS: network-first, fall back to cache only if offline
+  if (url.includes('/js/') || url.includes('/css/')) {
+    event.respondWith(
+      fetch(event.request).then(networkRes => {
+        if (networkRes && networkRes.status === 200 && networkRes.type === 'basic') {
+          const clone = networkRes.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
+        }
+        return networkRes;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Everything else: stale-while-revalidate
   event.respondWith(
     caches.match(event.request).then(cachedRes => {
       const fetchPromise = fetch(event.request).then(networkRes => {
         if (networkRes && networkRes.status === 200 && networkRes.type === 'basic') {
-          const responseToCache = networkRes.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            try {
-              cache.put(event.request, responseToCache).catch(err => {
-                console.warn('[SW] Cache.put error:', err);
-              });
-            } catch (err) {
-              console.warn('[SW] Cache.put exception:', err);
-            }
-          }).catch(err => {
-            console.warn('[SW] caches.open error:', err);
-          });
+          caches.open(CACHE_NAME)
+            .then(cache => cache.put(event.request, networkRes.clone()))
+            .catch(() => {});
         }
         return networkRes;
-      }).catch(err => {
-        console.warn('[SW] Fetch error:', err);
-        return cachedRes;
-      });
-
+      }).catch(() => cachedRes);
       return cachedRes || fetchPromise;
-    }).catch(err => {
-      console.warn('[SW] caches.match error:', err);
     })
   );
 });

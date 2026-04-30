@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0c0b09"/>
 <meta name="app-version" content="v2.0.0-STITCH"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<script>
+(function(){
+  if('serviceWorker' in navigator && !sessionStorage.getItem('sw_nuked')){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      if(!regs.length) return;
+      sessionStorage.setItem('sw_nuked','1');
+      Promise.all(regs.map(function(r){ return r.unregister(); })).then(function(){
+        window.location.reload(true);
+      });
+    });
+  }
+})();
+</script>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -1859,38 +1875,38 @@
       window.__ENV__ = {};
     });
 </script>
-<script src="js/env-loader.js?v=20260416"></script>
-<script src="js/config.js?v=20260416"></script>
+<script src="js/env-loader.js?v=update_final_29_04"></script>
+<script src="js/config.js?v=update_final_29_04"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/auth.js?v=20260416"></script>
+<script src="js/auth.js?v=update_final_29_04"></script>
 <!-- render modules — all must load before nav.js -->
-<script src="js/goals.js?v=20260416"></script>
-<script src="js/transactions.js?v=20260416"></script>
-<script src="js/dashboard.js?v=20260416"></script>
-<script src="js/fleet.js?v=20260416"></script>
-<script src="js/inventory.js?v=20260416"></script>
-<script src="js/sales.js?v=20260416"></script>
-<script src="js/orders.js?v=20260416"></script>
-<script src="js/invoices.js?v=20260416"></script>
-<script src="js/contacts.js?v=20260416"></script>
-<script src="js/settings.js?v=20260416"></script>
-<script src="js/fx.js?v=20260416"></script>
-<script src="js/budgets.js?v=20260416"></script>
-<script src="js/subscriptions.js?v=20260416"></script>
-<script src="js/accounts.js?v=20260416"></script>
-<script src="js/debts.js?v=20260416"></script>
-<script src="js/history.js?v=20260416"></script>
-<script src="js/reports.js?v=20260416"></script>
-<script src="js/notifs.js?v=20260416"></script>
-<script src="js/receivables.js?v=20260416"></script>
-<script src="js/cdco_import.js?v=20260416"></script>
-<script src="js/patrimonio.js?v=20260416"></script>
-<script src="js/profitability.js?v=20260416"></script>
-<script src="js/advice.js?v=20260416"></script>
-<script src="js/backup-ui.js?v=20260416"></script>
+<script src="js/goals.js?v=update_final_29_04"></script>
+<script src="js/transactions.js?v=update_final_29_04"></script>
+<script src="js/dashboard.js?v=update_final_29_04"></script>
+<script src="js/fleet.js?v=update_final_29_04"></script>
+<script src="js/inventory.js?v=update_final_29_04"></script>
+<script src="js/sales.js?v=update_final_29_04"></script>
+<script src="js/orders.js?v=update_final_29_04"></script>
+<script src="js/invoices.js?v=update_final_29_04"></script>
+<script src="js/contacts.js?v=update_final_29_04"></script>
+<script src="js/settings.js?v=update_final_29_04"></script>
+<script src="js/fx.js?v=update_final_29_04"></script>
+<script src="js/budgets.js?v=update_final_29_04"></script>
+<script src="js/subscriptions.js?v=update_final_29_04"></script>
+<script src="js/accounts.js?v=update_final_29_04"></script>
+<script src="js/debts.js?v=update_final_29_04"></script>
+<script src="js/history.js?v=update_final_29_04"></script>
+<script src="js/reports.js?v=update_final_29_04"></script>
+<script src="js/notifs.js?v=update_final_29_04"></script>
+<script src="js/receivables.js?v=update_final_29_04"></script>
+<script src="js/cdco_import.js?v=update_final_29_04"></script>
+<script src="js/patrimonio.js?v=update_final_29_04"></script>
+<script src="js/profitability.js?v=update_final_29_04"></script>
+<script src="js/advice.js?v=update_final_29_04"></script>
+<script src="js/backup-ui.js?v=update_final_29_04"></script>
 <script src="js/shipping.js?v=20260428"></script>
 <!-- nav.js last — depends on all render functions above being defined -->
-<script src="js/nav.js?v=20260416"></script>
+<script src="js/nav.js?v=update_final_29_04"></script>
 
 <div id="print-area"></div>
 
