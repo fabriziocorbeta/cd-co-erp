@@ -1,27 +1,29 @@
-// Cache version — bump on each deploy to auto-invalidate stale assets
-const CACHE_VERSION = '20260429';
+// ── THE TERMINATOR ──────────────────────────────────────────────────────────
+// CACHE_VERSION — bump this string on every deploy to invalidate old SW caches
+const CACHE_VERSION = '20260430';
 const CACHE_NAME = 'cdco-cache-' + CACHE_VERSION;
 
-self.addEventListener('install', event => {
+// 1. INSTALL: skip waiting immediately — no caching on install
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
+// 2. ACTIVATE: claim all clients + nuke every existing cache
 self.addEventListener('activate', event => {
-  // Nuke ALL caches — clean slate on every new SW version
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+// 3. FETCH: network-only for HTML navigation; network-first for JS/CSS; passthrough for APIs
 self.addEventListener('fetch', event => {
-  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
-    return;
-  }
+  if (!event.request.url.startsWith('http')) return;
 
   const url = event.request.url;
 
-  // Network-only: non-GET, API, Supabase
+  // Passthrough: non-GET, API routes, Supabase
   if (
     event.request.method !== 'GET' ||
     url.includes('/api/')           ||
@@ -33,38 +35,37 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML documents: network-only — never serve stale index.html from cache
-  if (event.request.headers.get('accept')?.includes('text/html')) {
+  // Navigation (HTML): network-only — never serve a stale page
+  if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // JS/CSS: network-first, fall back to cache only if offline
+  // JS/CSS (versioned): network-first, offline fallback to cache
   if (url.includes('/js/') || url.includes('/css/')) {
     event.respondWith(
-      fetch(event.request).then(networkRes => {
-        if (networkRes && networkRes.status === 200 && networkRes.type === 'basic') {
-          const clone = networkRes.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
-        }
-        return networkRes;
-      }).catch(() => caches.match(event.request))
+      fetch(event.request)
+        .then(res => {
+          if (res && res.status === 200 && res.type === 'basic') {
+            caches.open(CACHE_NAME).then(c => c.put(event.request, res.clone())).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
 
   // Everything else: stale-while-revalidate
   event.respondWith(
-    caches.match(event.request).then(cachedRes => {
-      const fetchPromise = fetch(event.request).then(networkRes => {
-        if (networkRes && networkRes.status === 200 && networkRes.type === 'basic') {
-          caches.open(CACHE_NAME)
-            .then(cache => cache.put(event.request, networkRes.clone()))
-            .catch(() => {});
+    caches.match(event.request).then(cached => {
+      const fresh = fetch(event.request).then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          caches.open(CACHE_NAME).then(c => c.put(event.request, res.clone())).catch(() => {});
         }
-        return networkRes;
-      }).catch(() => cachedRes);
-      return cachedRes || fetchPromise;
+        return res;
+      }).catch(() => cached);
+      return cached || fresh;
     })
   );
 });

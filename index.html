@@ -9,17 +9,12 @@
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <script>
-(function(){
-  if('serviceWorker' in navigator && !sessionStorage.getItem('sw_nuked')){
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      if(!regs.length) return;
-      sessionStorage.setItem('sw_nuked','1');
-      Promise.all(regs.map(function(r){ return r.unregister(); })).then(function(){
-        window.location.reload(true);
-      });
-    });
-  }
-})();
+// SW update listener — reloads the moment the new SW takes control
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    window.location.reload();
+  });
+}
 </script>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
