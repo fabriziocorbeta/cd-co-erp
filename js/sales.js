@@ -274,7 +274,7 @@ async function _saveSaleImpl(){
     // Supabase update
     if(SB_ON && sb && S.user?.id){
       sb.from('sales').update({
-        items:JSON.stringify(items),
+        items:items,
         total,
         cur,
         date,
@@ -314,7 +314,7 @@ async function _saveSaleImpl(){
         id:saleId,
         user_id:S.user.id,
         num:newSale.num,
-        items:JSON.stringify(items),
+        items:items,
         total,
         cur,
         date,
