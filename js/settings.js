@@ -169,7 +169,7 @@ function exportCSV(){
 
 // Inicializar modo desde preferencia guardada (default: dark)
 (function initTheme() {
-  const saved = localStorage.getItem('cdco_theme');
+  const saved = localStorage.getItem('cdco_display_mode');
   if (saved === 'light') {
     lm = true;
     document.body.classList.add('light-mode');
@@ -185,7 +185,7 @@ function toggleMode(){
   lm = !lm;
   document.body.classList.toggle('light-mode', lm);
   document.documentElement.classList.toggle('dark', !lm);
-  localStorage.setItem('cdco_theme', lm ? 'light' : 'dark');
+  localStorage.setItem('cdco_display_mode', lm ? 'light' : 'dark');
   if(lm){
     toast('☀ Modo claro');
   } else {

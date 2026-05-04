@@ -51,11 +51,11 @@ function generateFinancialAdvice() {
   (S.txs || []).forEach(t => {
     const isAdj = (t.desc && t.desc.toLowerCase().includes('ajuste')) || (t.cat && t.cat.toLowerCase().includes('ajuste'));
     if (t.date >= thirtyDaysAgo && !isAdj) {
-      const amtUSD = t.cur === '$' ? t.amount : t.amount / fxRate;
-      if (t.type === 'income' || t.type === 'transfer-in') inc30d += amtUSD;
+      const absAmt = Math.abs(t.cur === '$' ? t.amount : t.amount / fxRate);
+      if (t.type === 'income' || t.type === 'transfer-in') inc30d += absAmt;
       else if (t.type === 'expense' || t.type === 'transfer-out') {
-        exp30d += amtUSD;
-        catExpenses[t.cat] = (catExpenses[t.cat] || 0) + amtUSD;
+        exp30d += absAmt;
+        catExpenses[t.cat] = (catExpenses[t.cat] || 0) + absAmt;
       }
     }
   });
@@ -63,8 +63,7 @@ function generateFinancialAdvice() {
   // Debt
   let debtUSD = 0;
   (S.cards || []).forEach(c => {
-    // This is a simplification; should ideally use calculated used balance
-    const used = parseFloat(c.used || 0);
+    const used = typeof getCardUsed === 'function' ? Math.abs(getCardUsed(c.id)?.total || 0) : 0;
     debtUSD += c.cur === '$' ? used : used / fxRate;
   });
   (S.debts || []).forEach(d => {

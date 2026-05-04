@@ -662,7 +662,7 @@ async function saveFuelLog() {
     user_id: S.user?.id,
     type: 'expense',
     desc,
-    amount: amt,
+    amount: -Math.abs(amt), // expenses stored as negative per system convention
     cur: '₲',
     cat: 'Combustible',
     date,
