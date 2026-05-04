@@ -69,15 +69,18 @@ function renderReportPatrimonio() {
 
   if(repCharts.patrimonio) repCharts.patrimonio.destroy();
 
-  const txs = [...S.txs].filter(t => t.amount > 0 && (t.type === 'income' || t.type === 'expense')).sort((a,b) => new Date(a.date) - new Date(b.date));
+  // Filter income + expense, sort ascending — no amount>0 filter (expenses stored as negative)
+  const txs = [...S.txs].filter(t => t.type === 'income' || t.type === 'expense').sort((a,b) => new Date(a.date) - new Date(b.date));
   let runningBalance = 0;
   let monthlyData = {};
 
   txs.forEach(t => {
     const d = new Date(t.date);
     const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(t.type === 'income') runningBalance += t.amount;
-    else runningBalance -= t.amount;
+    const amt = parseFloat(t.amount) || 0;
+    // Amounts: income=positive, expense=negative (signed). Use Math.abs with type to handle both conventions.
+    if(t.type === 'income') runningBalance += Math.abs(amt);
+    else runningBalance -= Math.abs(amt);
     monthlyData[ym] = runningBalance;
   });
 
@@ -139,8 +142,8 @@ function renderReportFlow() {
 
   const flow6 = months.map(ym => {
     const txs = S.txs.filter(t => mkey(t.date) === ym);
-    const inc = txs.filter(t => t.type === 'income').reduce((s, t) => s + patToDom(t.amount, t.cur || '$', dCur), 0);
-    const exp = txs.filter(t => t.type === 'expense').reduce((s, t) => s + patToDom(t.amount, t.cur || '$', dCur), 0);
+    const inc = txs.filter(t => t.type === 'income').reduce((s, t) => s + Math.abs(patToDom(t.amount, t.cur || '$', dCur)), 0);
+    const exp = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Math.abs(patToDom(t.amount, t.cur || '$', dCur)), 0);
     return { key: ym, inc, exp };
   });
 
@@ -193,7 +196,7 @@ function renderReportCategories() {
   const cats = {};
   let total = 0;
   expTxs.forEach(t => {
-    const amt = patToDom(t.amount, t.cur || '$', dCur);
+    const amt = Math.abs(patToDom(t.amount, t.cur || '$', dCur)); // expenses may be negative — use abs
     cats[t.cat] = (cats[t.cat] || 0) + amt;
     total += amt;
   });

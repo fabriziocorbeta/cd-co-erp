@@ -31,7 +31,7 @@ function calculateAlerts() {
           type: 'warning',
           icon: '🔄',
           title: 'Suscripción próxima',
-          msg: `${s.name} (${fmt(s.amount,s.currency)}) se cobra en ${daysDiff === 0 ? 'hoy' : daysDiff + ' días'}.`,
+          msg: `${s.name} (${fmt(s.amount,s.cur||s.currency||'$')}) se cobra en ${daysDiff === 0 ? 'hoy' : daysDiff + ' días'}.`,
           action: `goPage('subscriptions')`
         });
       } else if (daysDiff < 0) {
@@ -52,13 +52,16 @@ function calculateAlerts() {
     if (b.month === tm) {
       // Find expenses in that category this month
       // Currencies: normalise if necessary, simplistic matching here
-      const spent = S.txs.filter(t => t.type==='expense' && t.cat === b.category && t.cur === b.currency && mkey(t.date) === tm).reduce((a,t)=>a+t.amount,0);
+      const bCur = b.cur || b.currency || '$';
+      const spent = S.txs
+        .filter(t => t.type==='expense' && t.cat === b.category && (t.cur||'$') === bCur && mkey(t.date) === tm)
+        .reduce((a,t) => a + Math.abs(parseFloat(t.amount)||0), 0); // amounts may be negative — use abs
       if (spent >= b.amount) {
         alerts.push({
           type: 'danger',
           icon: '📊',
           title: 'Presupuesto superado',
-          msg: `Categoría ${b.category} excedida (${fmt(spent, b.currency)} de ${fmt(b.amount, b.currency)}).`,
+          msg: `Categoría ${b.category} excedida (${fmt(spent, bCur)} de ${fmt(b.amount, bCur)}).`,
           action: `goPage('budgets')`
         });
       }
@@ -74,7 +77,7 @@ function calculateAlerts() {
           type: 'warning',
           icon: '📋',
           title: 'Pedido demorado',
-          msg: `El pedido a ${S.contacts.find(c=>c.id===o.supplierId)?.name||'Proveedor'} lleva ${days} días sin entrega.`,
+          msg: `El pedido a ${S.contacts.find(c=>c.id===(o.supId||o.supplierId||o.supplier_id))?.name||'Proveedor'} lleva ${days} días sin entrega.`,
           action: `goPage('orders')`
         });
       }

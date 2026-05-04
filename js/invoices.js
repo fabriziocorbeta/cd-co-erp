@@ -11,11 +11,11 @@ function renderInvoices(){
   let sales=[...S.sales].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(invFlt2==='paid')sales=sales.filter(s=>s.status==='paid');
   else if(invFlt2==='pending')sales=sales.filter(s=>s.status==='pending');
-  if(q)sales=sales.filter(s=>{const c=S.contacts.find(x=>x.id===s.clientId);return(c?.name||'').toLowerCase().includes(q)||String(s.num).includes(q)});
+  if(q)sales=sales.filter(s=>{const c=S.contacts.find(x=>x.id===(s.client_id||s.clientId));return(c?.name||'').toLowerCase().includes(q)||String(s.num).includes(q)});
   const tb=g('inv-tbody');
   if(!sales.length){tb.innerHTML=`<tr><td colspan="7" class="tbl-empty">Sin facturas aún.</td></tr>`;return}
   tb.innerHTML=sales.map(s=>{
-    const client=S.contacts.find(c=>c.id===s.clientId);
+    const client=S.contacts.find(c=>c.id===(s.client_id||s.clientId));
     const usd=s.cur==='$'?s.total:0;const pyg=s.cur==='₲'?s.total:0;
     return `<tr>
       <td class="mono">${fmtDate(s.date)}</td>
@@ -33,7 +33,7 @@ function renderInvoices(){
 
 function viewInvoice(saleId){
   const s=S.sales.find(x=>x.id===saleId);if(!s)return;
-  const client=S.contacts.find(c=>c.id===s.clientId);
+  const client=S.contacts.find(c=>c.id===(s.client_id||s.clientId));
   const E=EMPRESA;
   const iva=calcIva(s.items,s.cur);
   const cur=s.cur;
