@@ -1,46 +1,22 @@
 // Vercel Serverless Function — Shopify Bidirectional Sync
-// Sprint 5: Sincronización ERP ↔ Shopify
-// ─────────────────────────────────────────────────────────────────────────────
 // Auth: Supabase JWT (Authorization: Bearer <token>)
-//       Mismo patrón que /api/business.js y /api/goals.js
 //
-// Shopify Auth: Client Credentials Grant (Dev Dashboard / Partner apps)
-//   Se obtiene un token temporal por invocación via POST a /admin/oauth/access_token.
+// Shopify Auth: Admin API Access Token (Custom App)
+//   Obtené el token en: Shopify Admin → Settings → Apps → Develop apps
+//   → Create an app → Configure Admin API scopes → Install → "Admin API access token"
 //
 // Env vars requeridas (Vercel Dashboard → Settings → Environment Variables):
 //   SUPABASE_URL              — URL del proyecto Supabase
 //   SUPABASE_SERVICE_ROLE_KEY — Service Role Key (solo servidor)
-//   SHOPIFY_STORE_DOMAIN      — ej. mi-tienda.myshopify.com
-//   SHOPIFY_CLIENT_ID         — Client ID del Dev Dashboard (shpss_...)
-//   SHOPIFY_CLIENT_SECRET     — Client Secret del Dev Dashboard
+//   SHOPIFY_STORE_DOMAIN      — ej. mi-tienda.myshopify.com  (sin https://)
+//   SHOPIFY_ADMIN_TOKEN       — shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 //
 // Acciones disponibles (POST body: { action, ...payload }):
 //   syncStock   — Sincroniza inventario físico de N productos hacia Shopify (batch)
 //   syncSku     — Sincroniza 1 SKU (post-venta, fire-and-forget)
-//   fetchOrders — Trae órdenes web pagadas/sin procesar de las últimas 24h
-// ─────────────────────────────────────────────────────────────────────────────
+//   fetchOrders — Trae órdenes web pagadas/sin procesar de las últimas N horas
 
 const SHOPIFY_API_VERSION = '2024-10';
-
-// ── Obtener token temporal de Shopify via Client Credentials Grant ────────────
-async function getShopifyToken(domain, clientId, clientSecret) {
-  const res = await fetch(`https://${domain}/admin/oauth/access_token`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      client_id:     clientId,
-      client_secret: clientSecret,
-      grant_type:    'client_credentials',
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Shopify OAuth ${res.status}: ${text.slice(0, 300)}`);
-  }
-  const data = await res.json();
-  if (!data.access_token) throw new Error('Shopify OAuth: respuesta sin access_token');
-  return data.access_token;
-}
 
 export default async function handler(req, res) {
   // ── CORS ──────────────────────────────────────────────────────────────────
@@ -52,6 +28,24 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed — usa POST' });
   }
 
+  // ── Env vars ──────────────────────────────────────────────────────────────
+  const SB_URL         = process.env.SUPABASE_URL;
+  const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN;
+  const SHOPIFY_TOKEN  = process.env.SHOPIFY_ADMIN_TOKEN;
+
+  if (!SB_URL || !SB_SERVICE_KEY) {
+    return res.status(500).json({ error: 'Configuración de Supabase incompleta' });
+  }
+  if (!SHOPIFY_DOMAIN || !SHOPIFY_TOKEN) {
+    return res.status(500).json({
+      error: 'Shopify no configurado — agregá SHOPIFY_STORE_DOMAIN y SHOPIFY_ADMIN_TOKEN en Vercel → Settings → Environment Variables',
+    });
+  }
+  if (!SHOPIFY_TOKEN.startsWith('shpat_')) {
+    console.warn('[ShopifySync] SHOPIFY_ADMIN_TOKEN no comienza con shpat_ — verificá que sea un Admin API Access Token');
+  }
+
   // ── Auth: verificar JWT via Supabase ──────────────────────────────────────
   const auth = req.headers.authorization;
   if (!auth?.startsWith('Bearer ')) {
@@ -59,23 +53,6 @@ export default async function handler(req, res) {
   }
   const jwt = auth.split(' ')[1];
 
-  const SB_URL           = process.env.SUPABASE_URL;
-  const SB_SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const SHOPIFY_DOMAIN   = process.env.SHOPIFY_STORE_DOMAIN;
-  const SHOPIFY_CLIENT_ID     = process.env.SHOPIFY_CLIENT_ID;
-  const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET;
-
-  if (!SB_URL || !SB_SERVICE_KEY) {
-    console.error('[ShopifySync] Faltan vars de Supabase');
-    return res.status(500).json({ error: 'Configuración de Supabase incompleta' });
-  }
-  if (!SHOPIFY_DOMAIN || !SHOPIFY_CLIENT_ID || !SHOPIFY_CLIENT_SECRET) {
-    return res.status(500).json({
-      error: 'Shopify no configurado — agrega SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID y SHOPIFY_CLIENT_SECRET en Vercel → Settings → Environment Variables',
-    });
-  }
-
-  // Verificar JWT con Supabase
   let user;
   try {
     const userRes = await fetch(`${SB_URL}/auth/v1/user`, {
@@ -91,25 +68,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Error interno de autenticación' });
   }
 
-  // ── Obtener token temporal de Shopify (Client Credentials) ──────────────
-  let shopifyToken;
-  try {
-    shopifyToken = await getShopifyToken(SHOPIFY_DOMAIN, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET);
-    console.log('[ShopifySync] Token Shopify obtenido correctamente');
-  } catch (e) {
-    console.error('[ShopifySync] Error obteniendo token Shopify:', e.message);
-    return res.status(502).json({ error: `No se pudo autenticar con Shopify: ${e.message}` });
-  }
-
-  // ── Shopify helpers ───────────────────────────────────────────────────────
+  // ── Shopify helper ────────────────────────────────────────────────────────
   const shopifyBase = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}`;
 
   const shopifyFetch = async (path, opts = {}) => {
     const r = await fetch(`${shopifyBase}${path}`, {
       ...opts,
       headers: {
-        'X-Shopify-Access-Token': shopifyToken,
-        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': SHOPIFY_TOKEN,
+        'Content-Type':           'application/json',
         ...(opts.headers || {}),
       },
     });
@@ -126,13 +93,8 @@ export default async function handler(req, res) {
 
   // ══════════════════════════════════════════════════════════════════════════
   // ACTION: syncStock | syncSku
-  // Empuja niveles de inventario (stock físico) desde el ERP hacia Shopify.
-  //
-  // syncStock → body: { action: 'syncStock', products: [{sku, qty}] }
-  // syncSku   → body: { action: 'syncSku',   sku: 'REL-001', qty: 3 }
   // ══════════════════════════════════════════════════════════════════════════
   if (action === 'syncStock' || action === 'syncSku') {
-    // Normalizar payload: syncSku → array de 1 elemento
     const products = action === 'syncSku'
       ? [{ sku: body.sku, qty: body.qty }]
       : (body.products || []);
@@ -141,13 +103,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No hay productos para sincronizar' });
     }
 
-    // 1. Obtener la primera ubicación activa de Shopify (location_id requerido)
+    // Obtener primera ubicación activa (location_id requerido por Shopify)
     let locationId;
     try {
       const locsData = await shopifyFetch('/locations.json?active=true');
       const locs = locsData.locations || [];
       if (!locs.length) throw new Error('No hay ubicaciones activas en Shopify');
-      // Usar la primera ubicación activa (típicamente "Ubicación principal")
       locationId = locs[0].id;
       console.log(`[ShopifySync] location_id=${locationId} (${locs[0].name})`);
     } catch (e) {
@@ -155,20 +116,13 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `Error obteniendo ubicaciones de Shopify: ${e.message}` });
     }
 
-    // 2. Para cada SKU: buscar la variante y actualizar el nivel de inventario
     const results = { updated: 0, skipped: 0, errors: [] };
 
     for (const prod of products) {
-      if (!prod.sku || prod.sku === '—') {
-        results.skipped++;
-        continue;
-      }
+      if (!prod.sku || prod.sku === '—') { results.skipped++; continue; }
 
       try {
-        // Buscar variante por SKU
-        const varData = await shopifyFetch(
-          `/variants.json?sku=${encodeURIComponent(prod.sku)}`
-        );
+        const varData  = await shopifyFetch(`/variants.json?sku=${encodeURIComponent(prod.sku)}`);
         const variants = varData.variants || [];
 
         if (!variants.length) {
@@ -177,20 +131,16 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const inventoryItemId = variants[0].inventory_item_id;
-        const qty = Math.max(0, parseInt(prod.qty) || 0);
-
-        // Actualizar nivel de inventario en la ubicación activa
         await shopifyFetch('/inventory_levels/set.json', {
           method: 'POST',
           body: JSON.stringify({
             location_id:       locationId,
-            inventory_item_id: inventoryItemId,
-            available:         qty,
+            inventory_item_id: variants[0].inventory_item_id,
+            available:         Math.max(0, parseInt(prod.qty) || 0),
           }),
         });
 
-        console.log(`[ShopifySync] ✓ SKU=${prod.sku} → qty=${qty}`);
+        console.log(`[ShopifySync] ✓ SKU=${prod.sku} → qty=${prod.qty}`);
         results.updated++;
       } catch (e) {
         console.error(`[ShopifySync] ✗ SKU=${prod.sku}:`, e.message);
@@ -198,32 +148,21 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(
-      `[ShopifySync] syncStock user=${user.id}: ` +
-      `updated=${results.updated}, skipped=${results.skipped}, errors=${results.errors.length}`
-    );
+    console.log(`[ShopifySync] syncStock user=${user.id}: updated=${results.updated}, skipped=${results.skipped}, errors=${results.errors.length}`);
     return res.status(200).json({ ok: true, ...results });
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   // ACTION: fetchOrders
-  // Trae órdenes web pagadas y sin procesar de las últimas 24h.
-  //
-  // body: { action: 'fetchOrders', hours?: number }  (hours default: 24)
-  //
-  // Retorna: { ok: true, count: N, orders: [...] }
-  // Cada orden: { id, name, created_at, total, currency, customer, items: [{sku, title, qty, price}] }
   // ══════════════════════════════════════════════════════════════════════════
   if (action === 'fetchOrders') {
-    const hours = Math.min(parseInt(body.hours) || 24, 168); // máx 7 días
+    const hours = Math.min(parseInt(body.hours) || 24, 168);
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
     try {
       const ordersData = await shopifyFetch(
         `/orders.json` +
-        `?status=any` +
-        `&financial_status=paid` +
-        `&fulfillment_status=unfulfilled` +
+        `?status=any&financial_status=paid&fulfillment_status=unfulfilled` +
         `&created_at_min=${encodeURIComponent(since)}` +
         `&fields=id,name,created_at,line_items,total_price,currency,customer` +
         `&limit=50`
@@ -231,7 +170,7 @@ export default async function handler(req, res) {
 
       const orders = (ordersData.orders || []).map(o => ({
         id:         o.id,
-        name:       o.name,                   // ej. "#1042"
+        name:       o.name,
         created_at: o.created_at,
         total:      o.total_price,
         currency:   o.currency,
@@ -239,10 +178,10 @@ export default async function handler(req, res) {
           ? `${o.customer.first_name || ''} ${o.customer.last_name || ''}`.trim() || 'Cliente web'
           : 'Cliente web',
         items: (o.line_items || []).map(li => ({
-          sku:      li.sku   || '',
-          title:    li.title || '',
-          qty:      li.quantity,
-          price:    li.price,
+          sku:   li.sku   || '',
+          title: li.title || '',
+          qty:   li.quantity,
+          price: li.price,
         })),
       }));
 
@@ -254,8 +193,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── Acción desconocida ────────────────────────────────────────────────────
   return res.status(400).json({
-    error: `Acción desconocida: "${action}". Acciones válidas: syncStock, syncSku, fetchOrders`,
+    error: `Acción desconocida: "${action}". Válidas: syncStock, syncSku, fetchOrders`,
   });
 }

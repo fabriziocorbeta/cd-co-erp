@@ -138,8 +138,12 @@ async function sbSaveProduct(prod, isNew = true) {
   const userId = S.user?.id;
   if (!userId) { toast('Sesión expirada'); return null; }
 
+  // Auth: usar session token del usuario para que RLS funcione (auth.uid() != NULL)
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.access_token) { toast('Sesión expirada — iniciá sesión de nuevo'); return null; }
+  const token = session.access_token;
+
   try {
-    // Preparar datos para Supabase — user_id obligatorio para RLS
     const data = {
       user_id: userId,
       sku: prod.sku,
@@ -158,12 +162,11 @@ async function sbSaveProduct(prod, isNew = true) {
 
     let result;
     if (isNew) {
-      // INSERT nuevo producto
       const response = await fetch(`${SB_URL}/rest/v1/products`, {
         method: 'POST',
         headers: {
           'apikey': SB_KEY,
-          'Authorization': `Bearer ${SB_KEY}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
@@ -180,13 +183,12 @@ async function sbSaveProduct(prod, isNew = true) {
       result = await response.json();
       return result[0];
     } else {
-      // UPDATE producto existente — filtrar por user_id para evitar cross-tenant write
       const url = `${SB_URL}/rest/v1/products?id=eq.${encodeURIComponent(prod.id)}&user_id=eq.${encodeURIComponent(userId)}`;
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'apikey': SB_KEY,
-          'Authorization': `Bearer ${SB_KEY}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
@@ -216,13 +218,15 @@ async function sbDeleteProduct(prodId) {
 
   try {
     const userId = S.user?.id;
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token || SB_KEY;
     let url = `${SB_URL}/rest/v1/products?id=eq.${encodeURIComponent(prodId)}`;
     if (userId) url += `&user_id=eq.${encodeURIComponent(userId)}`;
     const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`
+        'Authorization': `Bearer ${token}`
       }
     });
 

@@ -203,9 +203,18 @@ async function confirmReceive(){
   const o=S.orders.find(x=>x.id===recvOrderId);if(!o)return;
   o.status='received';
   const total=o.items.reduce((a,i)=>a+i.qty*(i.price||S.products.find(p=>p.id===i.prodId)?.buyPrice||0),0);
-  // update stock
+  // update stock locally + sync to Supabase
   o.items.forEach(i=>{const p=S.products.find(x=>x.id===i.prodId);if(p)p.stock+=i.qty});
-  
+  if(SB_ON && sb && S.user?.id){
+    // Sync each product's updated stock to DB
+    for(const i of o.items){
+      const p=S.products.find(x=>x.id===i.prodId);
+      if(p) await sbSaveProduct(p, false);
+    }
+    // Update order status in Supabase
+    sb.from('orders').update({status:'received'}).eq('id',o.id).eq('user_id',S.user.id).catch(e=>console.error('[Orders] Status sync error:',e));
+  }
+
   // auto expense tx ONLY if not already paid/handled
   const hasTx = S.txs.find(t => t.orderId === o.id);
   if(total > 0 && !hasTx) {

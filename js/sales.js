@@ -306,11 +306,9 @@ async function _saveSaleImpl(){
       client_id:resolvedClientId,  // canonical field
       clientId:resolvedClientId,   // kept in sync
       status,notes,condicion,nroFactura,method};
-    S.sales.push(newSale);
-
-    // Supabase insert
+    // Supabase insert — AWAIT so DB trigger (trg_deduct_stock_on_sale) can reject if stock insufficient
     if(SB_ON && sb && S.user?.id){
-      sb.from('sales').insert({
+      const {error:insertErr}=await sb.from('sales').insert({
         id:saleId,
         user_id:S.user.id,
         num:newSale.num,
@@ -325,23 +323,24 @@ async function _saveSaleImpl(){
         nro_factura:nroFactura||null,
         method:method||null,
         created_at:new Date().toISOString()
-      }).then(res=>{
-        if(res.error){
-          console.error('[Sales] Insert error:',res.error.message,res.error.details);
-          toast('⚠️ Error al guardar venta: '+res.error.message);
-        }
-        else console.log('[Sales] Inserted to Supabase');
-      }).catch(err=>{
-        console.error('[Sales] Insert error:',err);
-        toast('⚠️ Error de conexión: '+err.message);
       });
+      if(insertErr){
+        console.error('[Sales] Insert error:',insertErr.message,insertErr.details);
+        vibrate([30,30,30]);
+        toast('❌ '+insertErr.message,3500);
+        return; // Trigger rejected — don't update local state
+      }
+      console.log('[Sales] Inserted to Supabase (trigger deducted stock)');
     }
+
+    // Insert succeeded (or offline) — save locally
+    S.sales.push(newSale);
   }
 
   // deduct stock & auto income tx (NEW SALES ONLY — edits already handled above)
   const saleId=editIds.sale||S.sales[S.sales.length-1].id;
-  // Stock deduction handled atomically by DB trigger trg_deduct_stock_on_sale.
-  // Update local state for UI responsiveness after successful insert.
+  // DB trigger handles atomic stock deduction in Supabase.
+  // Update local state to match for UI responsiveness.
   if(!editIds.sale){
     items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p){p.stock=Math.max(0,p.stock-l.qty);}});
   }
