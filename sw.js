@@ -1,6 +1,6 @@
 // ── THE TERMINATOR ──────────────────────────────────────────────────────────
 // CACHE_VERSION — bump this string on every deploy to invalidate old SW caches
-const CACHE_VERSION = '20260504b';
+const CACHE_VERSION = '20260504c';
 const CACHE_NAME = 'cdco-cache-' + CACHE_VERSION;
 
 // 1. INSTALL: skip waiting immediately — no caching on install

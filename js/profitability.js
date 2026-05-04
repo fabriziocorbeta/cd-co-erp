@@ -30,8 +30,8 @@ function renderProfitability() {
   let prods = [...(S.products || [])];
 
   if (q) prods = prods.filter(p =>
-    p.name.toLowerCase().includes(q) ||
-    p.sku.toLowerCase().includes(q)
+    (p.name || '').toLowerCase().includes(q) ||
+    (p.sku  || '').toLowerCase().includes(q)
   );
   if (cat) prods = prods.filter(p => p.cat === cat);
 
@@ -155,8 +155,8 @@ function renderProfProductsTable(prods, fxRate) {
   }
 
   tbody.innerHTML = prods.map(p => {
-    const buyPrice = convertAmount(p.buyPrice, p.cur, cur, fxRate);
-    const sellPrice = convertAmount(p.sellPrice, p.cur, cur, fxRate);
+    const buyPrice = convertAmount(p.buyPrice, p.cur || '₲', cur, fxRate);
+    const sellPrice = convertAmount(p.sellPrice, p.cur || '₲', cur, fxRate);
     const margin = p.buyPrice > 0
       ? Math.round(((p.sellPrice - p.buyPrice) / p.buyPrice) * 100)
       : 0;

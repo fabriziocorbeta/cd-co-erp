@@ -84,16 +84,19 @@ function renderInventory(){
   if(elTdcSource) elTdcSource.textContent = (FX && FX.source) ? FX.source : 'Cambios Chaco';
 
   if(!prods.length){grid.innerHTML='<div class="tbl-empty" style="grid-column:1/-1;padding:32px">Sin productos. Agregá el primero.</div>';return}
-  grid.innerHTML=prods.map(p=>{
-    // Normalizar campos nulos para evitar errores de render
-    p.name     = p.name     || '(sin nombre)';
-    p.sku      = p.sku      || '—';
-    p.cat      = p.cat      || 'Otros';
-    p.buyPrice = parseFloat(p.buyPrice)  || 0;
-    p.sellPrice= parseFloat(p.sellPrice) || 0;
-    p.stock         = parseInt(p.stock)         || 0;
-    p.stock_transit = parseInt(p.stock_transit) || 0;
-    p.minStock      = parseInt(p.minStock)      || 2;
+  grid.innerHTML=prods.map(rawP=>{
+    // Normalizar campos nulos para display — usar copia local para no mutar S.products
+    const p = {
+      ...rawP,
+      name:          rawP.name          || '(sin nombre)',
+      sku:           rawP.sku           || '—',
+      cat:           rawP.cat           || 'Otros',
+      buyPrice:      parseFloat(rawP.buyPrice)  || 0,
+      sellPrice:     parseFloat(rawP.sellPrice) || 0,
+      stock:         parseInt(rawP.stock)         || 0,
+      stock_transit: parseInt(rawP.stock_transit) || 0,
+      minStock:      parseInt(rawP.minStock)      || 2,
+    };
 
     const sup=S.contacts.find(c=>c.id===p.sup);
     const stockClass=p.stock<=0?'stock-out':p.stock<=p.minStock?'stock-low':'stock-ok';
@@ -314,7 +317,7 @@ async function saveStock(){
   // auto tx if set reason is purchase — registrar gasto contra cuenta seleccionada si hay una
   if(reason==='Compra a proveedor'&&type==='in'&&p.buyPrice>0){
     const accId = g('stk-account')?.value || '';
-    const stockTx={id:uid(),type:'expense',desc:`Compra stock: ${p.name} (${qty} u.)`,amount:qty*p.buyPrice,cur:p.cur||'$',cat:'Stock / Compras',date:today()};
+    const stockTx={id:uid(),type:'expense',desc:`Compra stock: ${p.name} (${qty} u.)`,amount:-(qty*p.buyPrice),cur:p.cur||'$',cat:'Stock / Compras',date:today()};
     if(accId) stockTx.account_id = accId;
     if(SB_ON){ const saved=await sbSaveTransaction(stockTx); S.txs.push(saved||stockTx); }
     else S.txs.push(stockTx);
@@ -529,7 +532,7 @@ async function saveImport() {
     id: uid(),
     type: 'expense',
     desc: `Importación: ${p.name} (${calc.qty} u.) | FOB $${calc.costUsd}/u × TC ${calc.fxProd} + Flete $${calc.freightUsd} × TC ${calc.fxFreight} + Aduana ₲${fmt(calc.customsPyg,'')}`,
-    amount: totalInversion,
+    amount: -Math.abs(totalInversion),
     cur: '₲',
     cat: 'Importación / Landed Cost',
     date: today(),

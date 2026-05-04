@@ -39,7 +39,7 @@ async function viewShippingLabel(saleId) {
     }).join('\n');
 
   // 6. Remitente — desde EMPRESA global
-  const remNombre = (typeof EMPRESA !== 'undefined' && EMPRESA.nombre)    || 'CD & Co';
+  const remNombre = (typeof EMPRESA !== 'undefined' && EMPRESA.razonSocial) || 'CD & Co';
   const remDir    = (typeof EMPRESA !== 'undefined' && EMPRESA.direccion) || 'Luque, Paraguay';
   const remTel    = (typeof EMPRESA !== 'undefined' && EMPRESA.telefono)  || '';
 

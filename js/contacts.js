@@ -15,8 +15,8 @@ function renderContacts(){
   const grid=g('contacts-grid');
   if(!cons.length){grid.innerHTML='<div class="tbl-empty" style="grid-column:1/-1">Sin contactos. Agregá clientes o proveedores.</div>';return}
   grid.innerHTML=cons.map(c=>{
-    const salesCount=S.sales.filter(s=>s.clientId===c.id).length;
-    const ordersCount=S.orders.filter(o=>o.supId===c.id).length;
+    const salesCount=S.sales.filter(s=>(s.client_id===c.id||s.clientId===c.id)).length;
+    const ordersCount=S.orders.filter(o=>(o.supplier_id===c.id||o.supId===c.id)).length;
     const typeLabel={client:'Cliente',supplier:'Proveedor',both:'Cliente / Proveedor'}[c.type]||c.type;
     const typePill={client:'pill-blue',supplier:'pill-gold',both:'pill-pur'}[c.type]||'pill-neu';
     return `<div class="pcard">
