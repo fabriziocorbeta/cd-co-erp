@@ -32,9 +32,10 @@ async function renderPageData(pg){
       // Evita un round-trip a Supabase en cada navegación a la pestaña Movimientos.
       const TXS_MAX_AGE = 2 * 60 * 1000; // 2 minutos
       const needsRefresh = !S.txs?.length || (Date.now() - (S._txsLastFetch || 0)) > TXS_MAX_AGE;
-      if (needsRefresh) {
+      if (needsRefresh && S.user?.id) {
         const {data, error} = await sb.from('txs')
-          .select('id,type,amount,cur,cat,date,desc,account_id,transferPairId')
+          .select('id,type,amount,cur,cat,date,desc,account_id,transferPairId,user_id')
+          .eq('user_id', S.user.id)
           .order('date', {ascending: false})
           .limit(500); // C-2: traer solo las últimas 500 txs
         if (!error && data) {

@@ -180,8 +180,12 @@ async function syncOrderPayment(orderId) {
     if(typeof recomputeBalances==='function') recomputeBalances();
   }
 }
-function delOrder(id){
+async function delOrder(id){
   if(!confirm('¿Eliminar pedido?'))return;
+  if(SB_ON && sb && S.user?.id){
+    const {error}=await sb.from('orders').delete().eq('id',id).eq('user_id',S.user.id);
+    if(error){ toast('❌ Error al eliminar pedido: '+error.message); return; }
+  }
   S.orders=S.orders.filter(o=>o.id!==id);
   S.txs=S.txs.filter(t=>t.orderId!==id);
   lsave();renderAll();toast('Eliminado');updateBadges();

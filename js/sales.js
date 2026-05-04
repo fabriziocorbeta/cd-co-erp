@@ -344,9 +344,10 @@ async function _saveSaleImpl(){
   if(!editIds.sale){
     items.forEach(l=>{const p=S.products.find(x=>x.id===l.prodId);if(p){p.stock=Math.max(0,p.stock-l.qty);}});
   }
-  // Create/update transaction
-  S.txs=S.txs.filter(t=>t._saleId!==saleId);
-  const saleTx={id:uid(),type:'income',desc:`Venta #${String(num).padStart(4,'0')} — ${items.length} producto(s)`,amount:total,cur,cat:'Relojes',date,_saleId:saleId};
+  // Create/update transaction — use deterministic ID so edits upsert (no duplicates in DB)
+  const saleTxId='sltx-'+saleId;
+  S.txs=S.txs.filter(t=>t._saleId!==saleId && t.id!==saleTxId);
+  const saleTx={id:saleTxId,type:'income',desc:`Venta #${String(num).padStart(4,'0')} — ${items.length} producto(s)`,amount:total,cur,cat:'Relojes',date,_saleId:saleId};
   if(SB_ON){ const saved=await sbSaveTransaction(saleTx); S.txs.push(saved||saleTx); }
   else S.txs.push(saleTx);
 
@@ -404,8 +405,14 @@ async function openEditSaleModal(id) {
   g('sale-modal').style.display = 'flex';
 }
 
-function delSale(id){
+async function delSale(id){
   if(!confirm('¿Eliminar venta? El stock no se restaura automáticamente.'))return;
-  S.sales=S.sales.filter(s=>s.id!==id);S.txs=S.txs.filter(t=>t._saleId!==id);
+  if(SB_ON && sb && S.user?.id){
+    const {error}=await sb.from('sales').delete().eq('id',id).eq('user_id',S.user.id);
+    if(error){ toast('❌ Error al eliminar venta: '+error.message); return; }
+  }
+  // Remove local auto-tx (only works for txs with _saleId — not ones reloaded from DB)
+  S.sales=S.sales.filter(s=>s.id!==id);
+  S.txs=S.txs.filter(t=>t._saleId!==id);
   lsave();renderAll();toast('Venta eliminada');
 }
