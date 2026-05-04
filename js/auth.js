@@ -426,8 +426,9 @@ async function doReg(){
   else{setTimeout(()=>enterApp(nm,'free'),600)}
 }
 async function doGoogle(){if(SB_ON)await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href}});else demoLogin()}
+async function doApple(){if(SB_ON)await sb.auth.signInWithOAuth({provider:'apple',options:{redirectTo:location.href}});else demoLogin()}
 function demoLogin(){lload();defaults();enterApp('Fabri','pro')}
-async function doLogout(){if(SB_ON&&sb)await sb.auth.signOut();lsave();S={txs:[],products:[],sales:[],orders:[],contacts:[],cards:[],debts:[],accounts:[],budgets:[],subscriptions:[],goals:[],historical:[],receivables:[],fltTx:'all',fltInv:'all',fltSale:'all',fltOrd:'all',fltCon:'all',fltInv2:'all',user:null,plan:'free',curPage:'dashboard'};document.getElementById('app').style.display='none';document.getElementById('auth').style.display='flex'}
+async function doLogout(){if(SB_ON&&sb)await sb.auth.signOut();lsave();S={txs:[],products:[],sales:[],orders:[],contacts:[],cards:[],debts:[],accounts:[],budgets:[],subscriptions:[],goals:[],historical:[],receivables:[],fltTx:'all',fltInv:'all',fltSale:'all',fltOrd:'all',fltCon:'all',fltInv2:'all',user:null,plan:'free',curPage:'dashboard'};editIds={tx:null,prod:null,sale:null,order:null,con:null,goal:null,sub:null,budget:null,recv:null};document.getElementById('app').style.display='none';document.getElementById('auth').style.display='flex'}
 
 // ══════════════════════════════════════════
 // AUTO SESSION RESTORE (on page reload)

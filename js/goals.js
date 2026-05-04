@@ -200,7 +200,7 @@ function saveGoal() {
         toast('⚠ Error al guardar en la nube');
       } else {
         // Invalidate SWR cache so next reload fetches fresh data
-        try { localStorage.removeItem('cdco_swr_v2'); } catch(e) {}
+        try { localStorage.removeItem('cdco_swr_v3'); } catch(e) {}
         toast('✓ Meta guardada en la nube');
       }
     });
@@ -219,7 +219,7 @@ function deleteGoal(id) {
   if (SB_ON && S.user) {
     sb.from('goals').delete().eq('id', id).eq('user_id', S.user.id).then(({ error }) => {
       if (error) console.error('[Goals] delete error:', error);
-      else try { localStorage.removeItem('cdco_swr_v2'); } catch(e) {}
+      else try { localStorage.removeItem('cdco_swr_v3'); } catch(e) {}
     });
   }
 }
@@ -236,7 +236,7 @@ function toggleGoalCompleted(id, status) {
     if (SB_ON && S.user) {
       sb.from('goals').update({ completed: status }).eq('id', id).then(({ error }) => {
         if (error) console.error('[Goals] toggle error:', error);
-        else try { localStorage.removeItem('cdco_swr_v2'); } catch(e) {}
+        else try { localStorage.removeItem('cdco_swr_v3'); } catch(e) {}
       });
     }
   }

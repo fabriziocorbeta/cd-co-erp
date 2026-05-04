@@ -294,19 +294,30 @@ function saveSub() {
   if (!next)          { toast('Seleccioná la fecha del próximo cobro'); return; }
   const sub = { name, description: desc, icon, amount: amt, cur, currency: cur, frequency: freq, nextDate: next, active: true, account_id: accountId || null };
   if (!S.subscriptions) S.subscriptions = [];
+  let savedId;
   if (editSubId) {
     const i = S.subscriptions.findIndex(s => s.id === editSubId);
     if (i >= 0) S.subscriptions[i] = { ...S.subscriptions[i], ...sub };
+    savedId = editSubId;
     toast('◆ Suscripción actualizada');
   } else {
-    S.subscriptions.push({ ...sub, id: uid() });
+    const newSub = { ...sub, id: uid() };
+    S.subscriptions.push(newSub);
+    savedId = newSub.id;
     toast('◆ Suscripción registrada');
   }
-  lsave(); renderAll(); cm('sub-modal');
+  if (SB_ON && sb && S.user?.id) {
+    const row = S.subscriptions.find(s => s.id === savedId);
+    if (row) sbUpsert('subscriptions', row).catch(e => console.error('[Subs] upsert:', e));
+  } else { lsave(); }
+  renderAll(); cm('sub-modal');
 }
 
 function delSub(id) {
   if (!confirm('¿Eliminar esta suscripción?')) return;
   S.subscriptions = (S.subscriptions || []).filter(s => s.id !== id);
-  lsave(); renderAll(); toast('Suscripción eliminada');
+  if (SB_ON && sb && S.user?.id) {
+    sbDelete('subscriptions', id).catch(e => console.error('[Subs] delete:', e));
+  } else { lsave(); }
+  renderAll(); toast('Suscripción eliminada');
 }

@@ -194,21 +194,32 @@ function saveBudget() {
 
   const bgt = { category, amount, cur, month };
   if (!S.budgets) S.budgets = [];
+  let savedId;
   if (editBudgetId) {
     const i = S.budgets.findIndex(b => b.id === editBudgetId);
     if (i >= 0) S.budgets[i] = { ...S.budgets[i], ...bgt };
+    savedId = editBudgetId;
     toast('◆ Presupuesto actualizado');
   } else {
-    S.budgets.push({ ...bgt, id: uid() });
+    const newBgt = { ...bgt, id: uid() };
+    S.budgets.push(newBgt);
+    savedId = newBgt.id;
     toast('◆ Presupuesto creado');
   }
-  lsave(); renderAll(); cm('budget-modal');
+  if (SB_ON && sb && S.user?.id) {
+    const row = S.budgets.find(b => b.id === savedId);
+    if (row) sbUpsert('budgets', row).catch(e => console.error('[Budgets] upsert:', e));
+  } else { lsave(); }
+  renderAll(); cm('budget-modal');
 }
 
 function delBudget(id) {
   if (!confirm('¿Eliminar este presupuesto?')) return;
   S.budgets = (S.budgets || []).filter(b => b.id !== id);
-  lsave(); renderAll(); toast('Presupuesto eliminado');
+  if (SB_ON && sb && S.user?.id) {
+    sbDelete('budgets', id).catch(e => console.error('[Budgets] delete:', e));
+  } else { lsave(); }
+  renderAll(); toast('Presupuesto eliminado');
 }
 
 // Month filter change

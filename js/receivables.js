@@ -175,16 +175,23 @@ function saveRecv() {
     completed
   };
 
+  let savedId;
   if (editRecvId) {
     const i = S.receivables.findIndex(r => r.id === editRecvId);
     if (i >= 0) S.receivables[i] = { ...S.receivables[i], ...data };
+    savedId = editRecvId;
     toast('◆ Cuenta actualizada');
   } else {
-    S.receivables.push({ ...data, id: 'recv_' + uid().slice(1) });
+    const newRecv = { ...data, id: 'recv_' + uid().slice(1) };
+    S.receivables.push(newRecv);
+    savedId = newRecv.id;
     toast('◆ Cuenta a cobrar creada');
   }
 
-  lsave();
+  if (SB_ON && sb && S.user?.id) {
+    const row = S.receivables.find(r => r.id === savedId);
+    if (row) sbUpsert('receivables', row).catch(e => console.error('[Receivables] upsert:', e));
+  } else { lsave(); }
   renderReceivables();
   updateBadges();
   cm('ra-modal');
@@ -193,7 +200,9 @@ function saveRecv() {
 function delRecv(id) {
   if (!confirm('¿Eliminar esta cuenta a cobrar?')) return;
   S.receivables = (S.receivables || []).filter(r => r.id !== id);
-  lsave();
+  if (SB_ON && sb && S.user?.id) {
+    sbDelete('receivables', id).catch(e => console.error('[Receivables] delete:', e));
+  } else { lsave(); }
   renderReceivables();
   updateBadges();
   toast('Eliminada');
