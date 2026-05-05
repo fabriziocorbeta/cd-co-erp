@@ -423,7 +423,11 @@ function generatePdfReport() {
   `;
 
   pa.innerHTML = html;
-  setTimeout(() => { window.print(); }, 500);
+  document.body.classList.add('printing-report');
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => document.body.classList.remove('printing-report'), 1000);
+  }, 500);
 }
 
 // Ensure the default empty state is shown when entering the page

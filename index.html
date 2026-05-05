@@ -179,13 +179,17 @@ if ('serviceWorker' in navigator) {
     outline: none !important;
     cursor: default !important;
   }
-  body > *:not(#shipping-label-modal) { display: none !important; }
+  /* Shipping label print — default */
+  body:not(.printing-report) > *:not(#shipping-label-modal) { display: none !important; }
   #shipping-label-modal {
     position: static !important;
     background: transparent !important;
     padding: 0 !important;
     display: block !important;
   }
+  /* Report PDF print */
+  body.printing-report > *:not(#print-area) { display: none !important; }
+  body.printing-report #print-area { display: block !important; }
   .sl-sheet {
     box-shadow: none !important;
     max-width: 100% !important;
