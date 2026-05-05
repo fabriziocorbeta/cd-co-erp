@@ -174,17 +174,17 @@ function getUnifiedMonthlyData() {
   const fxRate = (typeof FX !== 'undefined' && FX.sell) ? FX.sell : 7500;
   const tm = typeof thisMo === 'function' ? thisMo() : new Date().toISOString().slice(0, 7);
   
-  let cU=0, cG=0; S.txs.filter(t=>mkey(t.date) === tm).forEach(t=>t.cur==='₲'?cG++:cU++);
+  let cU=0, cG=0; (S.txs||[]).filter(t=>mkey(t.date) === tm).forEach(t=>t.cur==='₲'?cG++:cU++);
   const dCur = cG>cU ? '₲':'$';
 
   let marExp = 0, marInc = 0;
   let catSums = {};
 
-  S.txs.forEach(t => {
+  (S.txs||[]).forEach(t => {
     const desc = t.desc ? t.desc.toLowerCase() : '';
     const cat = t.cat ? t.cat.toLowerCase() : '';
     const isAdj = t.isBalanceAdj === true || desc.includes('ajuste de saldo');
-    
+
     if (mkey(t.date) === tm && !isAdj) {
       const amt = t.cur === dCur ? Math.abs(t.amount) : (dCur==='₲' ? Math.abs(t.amount)*fxRate : Math.abs(t.amount)/fxRate);
       if (t.type === 'expense') {
@@ -202,7 +202,7 @@ function getUnifiedMonthlyData() {
   let prevD = new Date(y, parseInt(m)-2, 1);
   const prevTm = prevD.getFullYear() + '-' + String(prevD.getMonth()+1).padStart(2, '0');
 
-  S.txs.forEach(t => {
+  (S.txs||[]).forEach(t => {
     const desc = t.desc ? t.desc.toLowerCase() : '';
     const cat = t.cat ? t.cat.toLowerCase() : '';
     const isAdj = t.isBalanceAdj === true || desc.includes('ajuste de saldo');
@@ -329,7 +329,7 @@ function renderEtherealCharts() {
         const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
         lbs.push(d.toLocaleString('es',{month:'short'}));
         let tI=0, tE=0;
-        S.txs.filter(t=> {
+        (S.txs||[]).filter(t=> {
           const isAdj = (t.desc||'').toLowerCase().includes('ajuste') || (t.cat||'').toLowerCase().includes('ajuste') || (t.cat === 'Otros Ingresos' && Math.abs(t.amount) > 500000);
           return mkey(t.date)===k && !isAdj;
         }).forEach(t=>{ const a=t.cur===dCur?Math.abs(t.amount):(dCur==='₲'?Math.abs(t.amount)*fxRate:Math.abs(t.amount)/fxRate); if(t.type==='income')tI+=a; else if(t.type==='expense')tE+=a; });
@@ -342,7 +342,7 @@ function renderEtherealCharts() {
         const wS = new Date(d.setDate(d.getDate() - d.getDay() + 1)).toISOString().slice(0,10);
         const wE = new Date(d.setDate(d.getDate() + 6)).toISOString().slice(0,10);
         let tI=0, tE=0;
-        S.txs.filter(t=> {
+        (S.txs||[]).filter(t=> {
           const isAdj = (t.desc||'').toLowerCase().includes('ajuste') || (t.cat||'').toLowerCase().includes('ajuste') || (t.cat === 'Otros Ingresos' && Math.abs(t.amount) > 500000);
           return t.date>=wS && t.date<=wE && !isAdj;
         }).forEach(t=>{ const a=t.cur===dCur?Math.abs(t.amount):(dCur==='₲'?Math.abs(t.amount)*fxRate:Math.abs(t.amount)/fxRate); if(t.type==='income')tI+=a; else if(t.type==='expense')tE+=a; });

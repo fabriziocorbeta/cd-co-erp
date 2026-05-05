@@ -9,7 +9,7 @@ function calculateAlerts() {
   const now = new Date();
   
   // 1. Stock bajo
-  S.products.forEach(p => {
+  (S.products||[]).forEach(p => {
     if (p.stock <= p.minStock) {
       alerts.push({
         type: p.stock <= 0 ? 'danger' : 'warning',
@@ -22,7 +22,7 @@ function calculateAlerts() {
   });
 
   // 2. Suscripción por vencer (<= 7 días)
-  S.subscriptions.forEach(s => {
+  (S.subscriptions||[]).forEach(s => {
     if(s.active && s.nextDate) {
       const msDiff = new Date(s.nextDate+'T00:00:00') - now;
       const daysDiff = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
@@ -48,12 +48,10 @@ function calculateAlerts() {
 
   // 3. Presupuesto superado
   const tm = thisMo();
-  S.budgets.forEach(b => {
+  (S.budgets||[]).forEach(b => {
     if (b.month === tm) {
-      // Find expenses in that category this month
-      // Currencies: normalise if necessary, simplistic matching here
       const bCur = b.cur || b.currency || '$';
-      const spent = S.txs
+      const spent = (S.txs||[])
         .filter(t => t.type==='expense' && t.cat === b.category && (t.cur||'$') === bCur && mkey(t.date) === tm)
         .reduce((a,t) => a + Math.abs(parseFloat(t.amount)||0), 0); // amounts may be negative — use abs
       if (spent >= b.amount) {
