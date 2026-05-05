@@ -372,15 +372,19 @@ async function _saveSaleImpl(){
   }
 
   // ── Rules Engine: evaluar stock post-venta (fire-and-forget) ─────────────
-  if (!editIds.sale && S.user?.id) {
+  console.log('[RulesEngine] post-save check — editIds.sale:', editIds.sale, '| S.user?.id:', S.user?.id);
+  if (!editIds.sale) {
+    const _userId = S.user?.id || null;
     const _saleForRules = S.sales.find(s => s.id === saleId) || { id: saleId, items, total, cur, date, status };
+    console.log('Enviando evaluación de reglas al servidor...');
     fetch('/api/rules/evaluate-sale', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ sale: _saleForRules, user_id: S.user.id })
+      body:    JSON.stringify({ sale: _saleForRules, user_id: _userId })
     })
       .then(r => r.json())
       .then(result => {
+        console.log('[RulesEngine] respuesta servidor:', result);
         if (result.triggered > 0) {
           console.log('[RulesEngine] reglas disparadas:', result.triggered, result.results);
           if (typeof updateBadges === 'function') updateBadges();
