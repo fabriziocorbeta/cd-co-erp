@@ -373,7 +373,7 @@ async function _saveSaleImpl(){
 
   // ── Rules Engine: evaluar stock post-venta (fire-and-forget) ─────────────
   console.log('[RulesEngine] post-save check — editIds.sale:', editIds.sale, '| S.user?.id:', S.user?.id);
-  if (!editIds.sale) {
+  {
     const _userId = S.user?.id || null;
     const _saleForRules = S.sales.find(s => s.id === saleId) || { id: saleId, items, total, cur, date, status };
     console.log('Enviando evaluación de reglas al servidor...');
