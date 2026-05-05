@@ -154,7 +154,7 @@ async function syncOrderPayment(orderId) {
     
     const txData = {
       type: 'expense',
-      amount: total,
+      amount: -Math.abs(total),
       account_id: o.payAccountId,
       cat: 'Stock / Compras',
       desc: 'Pago de pedido a ' + (sup?.name || 'proveedor'),
@@ -222,11 +222,11 @@ async function confirmReceive(){
   // auto expense tx ONLY if not already paid/handled
   const hasTx = S.txs.find(t => t.orderId === o.id);
   if(total > 0 && !hasTx) {
-    const recvTx={id:uid(),type:'expense',desc:`Pedido #${String(o.num).padStart(4,'0')} recibido`,amount:total,cur:o.cur||'$',cat:'Stock / Compras',date:today(),orderId:o.id};
+    const recvTx={id:uid(),type:'expense',desc:`Pedido #${String(o.num).padStart(4,'0')} recibido`,amount:-Math.abs(total),cur:o.cur||'$',cat:'Stock / Compras',date:today(),orderId:o.id};
     if(SB_ON){ const saved=await sbSaveTransaction(recvTx); S.txs.push(saved||recvTx); }
     else S.txs.push(recvTx);
   } else if (hasTx) {
-    hasTx.amount = total;
+    hasTx.amount = -Math.abs(total);
     if(SB_ON) sbSaveTransaction({...hasTx});
   }
 

@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         `${SB_URL}/rest/v1/business_info`,
         {
           method: 'POST',
-          headers: { ...headers, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          headers: { ...headers, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation' },
           body: JSON.stringify(payload)
         }
       );

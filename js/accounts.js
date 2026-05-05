@@ -364,7 +364,7 @@ async function saveAccount() {
           id: uid(),
           type: diff > 0 ? 'income' : 'expense',
           desc: '⚖ Ajuste de saldo — ' + name,
-          amount: Math.abs(diff),
+          amount: diff, // positive for income, negative for expense — matches sign convention
           cur, cat: diff > 0 ? 'Otros Ingresos' : 'Otros Gastos',
           date: today(), account_id: editAccountId, isBalanceAdj: true
         };
