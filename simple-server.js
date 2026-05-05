@@ -6,6 +6,7 @@ const backup = require('./backup');
 const fuelMgmt = require('./fuel-management');
 const fleetMgmt = require('./fleet-management');
 const forecastAccruals = require('./forecast-accruals');
+const rulesEngine = require('./rules-engine');
 
 const PORT = 8000;
 const PROJECT_DIR = __dirname;
@@ -591,6 +592,14 @@ async function handleApiRequest(pathname, method, body) {
         body: JSON.stringify({ success: false, error: err.message })
       };
     }
+  }
+
+  // ══════════════════════════════════════════
+  // RULES ENGINE ENDPOINTS
+  // ══════════════════════════════════════════
+  if (pathname.startsWith('/api/rules/')) {
+    const result = await rulesEngine.handleRulesRequest(pathname, method, body, envVars);
+    if (result) return result;
   }
 
   // Endpoint no encontrado
