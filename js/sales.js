@@ -371,6 +371,24 @@ async function _saveSaleImpl(){
     if (soldWithSku.length) pushSkusToShopify(soldWithSku); // sin await — no bloquea la UI
   }
 
+  // ── Rules Engine: evaluar stock post-venta (fire-and-forget) ─────────────
+  if (!editIds.sale && S.user?.id) {
+    const _saleForRules = S.sales.find(s => s.id === saleId) || { id: saleId, items, total, cur, date, status };
+    fetch('/api/rules/evaluate-sale', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ sale: _saleForRules, user_id: S.user.id })
+    })
+      .then(r => r.json())
+      .then(result => {
+        if (result.triggered > 0) {
+          console.log('[RulesEngine] reglas disparadas:', result.triggered, result.results);
+          if (typeof updateBadges === 'function') updateBadges();
+        }
+      })
+      .catch(err => console.warn('[RulesEngine] evaluate-sale offline/error:', err.message));
+  }
+
   editIds.sale=null;
 }
 async function openEditSaleModal(id) {
