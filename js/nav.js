@@ -63,7 +63,7 @@ async function renderPageData(pg){
   else if(pg==='profitability')renderProfitability();
   else if(pg==='fleet'){if(typeof renderFleet==='function')renderFleet();}
   else if(pg==='notifs'){if(typeof calculateAlerts==='function')calculateAlerts();if(typeof renderNotifs==='function')renderNotifs();}
-  else if(pg==='plan'){buildPlanCards();loadEmpresaForm();if(typeof loadAdminUsers==='function')loadAdminUsers();}
+  else if(pg==='plan'){buildPlanCards();loadEmpresaForm();if(typeof loadAdminUsers==='function')loadAdminUsers();if(typeof initBackupUI==='function')initBackupUI();}
 }
 // ── Dirty-flag render guard ──────────────────────────────────────────────────
 // Compute a lightweight fingerprint of the data that drives each module.

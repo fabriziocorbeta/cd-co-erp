@@ -174,11 +174,14 @@ async function downloadFullExport() {
 // ⬇️ EXPORTAR CSV PARA SURE
 // Llama a GET /api/export-sure-csv?user_id=... y fuerza descarga del .csv
 async function downloadSureCsv() {
+  console.log('[downloadSureCsv] Iniciando exportación CSV para Sure...');
   const btn = document.getElementById('btn-export-sure-csv');
 
   const userId = S.user?.id;
+  console.log('[downloadSureCsv] userId:', userId);
   if (!userId) {
     toast('⚠ Iniciá sesión para exportar tus datos', 3000);
+    console.warn('[downloadSureCsv] Sin userId — abortando');
     return;
   }
 
@@ -219,8 +222,9 @@ async function downloadSureCsv() {
   }
 }
 
-// 🎬 INICIALIZAR BACKUP UI (solo llamar manualmente cuando se abre la sección de Settings)
+// 🎬 INICIALIZAR BACKUP UI (llamado desde renderPageData('plan') en nav.js)
 function initBackupUI() {
+  console.log('[initBackupUI] Vinculando botones de backup/export...');
   const btn = document.getElementById('btn-backup-now');
   if (btn && !btn._backupBound) {
     btn.addEventListener('click', triggerBackupNow);
@@ -237,6 +241,9 @@ function initBackupUI() {
   if (btnSureCsv && !btnSureCsv._sureCsvBound) {
     btnSureCsv.addEventListener('click', downloadSureCsv);
     btnSureCsv._sureCsvBound = true;
+    console.log('[initBackupUI] ✅ btn-export-sure-csv vinculado');
+  } else if (!btnSureCsv) {
+    console.warn('[initBackupUI] ⚠ btn-export-sure-csv no encontrado en el DOM');
   }
 
   updateBackupStatusDisplay();
