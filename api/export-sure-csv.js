@@ -2,9 +2,7 @@
 // GET /api/export-sure-csv?user_id=<uuid>
 // Returns a Sure-compatible CSV attachment.
 
-import sureCsvExporter from '../sure-csv-exporter.js';
-
-const { exportSureCsv, sureCsvFilename } = sureCsvExporter;
+import { exportSureCsv, sureCsvFilename } from '../sure-csv-exporter.js';
 
 export default async function handler(req, res) {
   try {

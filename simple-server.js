@@ -8,7 +8,7 @@ const fleetMgmt = require('./fleet-management');
 const forecastAccruals = require('./forecast-accruals');
 const rulesEngine = require('./rules-engine');
 const dataExporter = require('./data-exporter');
-const sureCsvExporter = require('./sure-csv-exporter');
+// sure-csv-exporter is ESM — loaded lazily via dynamic import at call site
 
 const PORT = 8000;
 const PROJECT_DIR = __dirname;
@@ -618,7 +618,8 @@ async function handleApiRequest(pathname, method, body, queryParams = {}, reqHea
   // ══════════════════════════════════════════
   // GET /api/export-sure-csv?user_id=<uuid>
   if (pathname === '/api/export-sure-csv' && method === 'GET') {
-    const result = await sureCsvExporter.handleSureCsvRequest(pathname, method, queryParams, envVars, reqHeaders);
+    const { handleSureCsvRequest } = await import('./sure-csv-exporter.js');
+    const result = await handleSureCsvRequest(pathname, method, queryParams, envVars, reqHeaders);
     if (result) return result;
   }
 

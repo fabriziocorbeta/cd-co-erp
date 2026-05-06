@@ -9,8 +9,6 @@
 //   - Date normalisation: YYYY-MM-DD → MM/DD/YYYY (Sure requires MM/DD/YYYY)
 //   - Amounts: txs already signed; sales always positive (income)
 
-'use strict';
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /** Converts YYYY-MM-DD → MM/DD/YYYY */
@@ -209,4 +207,4 @@ function _json(status, obj) {
   };
 }
 
-module.exports = { exportSureCsv, handleSureCsvRequest, sureCsvFilename };
+export { exportSureCsv, handleSureCsvRequest, sureCsvFilename };
