@@ -8,6 +8,7 @@ const fleetMgmt = require('./fleet-management');
 const forecastAccruals = require('./forecast-accruals');
 const rulesEngine = require('./rules-engine');
 const dataExporter = require('./data-exporter');
+const sureCsvExporter = require('./sure-csv-exporter');
 
 const PORT = 8000;
 const PROJECT_DIR = __dirname;
@@ -609,6 +610,15 @@ async function handleApiRequest(pathname, method, body, queryParams = {}) {
   // Add ?meta=1 for metadata only
   if ((pathname === '/api/export/data' || pathname === '/api/export-data') && method === 'GET') {
     const result = await dataExporter.handleExportRequest('/api/export/data', method, queryParams, envVars);
+    if (result) return result;
+  }
+
+  // ══════════════════════════════════════════
+  // SURE CSV EXPORT ENDPOINT
+  // ══════════════════════════════════════════
+  // GET /api/export-sure-csv?user_id=<uuid>
+  if (pathname === '/api/export-sure-csv' && method === 'GET') {
+    const result = await sureCsvExporter.handleSureCsvRequest(pathname, method, queryParams, envVars);
     if (result) return result;
   }
 

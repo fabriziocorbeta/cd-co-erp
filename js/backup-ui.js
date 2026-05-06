@@ -171,6 +171,54 @@ async function downloadFullExport() {
   }
 }
 
+// ⬇️ EXPORTAR CSV PARA SURE
+// Llama a GET /api/export-sure-csv?user_id=... y fuerza descarga del .csv
+async function downloadSureCsv() {
+  const btn = document.getElementById('btn-export-sure-csv');
+
+  const userId = S.user?.id;
+  if (!userId) {
+    toast('⚠ Iniciá sesión para exportar tus datos', 3000);
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando CSV...'; }
+
+  try {
+    const resp = await fetch(`/api/export-sure-csv?user_id=${encodeURIComponent(userId)}`);
+
+    if (!resp.ok) {
+      let errMsg = `HTTP ${resp.status}`;
+      try { const j = await resp.json(); errMsg = j.error || errMsg; } catch (_) {}
+      throw new Error(errMsg);
+    }
+
+    const blob = await resp.blob();
+
+    // Filename from Content-Disposition or fallback
+    const cd = resp.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1]
+      : `sure_import_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`;
+
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl; a.download = filename; a.click();
+    URL.revokeObjectURL(objUrl);
+
+    const rows  = resp.headers.get('X-Export-Rows')  || '?';
+    const txs   = resp.headers.get('X-Export-Txs')   || '?';
+    const sales = resp.headers.get('X-Export-Sales') || '?';
+    toast(`✅ CSV descargado — ${rows} filas (${sales} ventas + ${txs} movimientos)`, 5000);
+
+  } catch (err) {
+    console.error('[downloadSureCsv]', err);
+    toast('❌ Error al exportar CSV: ' + err.message, 4000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇️ Exportar CSV para Sure'; }
+  }
+}
+
 // 🎬 INICIALIZAR BACKUP UI (solo llamar manualmente cuando se abre la sección de Settings)
 function initBackupUI() {
   const btn = document.getElementById('btn-backup-now');
@@ -183,6 +231,12 @@ function initBackupUI() {
   if (btnExport && !btnExport._exportBound) {
     btnExport.addEventListener('click', downloadFullExport);
     btnExport._exportBound = true;
+  }
+
+  const btnSureCsv = document.getElementById('btn-export-sure-csv');
+  if (btnSureCsv && !btnSureCsv._sureCsvBound) {
+    btnSureCsv.addEventListener('click', downloadSureCsv);
+    btnSureCsv._sureCsvBound = true;
   }
 
   updateBackupStatusDisplay();
