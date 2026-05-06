@@ -1053,8 +1053,10 @@ if ('serviceWorker' in navigator) {
               <span style="color:var(--mu);font-size:.75rem">⏳ Cargando...</span>
             </div>
             <button class="btn btn-g" id="btn-backup-now" style="width:100%;justify-content:center">💾 Generar Backup Ahora</button>
+            <button class="btn btn-o" id="btn-export-full" style="width:100%;justify-content:center;margin-top:8px">📥 Descargar Backup Completo (JSON)</button>
             <p style="font-size:.65rem;color:var(--mu);margin-top:8px;line-height:1.4">
-              Los backups se generan automáticamente cada 24 horas. Los archivos se guardan en la carpeta <code style="background:var(--bg5);padding:2px 4px;border-radius:3px">/backups</code> del servidor.
+              Los backups se generan automáticamente cada 24 horas. Los archivos se guardan en la carpeta <code style="background:var(--bg5);padding:2px 4px;border-radius:3px">/backups</code> del servidor.<br>
+              <span style="color:var(--g2)">◆</span> <em>Descargar Backup Completo</em> exporta todas tus tablas de Supabase directamente al navegador.
             </p>
           </div>
           <div class="panel pp" style="max-width:600px">

@@ -604,10 +604,11 @@ async function handleApiRequest(pathname, method, body, queryParams = {}) {
   // ══════════════════════════════════════════
   // DATA EXPORT ENDPOINTS
   // ══════════════════════════════════════════
-  // GET /api/export/data?user_id=<uuid>        → descarga JSON completo
-  // GET /api/export/data?user_id=<uuid>&meta=1 → solo metadatos (rápido)
-  if (pathname === '/api/export/data' && method === 'GET') {
-    const result = await dataExporter.handleExportRequest(pathname, method, queryParams, envVars);
+  // GET /api/export/data  (legacy)   \
+  // GET /api/export-data (Vercel alias) → descarga JSON completo
+  // Add ?meta=1 for metadata only
+  if ((pathname === '/api/export/data' || pathname === '/api/export-data') && method === 'GET') {
+    const result = await dataExporter.handleExportRequest('/api/export/data', method, queryParams, envVars);
     if (result) return result;
   }
 

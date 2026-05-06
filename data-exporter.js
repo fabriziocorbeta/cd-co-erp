@@ -191,4 +191,4 @@ function _json(status, obj) {
   };
 }
 
-module.exports = { exportUserData, handleExportRequest, TABLES };
+module.exports = { exportUserData, handleExportRequest, exportFilename, TABLES };

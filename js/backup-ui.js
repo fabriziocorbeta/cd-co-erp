@@ -123,6 +123,54 @@ async function updateBackupStatusDisplay() {
   statusEl.innerHTML = html;
 }
 
+// 📥 DESCARGAR BACKUP COMPLETO DESDE SUPABASE
+// Llama a GET /api/export-data?user_id=... (funciona en dev y en Vercel)
+// y fuerza la descarga del JSON en el navegador.
+async function downloadFullExport() {
+  const btn = document.getElementById('btn-export-full');
+
+  const userId = S.user?.id;
+  if (!userId) {
+    toast('⚠ Iniciá sesión para exportar tus datos', 3000);
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Preparando exportación...'; }
+
+  try {
+    const resp = await fetch(`/api/export-data?user_id=${encodeURIComponent(userId)}`);
+
+    if (!resp.ok) {
+      let errMsg = `HTTP ${resp.status}`;
+      try { const j = await resp.json(); errMsg = j.error || errMsg; } catch (_) {}
+      throw new Error(errMsg);
+    }
+
+    const blob = await resp.blob();
+
+    // Nombre de archivo desde header Content-Disposition, o fallback
+    const cd = resp.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1]
+      : `cdco_export_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${userId.slice(0,8)}.json`;
+
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl; a.download = filename; a.click();
+    URL.revokeObjectURL(objUrl);
+
+    const rows = resp.headers.get('X-Export-Rows') || '?';
+    const errs = parseInt(resp.headers.get('X-Export-Errors') || '0', 10);
+    toast(`✅ Exportación descargada — ${rows} registros${errs > 0 ? ` (${errs} tablas con error)` : ''}`, 4500);
+
+  } catch (err) {
+    console.error('[downloadFullExport]', err);
+    toast('❌ Error al exportar: ' + err.message, 4000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📥 Descargar Backup Completo (JSON)'; }
+  }
+}
+
 // 🎬 INICIALIZAR BACKUP UI (solo llamar manualmente cuando se abre la sección de Settings)
 function initBackupUI() {
   const btn = document.getElementById('btn-backup-now');
@@ -130,5 +178,12 @@ function initBackupUI() {
     btn.addEventListener('click', triggerBackupNow);
     btn._backupBound = true;
   }
+
+  const btnExport = document.getElementById('btn-export-full');
+  if (btnExport && !btnExport._exportBound) {
+    btnExport.addEventListener('click', downloadFullExport);
+    btnExport._exportBound = true;
+  }
+
   updateBackupStatusDisplay();
 }
