@@ -11,10 +11,13 @@
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/** Converts YYYY-MM-DD → MM/DD/YYYY */
+/** Converts YYYY-MM-DD or ISO timestamp → MM/DD/YYYY (Sure required format) */
 function toSureDate(iso) {
   if (!iso) return '';
-  const [y, m, d] = iso.slice(0, 10).split('-');
+  // Accepts "2026-04-13", "2026-04-13T00:00:00Z", etc.
+  const dateStr = String(iso).slice(0, 10); // take YYYY-MM-DD portion
+  const [y, m, d] = dateStr.split('-');
+  if (!y || !m || !d) return '';
   return `${m}/${d}/${y}`;
 }
 
@@ -76,27 +79,31 @@ async function sbFetch(sbUrl, sbKey, table, filter, select = '*', jwt = null) {
 // ── Mapping ────────────────────────────────────────────────────────────────
 
 function mapTxs(txs, accountsMap) {
-  return txs.map(t => ({
-    date:     toSureDate(t.date),
-    amount:   t.amount,               // already signed in DB
-    name:     t.desc || '',
-    currency: normCurrency(t.cur || t.currency),
-    category: t.cat || '',
-    tags:     '',
-    account:  accountsMap[t.account_id]?.name || '',
-    notes:    t.id || '',
-  }));
+  return txs.map(t => {
+    const rawDate = t.date || t.created_at || '';
+    return {
+      date:     toSureDate(rawDate),
+      amount:   t.amount != null ? t.amount : '',  // already signed in DB
+      name:     t.desc || t.description || '',
+      currency: normCurrency(t.cur || t.currency || ''),
+      category: t.cat || t.category || '',
+      tags:     '',
+      account:  accountsMap[t.account_id]?.name || '',
+      notes:    t.id || '',
+    };
+  });
 }
 
 function mapSales(sales, contactsMap) {
   return sales.map(s => {
-    const client = contactsMap[s.client_id]?.name || '';
+    const rawDate  = s.date || s.created_at || '';
+    const client   = contactsMap[s.client_id]?.name || '';
     const noteParts = [s.nro_factura, s.notes, s.id].filter(Boolean);
     return {
-      date:     toSureDate(s.date),
-      amount:   s.total,              // sales are always income (positive)
+      date:     toSureDate(rawDate),
+      amount:   s.total != null ? s.total : '',   // sales are always income (positive)
       name:     client || 'Venta',
-      currency: normCurrency(s.cur),
+      currency: normCurrency(s.cur || ''),
       category: 'Venta',
       tags:     s.condicion || '',
       account:  s.method || '',
