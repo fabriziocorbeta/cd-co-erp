@@ -175,6 +175,8 @@ async function downloadFullExport() {
 // Llama a GET /api/export-sure-csv?user_id=... y fuerza descarga del .csv
 async function downloadSureCsv() {
   console.log('[downloadSureCsv] Iniciando exportación CSV para Sure...');
+  toast('⏳ Preparando CSV para Sure...', 2500);
+
   const btn = document.getElementById('btn-export-sure-csv');
 
   const userId = S.user?.id;
@@ -222,29 +224,19 @@ async function downloadSureCsv() {
   }
 }
 
+// ── Event delegation — wired once at script load, works regardless of when
+// buttons appear in the DOM (dynamic SPA rendering, modal injection, etc.)
+document.addEventListener('click', function(e) {
+  const t = e.target.closest('button') || e.target;
+  const id = t.id || t.closest('[id]')?.id;
+  if (id === 'btn-backup-now')      { triggerBackupNow();   return; }
+  if (id === 'btn-export-full')     { downloadFullExport(); return; }
+  if (id === 'btn-export-sure-csv') { downloadSureCsv();    return; }
+});
+
 // 🎬 INICIALIZAR BACKUP UI (llamado desde renderPageData('plan') en nav.js)
+// Solo actualiza el display de estado — los listeners ya están en la delegación.
 function initBackupUI() {
-  console.log('[initBackupUI] Vinculando botones de backup/export...');
-  const btn = document.getElementById('btn-backup-now');
-  if (btn && !btn._backupBound) {
-    btn.addEventListener('click', triggerBackupNow);
-    btn._backupBound = true;
-  }
-
-  const btnExport = document.getElementById('btn-export-full');
-  if (btnExport && !btnExport._exportBound) {
-    btnExport.addEventListener('click', downloadFullExport);
-    btnExport._exportBound = true;
-  }
-
-  const btnSureCsv = document.getElementById('btn-export-sure-csv');
-  if (btnSureCsv && !btnSureCsv._sureCsvBound) {
-    btnSureCsv.addEventListener('click', downloadSureCsv);
-    btnSureCsv._sureCsvBound = true;
-    console.log('[initBackupUI] ✅ btn-export-sure-csv vinculado');
-  } else if (!btnSureCsv) {
-    console.warn('[initBackupUI] ⚠ btn-export-sure-csv no encontrado en el DOM');
-  }
-
+  console.log('[initBackupUI] Actualizando estado de backup...');
   updateBackupStatusDisplay();
 }
