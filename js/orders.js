@@ -208,15 +208,30 @@ async function confirmReceive(){
   o.status='received';
   const total=o.items.reduce((a,i)=>a+i.qty*(i.price||S.products.find(p=>p.id===i.prodId)?.buyPrice||0),0);
   // update stock locally + sync to Supabase
-  o.items.forEach(i=>{const p=S.products.find(x=>x.id===i.prodId);if(p)p.stock+=i.qty});
   if(SB_ON && sb && S.user?.id){
-    // Sync each product's updated stock to DB
+    // Sync each product's updated stock to DB using atomic RPC
     for(const i of o.items){
       const p=S.products.find(x=>x.id===i.prodId);
-      if(p) await sbSaveProduct(p, false);
+      if(p) {
+        const {data:rpcData,error:rpcErr}=await sb.rpc('adjust_stock_atomic',{
+          p_product_id:p.id,
+          p_qty:i.qty,
+          p_type:'in',
+          p_user_id:S.user.id
+        });
+        if(rpcErr||!rpcData?.ok){
+          console.error('[Orders] RPC sync error for product', p.id, rpcErr||'Not OK');
+          // Fallback to local update if RPC fails
+          p.stock+=i.qty;
+        } else {
+          p.stock=rpcData.new_stock;
+        }
+      }
     }
     // Update order status in Supabase
     sb.from('orders').update({status:'received'}).eq('id',o.id).eq('user_id',S.user.id).catch(e=>console.error('[Orders] Status sync error:',e));
+  } else {
+    o.items.forEach(i=>{const p=S.products.find(x=>x.id===i.prodId);if(p)p.stock+=i.qty});
   }
 
   // auto expense tx ONLY if not already paid/handled
