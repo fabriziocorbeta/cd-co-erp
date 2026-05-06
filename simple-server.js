@@ -54,7 +54,7 @@ console.log('🔧 Variables cargadas:', {
 // ══════════════════════════════════════════
 // MANEJADOR DE API ENDPOINTS
 // ══════════════════════════════════════════
-async function handleApiRequest(pathname, method, body, queryParams = {}) {
+async function handleApiRequest(pathname, method, body, queryParams = {}, reqHeaders = {}) {
   // GET /api/backup/status — obtener estado del último backup
   if (pathname === '/api/backup/status' && method === 'GET') {
     const status = await backup.getBackupStatus();
@@ -618,7 +618,7 @@ async function handleApiRequest(pathname, method, body, queryParams = {}) {
   // ══════════════════════════════════════════
   // GET /api/export-sure-csv?user_id=<uuid>
   if (pathname === '/api/export-sure-csv' && method === 'GET') {
-    const result = await sureCsvExporter.handleSureCsvRequest(pathname, method, queryParams, envVars);
+    const result = await sureCsvExporter.handleSureCsvRequest(pathname, method, queryParams, envVars, reqHeaders);
     if (result) return result;
   }
 
@@ -666,7 +666,7 @@ const server = http.createServer(async (req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const apiResponse = await handleApiRequest(pathname, req.method, body, parsedUrl.query);
+        const apiResponse = await handleApiRequest(pathname, req.method, body, parsedUrl.query, req.headers);
         res.writeHead(apiResponse.statusCode, apiResponse.headers);
         res.end(apiResponse.body);
       } catch (err) {

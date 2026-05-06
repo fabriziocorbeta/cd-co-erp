@@ -24,8 +24,13 @@ export default async function handler(req, res) {
     return res.status(503).json({ success: false, error: 'Supabase no configurado en variables de entorno de Vercel' });
   }
 
+  // Extract user JWT from Authorization header — required to satisfy Supabase RLS.
+  // Without it, auth.uid() = null and all user-scoped queries return 0 rows.
+  const authHeader = req.headers.authorization || req.headers['Authorization'] || '';
+  const jwt = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
   try {
-    const { csv, rowCount, txCount, saleCount } = await exportSureCsv(userId, sbUrl, sbKey);
+    const { csv, rowCount, txCount, saleCount } = await exportSureCsv(userId, sbUrl, sbKey, jwt);
     const filename = sureCsvFilename(userId);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');

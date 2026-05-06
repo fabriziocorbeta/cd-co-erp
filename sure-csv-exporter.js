@@ -53,17 +53,24 @@ function rowsToCsv(rows) {
 }
 
 // ── Supabase fetcher ───────────────────────────────────────────────────────
+// jwt: user's access token — when provided, satisfies RLS (auth.uid() = user_id).
+// Falls back to sbKey (anon key) which only works if RLS is disabled.
 
-async function sbFetch(sbUrl, sbKey, table, filter, select = '*') {
+async function sbFetch(sbUrl, sbKey, table, filter, select = '*', jwt = null) {
   const url = `${sbUrl}/rest/v1/${table}?${filter}&select=${encodeURIComponent(select)}&order=created_at.asc`;
+  const bearer = jwt || sbKey;
   const res = await fetch(url, {
     headers: {
-      'apikey': sbKey,
-      'Authorization': `Bearer ${sbKey}`,
-      'Accept': 'application/json',
+      'apikey':        sbKey,
+      'Authorization': `Bearer ${bearer}`,
+      'Accept':        'application/json',
     },
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    console.error(`[sure-csv] ${table} fetch failed HTTP ${res.status}:`, errText.slice(0, 200));
+    return [];
+  }
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
@@ -102,19 +109,24 @@ function mapSales(sales, contactsMap) {
 
 // ── Public API ─────────────────────────────────────────────────────────────
 
-async function exportSureCsv(userId, sbUrl, sbKey) {
+// jwt: optional user access token — required when Supabase RLS is enabled.
+async function exportSureCsv(userId, sbUrl, sbKey, jwt = null) {
   if (!userId) throw new Error('userId requerido');
   if (!sbUrl || !sbKey) throw new Error('SUPABASE_URL y SUPABASE_ANON_KEY requeridos');
+
+  console.log(`[sure-csv] exportSureCsv userId=${userId} jwt=${jwt ? 'provided' : 'MISSING — RLS will block'}`);
 
   const uid = `user_id=eq.${userId}`;
 
   // Fetch all four tables concurrently
   const [txs, sales, contacts, accounts] = await Promise.all([
-    sbFetch(sbUrl, sbKey, 'txs',      uid).catch(() => []),
-    sbFetch(sbUrl, sbKey, 'sales',    uid).catch(() => []),
-    sbFetch(sbUrl, sbKey, 'contacts', uid, 'id,name').catch(() => []),
-    sbFetch(sbUrl, sbKey, 'accounts', uid, 'id,name,type').catch(() => []),
+    sbFetch(sbUrl, sbKey, 'txs',      uid, '*',         jwt).catch(e => { console.error('[sure-csv] txs error:', e); return []; }),
+    sbFetch(sbUrl, sbKey, 'sales',    uid, '*',         jwt).catch(e => { console.error('[sure-csv] sales error:', e); return []; }),
+    sbFetch(sbUrl, sbKey, 'contacts', uid, 'id,name',   jwt).catch(e => { console.error('[sure-csv] contacts error:', e); return []; }),
+    sbFetch(sbUrl, sbKey, 'accounts', uid, 'id,name,type', jwt).catch(e => { console.error('[sure-csv] accounts error:', e); return []; }),
   ]);
+
+  console.log(`[sure-csv] fetched — txs:${txs.length} sales:${sales.length} contacts:${contacts.length} accounts:${accounts.length}`);
 
   // Index lookup maps
   const contactsMap = Object.fromEntries(contacts.map(c => [c.id, c]));
@@ -148,7 +160,8 @@ function sureCsvFilename(userId) {
 // ── HTTP handler (simple-server.js) ───────────────────────────────────────
 // GET /api/export-sure-csv?user_id=<uuid>
 
-async function handleSureCsvRequest(pathname, method, queryParams, envVars) {
+// headers: raw request headers object — used to extract Authorization JWT.
+async function handleSureCsvRequest(pathname, method, queryParams, envVars, headers = {}) {
   if (pathname !== '/api/export-sure-csv' || method !== 'GET') return null;
 
   const userId = queryParams.user_id;
@@ -163,8 +176,12 @@ async function handleSureCsvRequest(pathname, method, queryParams, envVars) {
     return _json(503, { success: false, error: 'Supabase no configurado en .env.local' });
   }
 
+  // Extract JWT from Authorization header (case-insensitive key lookup)
+  const authHeader = headers['authorization'] || headers['Authorization'] || '';
+  const jwt = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
   try {
-    const { csv, rowCount, txCount, saleCount } = await exportSureCsv(userId, sbUrl, sbKey);
+    const { csv, rowCount, txCount, saleCount } = await exportSureCsv(userId, sbUrl, sbKey, jwt);
     const filename = sureCsvFilename(userId);
 
     return {

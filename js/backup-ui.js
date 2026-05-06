@@ -189,8 +189,21 @@ async function downloadSureCsv() {
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando CSV...'; }
 
+  // Get current session JWT so the server can satisfy Supabase RLS.
+  // Without it, auth.uid() = null on the server → 0 rows returned.
+  let jwt = '';
   try {
-    const resp = await fetch(`/api/export-sure-csv?user_id=${encodeURIComponent(userId)}`);
+    if (typeof sb !== 'undefined' && sb?.auth?.getSession) {
+      const { data } = await sb.auth.getSession();
+      jwt = data?.session?.access_token || '';
+      console.log('[downloadSureCsv] JWT:', jwt ? `${jwt.slice(0,20)}...` : 'NOT FOUND');
+    }
+  } catch (_) {}
+
+  try {
+    const resp = await fetch(`/api/export-sure-csv?user_id=${encodeURIComponent(userId)}`, {
+      headers: jwt ? { 'Authorization': `Bearer ${jwt}` } : {},
+    });
 
     if (!resp.ok) {
       let errMsg = `HTTP ${resp.status}`;
