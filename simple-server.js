@@ -7,6 +7,7 @@ const fuelMgmt = require('./fuel-management');
 const fleetMgmt = require('./fleet-management');
 const forecastAccruals = require('./forecast-accruals');
 const rulesEngine = require('./rules-engine');
+const dataExporter = require('./data-exporter');
 
 const PORT = 8000;
 const PROJECT_DIR = __dirname;
@@ -52,7 +53,7 @@ console.log('🔧 Variables cargadas:', {
 // ══════════════════════════════════════════
 // MANEJADOR DE API ENDPOINTS
 // ══════════════════════════════════════════
-async function handleApiRequest(pathname, method, body) {
+async function handleApiRequest(pathname, method, body, queryParams = {}) {
   // GET /api/backup/status — obtener estado del último backup
   if (pathname === '/api/backup/status' && method === 'GET') {
     const status = await backup.getBackupStatus();
@@ -492,9 +493,8 @@ async function handleApiRequest(pathname, method, body) {
   // GET /api/forecast/next-month — obtener previsión del mes siguiente
   if (pathname === '/api/forecast/next-month' && method === 'GET') {
     try {
-      const query = url.parse(req.url, true).query;
-      const userId = query.user_id;
-      const currency = query.currency || '₲';
+      const userId = queryParams.user_id;
+      const currency = queryParams.currency || '₲';
 
       if (!userId) {
         return {
@@ -566,9 +566,8 @@ async function handleApiRequest(pathname, method, body) {
   // GET /api/validate/fuel-transaction — validar si una categoría es combustible
   if (pathname === '/api/validate/fuel-transaction' && method === 'GET') {
     try {
-      const query = url.parse(req.url, true).query;
-      const category = (query.category || '').toLowerCase();
-      const description = (query.description || '').toLowerCase();
+      const category = (queryParams.category || '').toLowerCase();
+      const description = (queryParams.description || '').toLowerCase();
 
       const fuelKeywords = ['combustible', 'nafta', 'diésel', 'transporte', 'gasolina', 'gas', 'fuel'];
       const isFuel = fuelKeywords.some(kw => category.includes(kw) || description.includes(kw));
@@ -599,6 +598,16 @@ async function handleApiRequest(pathname, method, body) {
   // ══════════════════════════════════════════
   if (pathname.startsWith('/api/rules/')) {
     const result = await rulesEngine.handleRulesRequest(pathname, method, body, envVars);
+    if (result) return result;
+  }
+
+  // ══════════════════════════════════════════
+  // DATA EXPORT ENDPOINTS
+  // ══════════════════════════════════════════
+  // GET /api/export/data?user_id=<uuid>        → descarga JSON completo
+  // GET /api/export/data?user_id=<uuid>&meta=1 → solo metadatos (rápido)
+  if (pathname === '/api/export/data' && method === 'GET') {
+    const result = await dataExporter.handleExportRequest(pathname, method, queryParams, envVars);
     if (result) return result;
   }
 
@@ -646,7 +655,7 @@ const server = http.createServer(async (req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const apiResponse = await handleApiRequest(pathname, req.method, body);
+        const apiResponse = await handleApiRequest(pathname, req.method, body, parsedUrl.query);
         res.writeHead(apiResponse.statusCode, apiResponse.headers);
         res.end(apiResponse.body);
       } catch (err) {
