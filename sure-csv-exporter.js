@@ -11,14 +11,14 @@
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/** Converts YYYY-MM-DD or ISO timestamp → MM/DD/YYYY (Sure required format) */
+/** Converts YYYY-MM-DD or ISO timestamp → DD/MM/YYYY (Sure required format) */
 function toSureDate(iso) {
   if (!iso) return '';
   // Accepts "2026-04-13", "2026-04-13T00:00:00Z", etc.
   const dateStr = String(iso).slice(0, 10); // take YYYY-MM-DD portion
   const [y, m, d] = dateStr.split('-');
   if (!y || !m || !d) return '';
-  return `${m}/${d}/${y}`;
+  return `${d}/${m}/${y}`;
 }
 
 /** Maps CD&Co currency symbol → ISO code Sure expects */
