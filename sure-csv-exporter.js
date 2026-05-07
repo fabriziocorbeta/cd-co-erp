@@ -39,7 +39,7 @@ function csvField(val) {
 
 /** Serialise array of row-objects to CSV text */
 function rowsToCsv(rows) {
-  const HEADER = 'date*,amount*,name,currency,category,tags,account,notes';
+  const HEADER = 'date,amount,name,currency,category,tags,account,notes';
   const lines = rows.map(r => [
     csvField(r.date),
     csvField(r.amount),
