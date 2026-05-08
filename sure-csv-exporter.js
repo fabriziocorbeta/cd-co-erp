@@ -78,25 +78,47 @@ async function sbFetch(sbUrl, sbKey, table, filter, select = '*', jwt = null) {
 
 // ── Mapping ────────────────────────────────────────────────────────────────
 
-// Maps CD&Co account names → Sure account names.
-// Fill in the Sure values to match exactly what appears in Sure's account list.
+// Maps CD&Co account/card names → Sure account names.
+// Regular accounts and credit cards have separate entries so they map to
+// different Sure accounts (asset vs liability).
+// Fill in Sure values to match exactly what appears in Sure's account list.
 const SURE_ACCOUNT_MAP = {
-  'Cuenta Principal': 'NOMBRE_EN_SURE',
-  'Efectivo':         'NOMBRE_EN_SURE',
-  'ueno Bank':        'NOMBRE_EN_SURE',
-  'Basa':             'NOMBRE_EN_SURE',
+  // Regular accounts (activos)
+  'Cuenta Principal':                     'NOMBRE_EN_SURE',
+  'Efectivo':                             'NOMBRE_EN_SURE',
+  'ueno Bank':                            'NOMBRE_EN_SURE',
+  'Basa':                                 'NOMBRE_EN_SURE',
+  // Credit cards (pasivos) — auto-generated as "<CardName> - Tarjeta de Crédito"
+  'Cuenta Principal - Tarjeta de Crédito': 'NOMBRE_EN_SURE',
+  'Efectivo - Tarjeta de Crédito':         'NOMBRE_EN_SURE',
+  'ueno Bank - Tarjeta de Crédito':        'NOMBRE_EN_SURE',
+  'Basa - Tarjeta de Crédito':             'NOMBRE_EN_SURE',
 };
 
-/** Resolves a CD&Co account name to its Sure equivalent (falls back to original). */
+/** Resolves a CD&Co account/card label to its Sure equivalent (falls back to original). */
 function toSureAccount(cdcoName) {
   if (!cdcoName) return '';
   return SURE_ACCOUNT_MAP[cdcoName] ?? cdcoName;
 }
 
-function mapTxs(txs, accountsMap) {
+/**
+ * Resolves tx.account_id → display name.
+ * If found in cardsMap → it's a credit card → suffix " - Tarjeta de Crédito".
+ * If found in accountsMap → regular account.
+ */
+function resolveAccountLabel(accountId, accountsMap, cardsMap) {
+  if (!accountId) return '';
+  const acc = accountsMap[accountId];
+  if (acc) return acc.name || '';
+  const card = cardsMap[accountId];
+  if (card) return `${card.name || ''} - Tarjeta de Crédito`;
+  return '';
+}
+
+function mapTxs(txs, accountsMap, cardsMap) {
   return txs.map(t => {
-    const rawDate   = t.date || t.created_at || '';
-    const acctName  = accountsMap[t.account_id]?.name || '';
+    const rawDate  = t.date || t.created_at || '';
+    const acctName = resolveAccountLabel(t.account_id, accountsMap, cardsMap);
     return {
       date:     toSureDate(rawDate),
       amount:   t.amount != null ? t.amount : '',  // already signed in DB
@@ -139,24 +161,27 @@ async function exportSureCsv(userId, sbUrl, sbKey, jwt = null) {
 
   const uid = `user_id=eq.${userId}`;
 
-  // Fetch all four tables concurrently
-  const [txs, sales, contacts, accounts] = await Promise.all([
-    sbFetch(sbUrl, sbKey, 'txs',      uid, '*',         jwt).catch(e => { console.error('[sure-csv] txs error:', e); return []; }),
-    sbFetch(sbUrl, sbKey, 'sales',    uid, '*',         jwt).catch(e => { console.error('[sure-csv] sales error:', e); return []; }),
-    sbFetch(sbUrl, sbKey, 'contacts', uid, 'id,name',   jwt).catch(e => { console.error('[sure-csv] contacts error:', e); return []; }),
+  // Fetch all five tables concurrently (cards = credit cards, separate from accounts)
+  const [txs, sales, contacts, accounts, cards] = await Promise.all([
+    sbFetch(sbUrl, sbKey, 'txs',      uid, '*',            jwt).catch(e => { console.error('[sure-csv] txs error:', e); return []; }),
+    sbFetch(sbUrl, sbKey, 'sales',    uid, '*',            jwt).catch(e => { console.error('[sure-csv] sales error:', e); return []; }),
+    sbFetch(sbUrl, sbKey, 'contacts', uid, 'id,name',      jwt).catch(e => { console.error('[sure-csv] contacts error:', e); return []; }),
     sbFetch(sbUrl, sbKey, 'accounts', uid, 'id,name,type', jwt).catch(e => { console.error('[sure-csv] accounts error:', e); return []; }),
+    sbFetch(sbUrl, sbKey, 'cards',    uid, 'id,name,bank', jwt).catch(e => { console.error('[sure-csv] cards error:', e); return []; }),
   ]);
 
-  console.log(`[sure-csv] fetched — txs:${txs.length} sales:${sales.length} contacts:${contacts.length} accounts:${accounts.length}`);
+  console.log(`[sure-csv] fetched — txs:${txs.length} sales:${sales.length} contacts:${contacts.length} accounts:${accounts.length} cards:${cards.length}`);
 
   // Index lookup maps
   const contactsMap = Object.fromEntries(contacts.map(c => [c.id, c]));
   const accountsMap = Object.fromEntries(accounts.map(a => [a.id, a]));
+  // cardsMap: account_id pointing here → credit card transaction
+  const cardsMap    = Object.fromEntries(cards.map(c => [c.id, c]));
 
   // Map and merge — sales first (income), then txs (expenses + misc income)
   const rows = [
     ...mapSales(sales, contactsMap),
-    ...mapTxs(txs, accountsMap),
+    ...mapTxs(txs, accountsMap, cardsMap),
   ].sort((a, b) => {
     // Sort by date ascending (MM/DD/YYYY → Date comparison via original sort)
     if (a.date < b.date) return -1;
