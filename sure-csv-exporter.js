@@ -78,9 +78,25 @@ async function sbFetch(sbUrl, sbKey, table, filter, select = '*', jwt = null) {
 
 // ── Mapping ────────────────────────────────────────────────────────────────
 
+// Maps CD&Co account names → Sure account names.
+// Fill in the Sure values to match exactly what appears in Sure's account list.
+const SURE_ACCOUNT_MAP = {
+  'Cuenta Principal': 'NOMBRE_EN_SURE',
+  'Efectivo':         'NOMBRE_EN_SURE',
+  'ueno Bank':        'NOMBRE_EN_SURE',
+  'Basa':             'NOMBRE_EN_SURE',
+};
+
+/** Resolves a CD&Co account name to its Sure equivalent (falls back to original). */
+function toSureAccount(cdcoName) {
+  if (!cdcoName) return '';
+  return SURE_ACCOUNT_MAP[cdcoName] ?? cdcoName;
+}
+
 function mapTxs(txs, accountsMap) {
   return txs.map(t => {
-    const rawDate = t.date || t.created_at || '';
+    const rawDate   = t.date || t.created_at || '';
+    const acctName  = accountsMap[t.account_id]?.name || '';
     return {
       date:     toSureDate(rawDate),
       amount:   t.amount != null ? t.amount : '',  // already signed in DB
@@ -88,7 +104,7 @@ function mapTxs(txs, accountsMap) {
       currency: normCurrency(t.cur || t.currency || ''),
       category: t.cat || t.category || '',
       tags:     '',
-      account:  accountsMap[t.account_id]?.name || '',
+      account:  toSureAccount(acctName),
       notes:    t.id || '',
     };
   });
@@ -106,7 +122,7 @@ function mapSales(sales, contactsMap) {
       currency: normCurrency(s.cur || ''),
       category: 'Venta',
       tags:     s.condicion || '',
-      account:  s.method || '',
+      account:  toSureAccount(s.method || ''),
       notes:    noteParts.join(' | '),
     };
   });
