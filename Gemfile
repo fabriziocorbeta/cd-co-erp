@@ -105,6 +105,9 @@ gem "langfuse-ruby", "~> 0.1.4", require: "langfuse"
 gem "anthropic-rb", "~> 0.7"
 gem "mini_magick", "~> 4.12"
 
+# Localization & Money
+gem "money"
+
 group :development, :test do
   gem "debug", platforms: %i[mri windows]
   gem "brakeman", require: false
