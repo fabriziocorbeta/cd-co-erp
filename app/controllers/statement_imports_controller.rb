@@ -43,6 +43,8 @@ class StatementImportsController < ApplicationController
   end
 
   def reject
+    return redirect_to @import unless @import.review?
+
     @import.update!(status: :failed, error_message: "Rechazado por el usuario")
     redirect_to new_statement_import_path, notice: "Importación descartada."
   end
