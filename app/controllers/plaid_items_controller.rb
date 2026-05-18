@@ -1,4 +1,5 @@
 class PlaidItemsController < ApplicationController
+  before_action :require_plaid_enabled!
   before_action :set_plaid_item, only: %i[edit destroy sync]
   before_action :require_admin!, only: %i[new create select_existing_account link_existing_account edit destroy sync]
 
@@ -92,6 +93,10 @@ class PlaidItemsController < ApplicationController
   end
 
   private
+    def require_plaid_enabled!
+      render json: { error: "Not available in this region" }, status: :not_found
+    end
+
     def set_plaid_item
       @plaid_item = Current.family.plaid_items.find(params[:id])
     end
