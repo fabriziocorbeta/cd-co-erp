@@ -94,7 +94,12 @@ class PlaidItemsController < ApplicationController
 
   private
     def require_plaid_enabled!
+      return if plaid_enabled?
       render json: { error: "Not available in this region" }, status: :not_found
+    end
+
+    def plaid_enabled?
+      ENV.fetch("PLAID_ENABLED", "false") == "true"
     end
 
     def set_plaid_item

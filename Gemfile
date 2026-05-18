@@ -77,8 +77,9 @@ gem "csv"
 gem "rchardet" # Character encoding detection
 gem "redcarpet"
 gem "stripe"
-# Removed for MVP — Paraguay uses manual import + AI statement parser
+# MVP: disabled for Paraguay. Re-enable when expanding to US/EU regions.
 # gem "plaid"
+# MVP: disabled for Paraguay. Re-enable when expanding to other regions.
 # gem "snaptrade", "~> 2.0"
 gem "httparty"
 gem "rotp", "~> 6.3"
