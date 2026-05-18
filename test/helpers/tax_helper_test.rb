@@ -22,4 +22,19 @@ class TaxHelperTest < ActionView::TestCase
     gross = Money.new(100_000, "PYG")
     assert_equal Money.new(0, "PYG"), iva_amount(gross, rate: :exempt)
   end
+
+  test "iva_amount returns 0 for zero gross" do
+    gross = Money.new(0, "PYG")
+    assert_equal Money.new(0, "PYG"), iva_amount(gross, rate: :standard)
+  end
+
+  test "iva_amount raises on unknown rate" do
+    gross = Money.new(110_000, "PYG")
+    assert_raises(KeyError) { iva_amount(gross, rate: :bogus) }
+  end
+
+  test "net_amount returns gross for exempt rate" do
+    gross = Money.new(100_000, "PYG")
+    assert_equal gross, net_amount(gross, rate: :exempt)
+  end
 end
