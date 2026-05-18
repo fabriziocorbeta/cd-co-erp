@@ -56,6 +56,10 @@ class User < ApplicationRecord
 
   enum :role, { guest: "guest", member: "member", admin: "admin", super_admin: "super_admin" }, validate: true
   enum :ui_layout, { dashboard: "dashboard", intro: "intro" }, validate: true, prefix: true
+  enum :platform_role, { client: 0, advisor: 1, super_admin: 2 }
+
+  has_many :organization_memberships, dependent: :destroy
+  has_many :organizations, through: :organization_memberships
 
   before_validation :apply_ui_layout_defaults
   before_validation :apply_role_based_ui_defaults
