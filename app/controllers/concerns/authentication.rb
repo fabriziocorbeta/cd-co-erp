@@ -64,4 +64,16 @@ module Authentication
         )
       end
     end
+
+    def current_organization
+      return @current_organization if defined?(@current_organization)
+      @current_organization = current_user&.organizations&.first
+    end
+
+    # Backward-compat alias — remove after full migration
+    alias_method :current_family, :current_organization
+
+    def require_organization!
+      redirect_to new_organization_path, alert: "Debes pertenecer a una organización." unless current_organization.present?
+    end
 end
