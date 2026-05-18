@@ -1,0 +1,80 @@
+es:
+  date:
+    formats:
+      default: "%d/%m/%Y"
+      short:   "%d %b"
+      long:    "%d de %B de %Y"
+    day_names:
+      - domingo
+      - lunes
+      - martes
+      - miércoles
+      - jueves
+      - viernes
+      - sábado
+    abbr_day_names:
+      - dom
+      - lun
+      - mar
+      - mié
+      - jue
+      - vie
+      - sáb
+    month_names:
+      - ~
+      - enero
+      - febrero
+      - marzo
+      - abril
+      - mayo
+      - junio
+      - julio
+      - agosto
+      - septiembre
+      - octubre
+      - noviembre
+      - diciembre
+    abbr_month_names:
+      - ~
+      - ene.
+      - feb.
+      - mar.
+      - abr.
+      - may.
+      - jun.
+      - jul.
+      - ago.
+      - sep.
+      - oct.
+      - nov.
+      - dic.
+
+  number:
+    currency:
+      format:
+        unit:      "₲"
+        precision: 0
+        separator: ","
+        delimiter: "."
+        format:    "%u %n"
+    format:
+      separator: ","
+      delimiter: "."
+
+  activerecord:
+    errors:
+      messages:
+        blank:    "no puede estar vacío"
+        too_long: "es demasiado largo (máximo %{count} caracteres)"
+        invalid:  "es inválido"
+        taken:    "ya está en uso"
+
+  errors:
+    messages:
+      blank:         "no puede estar vacío"
+      not_a_number:  "no es un número"
+
+  helpers:
+    submit:
+      create: "Crear %{model}"
+      update: "Actualizar %{model}"

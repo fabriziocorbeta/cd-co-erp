@@ -1,0 +1,12 @@
+"es-PY":
+  finance_py:
+    tax:
+      iva_standard: "IVA 10%"
+      iva_reduced:  "IVA 5%"
+      iva_exempt:   "Exento"
+    banks:
+      itau:        "Itaú Paraguay"
+      continental: "Banco Continental"
+      vision:      "Visión Banco"
+      gnb:         "GNB Paraguay"
+      bcp:         "Banco Central del Paraguay"
