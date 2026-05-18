@@ -588,6 +588,13 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :statement_imports, only: %i[new create show] do
+    member do
+      post :confirm
+      post :reject
+    end
+  end
+
   # Organization settings (renamed from Family)
   resource :organization, only: %i[show edit update] do
     member do

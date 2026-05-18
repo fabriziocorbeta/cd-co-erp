@@ -1,0 +1,20 @@
+<div class="container mx-auto max-w-lg py-8">
+  <h1 class="text-2xl font-bold mb-6">Importar extracto bancario</h1>
+
+  <%= form_with model: @import, multipart: true do |f| %>
+    <div class="mb-4">
+      <%= f.label :bank_name, "Banco", class: "block text-sm font-medium mb-1" %>
+      <%= f.select :bank_name, @banks,
+            { include_blank: "Seleccionar banco..." },
+            class: "w-full border rounded px-3 py-2" %>
+    </div>
+
+    <div class="mb-6">
+      <%= f.label :source_file, "Archivo PDF del extracto", class: "block text-sm font-medium mb-1" %>
+      <%= f.file_field :source_file, accept: "application/pdf",
+            class: "w-full border rounded px-3 py-2" %>
+    </div>
+
+    <%= f.submit "Procesar extracto", class: "btn btn-primary w-full" %>
+  <% end %>
+</div>
