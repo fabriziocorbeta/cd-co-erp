@@ -1,0 +1,33 @@
+---
+en:
+  budgets:
+    name:
+      custom_range: "%{start} - %{end_date}"
+      month_year: "%{month}"
+    show:
+      categories:
+        amount: Amount
+        edit: Edit
+        title: Categories
+      on_track_categories:
+        short_title: On Track
+        title: On Track
+      over_budget_categories:
+        short_title: Over Budget
+        title: Over Budget
+      filter:
+        all: All
+        on_track: On Track
+        over_budget: Over Budget
+      tabs:
+        actual: Actual
+        budgeted: Budgeted
+    copy_previous_prompt:
+      title: "Set up your budget"
+      description: "You can copy your budget from %{source_name} or start fresh."
+      copy_button: "Copy from %{source_name}"
+      fresh_button: "Start fresh"
+    copy_previous:
+      success: "Budget copied from %{source_name}"
+      no_source: "No previous budget found to copy from"
+      already_initialized: "This budget has already been set up"

@@ -1,0 +1,38 @@
+<%= turbo_stream_from account %>
+
+<%= turbo_frame_tag id do %>
+  <%= tag.div class: "space-y-4 pb-5 lg:pb-32" do %>
+    <%= render "accounts/show/header", account: account, title: title, subtitle: subtitle %>
+
+    <%= render UI::Account::Chart.new(account: account, period: chart_period, view: chart_view) %>
+
+    <% if (fx_coverage_start = fx_coverage_start_date).present? %>
+      <div class="px-3">
+        <%= render DS::Alert.new(
+          message: t("accounts.show.limited_fx_history_warning", date: l(fx_coverage_start, format: :long)),
+          variant: :warning
+        ) %>
+      </div>
+    <% end %>
+
+    <div data-testid="account-details">
+      <% if tabs.count > 1 %>
+        <%= render DS::Tabs.new(active_tab: active_tab, url_param_key: "tab") do |tabs_container| %>
+          <% tabs_container.with_nav(classes: "max-w-fit") do |nav| %>
+            <% tabs.each do |tab| %>
+              <% nav.with_btn(id: tab, label: tab.to_s.humanize, classes: "px-6") %>
+            <% end %>
+          <% end %>
+
+          <% tabs.each do |tab| %>
+            <% tabs_container.with_panel(tab_id: tab) do %>
+              <%= tab_content_for(tab) %>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% else %>
+        <%= tab_content_for(tabs.first) %>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

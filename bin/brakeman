@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+
+# Disable so CI listens to Gemfile.lock
+# ARGV.unshift("--ensure-latest")
+
+load Gem.bin_path("brakeman", "brakeman")

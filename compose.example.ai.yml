@@ -1,0 +1,363 @@
+# ===========================================================================
+# Example Docker Compose file with Ollama (local LLM), OpenClaw (external AI
+# assistant), and Pipelock (agent security proxy)
+# ===========================================================================
+#
+# Purpose:
+# --------
+#
+# This file extends the standard Sure setup with optional AI capabilities:
+#
+#   Pipelock — agent security proxy
+#   (always runs)
+#     - Forward proxy (port 8888): scans outbound HTTPS from Faraday-based
+#       clients (e.g. ruby-openai). NOT covered: SimpleFin, Coinbase, or
+#       anything using Net::HTTP/HTTParty directly. HTTPS_PROXY is
+#       cooperative; Docker Compose has no egress network policy.
+#     - MCP reverse proxy (port 8889): scans inbound AI traffic (DLP,
+#       prompt injection, tool poisoning, tool call policy). External AI
+#       clients should connect to Pipelock on port 8889 rather than
+#       directly to Sure's /mcp endpoint. Note: /mcp is still reachable
+#       on web port 3000 (auth token required); Pipelock adds scanning
+#       but Docker Compose cannot enforce network-level routing.
+#
+#   Ollama + Open WebUI — local LLM inference
+#   (optional, --profile local-ai)
+#     - Only starts when you run: docker compose --profile local-ai up
+#
+#   Ollama + Open WebUI + OpenClaw — external AI assistant
+#   (optional, --profile external-assistant)
+#     - Local LLM inference available via Ollama + Open WebUI
+#     - Starts an OpenClaw locally for Sure's external assistant mode.
+#     - Set EXTERNAL_ASSISTANT_URL to http://openclaw:18789/v1/chat/completions
+#       for internal routing.
+#
+# Setup:
+# ------
+#
+# 1. Copy pipelock.example.yaml alongside this file (or customize it).
+# 2. Read the full setup guide:
+#
+# https://github.com/we-promise/sure/blob/main/docs/hosting/docker.md
+#
+# Troubleshooting:
+# ----------------
+#
+# Problems? Swing by our Discord or open a Discussion here:
+#
+# https://github.com/we-promise/sure/discussions/categories/general
+#
+# IPv6 Note (Yahoo Finance Sync, others?):
+# ----------------------------------------
+# If you encounter "Failed to open TCP connection" errors to hosts like
+# fc.yahoo.com in your environment, the issue may be that DNS resolves
+# to an IPv6 address first. Since IPv6 may not be configured in the container,
+# the connection hangs. To work around this, you can hardcode the IPv4
+# addresses in your container's /etc/hosts or set custom DNS:
+#
+#   extra_hosts:
+#     - "fc.yahoo.com:173.223.12.81"
+#     - "query1.finance.yahoo.com:98.136.48.169"
+#     - "query2.finance.yahoo.com:98.136.48.169"
+#
+# Or use explicit DNS servers that prefer IPv4 (already configured below).
+#
+
+x-db-env: &db_env
+  POSTGRES_USER: ${POSTGRES_USER:-sure_user}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sure_password}
+  POSTGRES_DB: ${POSTGRES_DB:-sure_production}
+
+x-rails-env: &rails_env
+  <<: *db_env
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE:-a7523c3d0ae56415046ad8abae168d71074a79534a7062258f8d1d51ac2f76d3c3bc86d86b6b0b307df30d9a6a90a2066a3fa9e67c5e6f374dbd7dd4e0778e13}
+  SELF_HOSTED: "true"
+  RAILS_FORCE_SSL: "false"
+  RAILS_ASSUME_SSL: "false"
+  DB_HOST: db
+  DB_PORT: 5432
+  REDIS_URL: redis://redis:6379/1
+  # MCP server endpoint — enables /mcp for external AI assistants (e.g. Claude, GPT).
+  # Set both values to activate. MCP_USER_EMAIL must match an existing user's email.
+  # External AI clients should connect via Pipelock (port 8889) for scanning.
+  MCP_API_TOKEN: ${MCP_API_TOKEN:-}
+  MCP_USER_EMAIL: ${MCP_USER_EMAIL:-}
+  # Route outbound HTTPS through Pipelock for clients that respect HTTPS_PROXY.
+  # Covered: OpenAI API (ruby-openai/Faraday). NOT covered: SimpleFin, Coinbase (Net::HTTP).
+  HTTPS_PROXY: "http://pipelock:8888"
+  HTTP_PROXY: "http://pipelock:8888"
+  # Skip proxy for internal Docker network services (including ollama for local LLM calls)
+  NO_PROXY: "db,redis,pipelock,ollama,openclaw,localhost,127.0.0.1"
+  AI_DEBUG_MODE: "true" # Useful for debugging, set to "false" in production
+  # Ollama using OpenAI API compatible endpoints
+  OPENAI_ACCESS_TOKEN: token-can-be-any-value-for-ollama
+  OPENAI_MODEL: llama3.1:8b # Note: Use tool-enabled model
+  OPENAI_URI_BASE: http://ollama:11434/v1
+  # Vector store — pgvector keeps all data local (requires pgvector/pgvector Docker image for db)
+  VECTOR_STORE_PROVIDER: pgvector
+  EMBEDDING_MODEL: nomic-embed-text
+  EMBEDDING_DIMENSIONS: "1024"
+  # NOTE: enabling OpenAI will incur costs when you use AI-related features in the app (chat, rules).  Make sure you have set appropriate spend limits on your account before adding this.
+  #  OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN}
+  # External AI Assistant — delegates chat to a remote AI agent (e.g., OpenClaw).
+  # The agent calls back to Sure's /mcp endpoint for financial data.
+  # Set EXTERNAL_ASSISTANT_URL + TOKEN to activate, then either set ASSISTANT_TYPE=external
+  # here (forces all families) or choose "External" in Settings > Self-Hosting > AI Assistant.
+  ASSISTANT_TYPE: ${ASSISTANT_TYPE:-}
+  EXTERNAL_ASSISTANT_URL: ${EXTERNAL_ASSISTANT_URL:-http://openclaw:18789/v1/chat/completions}
+  EXTERNAL_ASSISTANT_TOKEN: ${EXTERNAL_ASSISTANT_TOKEN:-}
+  EXTERNAL_ASSISTANT_AGENT_ID: ${EXTERNAL_ASSISTANT_AGENT_ID:-main}
+  EXTERNAL_ASSISTANT_SESSION_KEY: ${EXTERNAL_ASSISTANT_SESSION_KEY:-agent:main:main}
+  EXTERNAL_ASSISTANT_ALLOWED_EMAILS: ${EXTERNAL_ASSISTANT_ALLOWED_EMAILS:-}
+
+services:
+  pipelock:
+    image: ghcr.io/luckypipewrench/pipelock:latest  # pin to a specific version (e.g., :2.2.0) for production
+    container_name: pipelock
+    hostname: pipelock
+    restart: unless-stopped
+    volumes:
+      - ./pipelock.example.yaml:/etc/pipelock/pipelock.yaml:ro
+    command:
+      - "run"
+      - "--config"
+      - "/etc/pipelock/pipelock.yaml"
+      - "--listen"
+      - "0.0.0.0:8888"
+      - "--mcp-listen"
+      - "0.0.0.0:8889"
+      - "--mcp-upstream"
+      - "http://web:3000/mcp"
+    ports:
+      # MCP reverse proxy — external AI assistants connect here
+      - "${MCP_PROXY_PORT:-8889}:8889"
+      # Uncomment to expose forward proxy endpoints (/health, /metrics, /stats):
+      # - "8888:8888"
+    healthcheck:
+      test: ["CMD", "/pipelock", "healthcheck", "--addr", "127.0.0.1:8888"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - sure_net
+
+  # Note: You still have to download models manually using the ollama CLI or via Open WebUI
+  ollama:
+    profiles:
+      - local-ai
+      - external-assistant
+    volumes:
+      - ollama:/root/.ollama
+    container_name: ollama
+    hostname: ollama
+    restart: unless-stopped
+    image: docker.io/ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=1h
+      - OLLAMA_MODELS=deepseek-r1:8b,llama3.1:8b,nomic-embed-text # Pre-load model on startup, you can change this to your preferred model
+    networks:
+      - sure_net
+    # Recommended: Enable GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [ gpu ]
+
+  ollama-webui:
+    profiles:
+      - local-ai
+      - external-assistant
+    image: ghcr.io/open-webui/open-webui
+    container_name: ollama-webui
+    volumes:
+      - ollama-webui:/app/backend/data
+    depends_on:
+      - ollama
+    ports:
+      - "8080:8080"
+    environment: # https://docs.openwebui.com/getting-started/env-configuration#default_models
+      - OLLAMA_BASE_URLS=http://host.docker.internal:11434 #comma separated ollama hosts
+      - ENV=dev
+      - WEBUI_AUTH=False
+      - WEBUI_NAME=AI
+      - WEBUI_URL=http://localhost:8080
+      - WEBUI_SECRET_KEY=t0p-s3cr3t # pipelock:ignore
+      - NO_PROXY=host.docker.internal
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+    networks:
+      - sure_net
+
+  # OpenClaw gateway for Sure's "external assistant" mode.
+  # Based on OpenClaw Docker install docs:
+  # https://docs.openclaw.ai/install/docker
+  openclaw:
+    profiles:
+      - external-assistant
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    hostname: openclaw
+    restart: unless-stopped
+    init: true
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      TZ: ${OPENCLAW_TZ:-UTC}
+      OPENCLAW_GATEWAY_TOKEN: ${EXTERNAL_ASSISTANT_TOKEN:-changeme}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-}
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        # OpenClaw may exit with "Missing config" on first boot in example setups.
+        # `--allow-unconfigured` keeps the gateway running until you complete `openclaw setup`.
+        "pass",
+        "--allow-unconfigured",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    ports:
+      # Expose for local onboarding/debugging. Sure uses the internal service name.
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+    volumes:
+      - openclaw-config:/home/node/.openclaw
+      - openclaw-workspace:/home/node/.openclaw/workspace
+    networks:
+      - sure_net
+
+  web:
+    image: ghcr.io/we-promise/sure:stable
+    volumes:
+      - app-storage:/rails/storage
+    ports:
+      # Web UI for browser access. Note: /mcp is also reachable on this port,
+      # bypassing Pipelock's MCP scanning (auth token is still required).
+      # For hardened deployments, use `expose: [3000]` instead and front
+      # the web UI with a separate reverse proxy.
+      #
+      # To also publish on IPv6 (dual-stack), uncomment the line below AND
+      # set BINDING=:: in the environment block. See docs/hosting/docker.md
+      # "Binding to IPv6" for details.
+      # - "[::]:${PORT:-3000}:3000"
+      - ${PORT:-3000}:3000
+    restart: unless-stopped
+    environment:
+      <<: *rails_env
+      # BINDING: "::"  # Uncomment for IPv6 dual-stack inside the container
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      pipelock:  # Remove this block and unset HTTPS_PROXY/HTTP_PROXY to run without Pipelock
+        condition: service_healthy
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    networks:
+      - sure_net
+
+  worker:
+    image: ghcr.io/we-promise/sure:stable
+    command: bundle exec sidekiq
+    volumes:
+      - app-storage:/rails/storage
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      pipelock:  # Remove this block and unset HTTPS_PROXY/HTTP_PROXY to run without Pipelock
+        condition: service_healthy
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      <<: *rails_env
+    networks:
+      - sure_net
+
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      <<: *db_env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sure_net
+
+  backup:
+    profiles:
+      - backup
+    image: prodrigestivill/postgres-backup-local
+    restart: unless-stopped
+    volumes:
+      - /opt/sure-data/backups:/backups # Change this path to your desired backup location on the host machine
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB:-sure_production}
+      - POSTGRES_USER=${POSTGRES_USER:-sure_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sure_password} # pipelock:ignore
+      - SCHEDULE=@daily # Runs once a day at midnight
+      - BACKUP_KEEP_DAYS=7 # Keeps the last 7 days of backups
+      - BACKUP_KEEP_WEEKS=4 # Keeps 4 weekly backups
+      - BACKUP_KEEP_MONTHS=6 # Keeps 6 monthly backups
+    depends_on:
+      - db
+    networks:
+      - sure_net
+
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sure_net
+
+volumes:
+  app-storage:
+  postgres-data:
+  redis-data:
+  ollama:
+  ollama-webui:
+  openclaw-config:
+  openclaw-workspace:
+
+networks:
+  sure_net:
+    driver: bridge
+    name: sure_net

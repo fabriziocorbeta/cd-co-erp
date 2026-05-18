@@ -1,0 +1,6 @@
+<%# locals: (entry:, balance_trend: nil, view_ctx: "global") %>
+
+<% if entry.entryable.present? %>
+  <%= render partial: entry.entryable.to_partial_path,
+             locals: { entry: entry, balance_trend: balance_trend, view_ctx: view_ctx } %>
+<% end %>

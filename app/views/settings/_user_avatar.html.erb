@@ -1,0 +1,8 @@
+<%# locals: (avatar_url: nil, initials: "U", lazy: false) %>
+
+<div class="w-full h-full bg-surface-inset hover:bg-surface-inset-hover text-secondary rounded-full flex items-center justify-center text-lg uppercase relative">
+  <%= initials %>
+  <% if avatar_url.present? %>
+    <%= image_tag avatar_url, class: "absolute inset-0 rounded-full w-full h-full object-cover", loading: lazy ? "lazy" : "eager" %>
+  <% end %>
+</div>

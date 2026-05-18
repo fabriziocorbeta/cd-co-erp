@@ -1,0 +1,1285 @@
+# LLM Configuration Guide
+
+This document explains how Sure uses Large Language Models (LLMs) for AI features and how to configure them for your deployment.
+
+## Overview
+
+Sure includes an AI assistant that can help users understand their financial data by answering questions about accounts, transactions, income, expenses, net worth, and more. The assistant uses LLMs to process natural language queries and provide insights based on the user's financial data.
+
+> [!CAUTION]
+> Only `gpt-4.1` was ever supported prior to `v0.6.5-alpha*` builds!
+
+> 👉 Help us by taking a structured approach to your issue reporting. 🙏
+
+## Architecture: Two AI Pipelines
+
+Sure has **two separate AI systems** that operate independently. Understanding this is important because they have different configuration requirements.
+
+### 1. Chat Assistant (conversational)
+
+The interactive chat where users ask questions about their finances. Routes through one of two backends:
+
+- **Builtin** (default): Uses the OpenAI-compatible provider configured via `OPENAI_ACCESS_TOKEN` / `OPENAI_URI_BASE` / `OPENAI_MODEL`. Calls Sure's function tools directly (get_accounts, get_transactions, etc.).
+- **External**: Delegates the entire conversation to a remote AI agent. The agent calls back to Sure via MCP to access financial data. Set `ASSISTANT_TYPE=external` as a global override, or configure each family's assistant type in Settings.
+
+### 2. Auto-Categorization and Merchant Detection (background)
+
+Background jobs that classify transactions and detect merchants. These **always** use the OpenAI-compatible provider (`OPENAI_ACCESS_TOKEN`), regardless of what the chat assistant uses. They rely on structured function calling with JSON schemas, not conversational chat.
+
+### What this means in practice
+
+| Setting | Chat assistant | Auto-categorization |
+|---------|---------------|---------------------|
+| `ASSISTANT_TYPE=builtin` (default) | Uses OpenAI provider | Uses OpenAI provider |
+| `ASSISTANT_TYPE=external` | Uses external agent | Still uses OpenAI provider |
+
+If you use an external agent for chat, you still need `OPENAI_ACCESS_TOKEN` set for auto-categorization and merchant detection to work. The two systems are fully independent.
+
+## Quickstart: OpenAI Token
+
+The easiest way to get started with AI features in Sure is to use OpenAI:
+
+1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
+2. Set the environment variable:
+   ```bash
+   OPENAI_ACCESS_TOKEN=sk-proj-...your-key-here...
+   ```
+3. (Re-)Start Sure (both `web` and `worker` services!) and the AI assistant will be available to use after you agree/allow via UI option
+
+That's it! Sure will use OpenAI's with a default model (currently `gpt-4.1`) for all AI operations.
+
+## Local vs. Cloud Inference
+
+### Cloud Inference (Recommended for Most Users)
+
+**What it means:** The LLM runs on remote servers (like OpenAI's infrastructure), and your app sends requests over the internet.
+
+| Pros                             | Cons |
+|------                            |------|
+| Zero setup - works immediately   | Requires internet connection |
+| Always uses the latest models    | Data leaves your infrastructure (though transmitted securely) |
+| No hardware requirements         | Per-request costs |
+| Scales automatically             | Dependent on provider availability |
+| Regular updates and improvements | |
+
+**When to use:**
+- You're new to LLMs
+- You want the best performance without setup
+- You don't have powerful hardware (GPU with large VRAM)
+- You're okay with cloud-based processing
+- You're running a managed instance
+
+### Local Inference (Self-Hosted)
+
+**What it means:** The LLM runs on your own hardware using tools like Ollama, LM Studio, or LocalAI.
+
+| Pros                                                | Cons |
+|------                                               |------|
+| Complete data privacy - nothing leaves your network | Requires significant hardware (see below) |
+| No per-request costs after initial setup            | Setup and maintenance overhead |
+| Works offline                                       | Models may be less capable than latest cloud offerings |
+| Full control over models and updates                | You manage updates and improvements |
+| Can be more cost-effective at scale                 | Performance depends on your hardware |
+
+**Hardware Requirements:**
+
+The amount of VRAM (GPU memory) you need depends on the model size:
+
+- **Minimum (8GB VRAM):** Can run 7B parameter models like `llama3.2:7b` or `gemma2:7b`
+  - Works for basic chat functionality
+  - May struggle with complex financial analysis
+  
+- **Recommended (16GB+ VRAM):** Can run 13B-14B parameter models like `llama3.1:13b` or `qwen2.5:14b`
+  - Good balance of performance and hardware requirements
+  - Handles most financial queries well
+  
+- **Ideal (24GB+ VRAM):** Can run 30B+ parameter models or run smaller models with higher precision
+  - Best quality responses
+  - Complex reasoning about financial data
+  
+**CPU-only inference:** Possible but extremely slow (10-100x slower). Not recommended for production use.
+
+**When to use:**
+- Privacy is critical (regulated industries, sensitive financial data)
+- You have the required hardware
+- You're comfortable with technical setup
+- You want to minimize ongoing costs
+- You need offline functionality
+
+## Cloud Providers
+
+Sure supports any OpenAI-compatible API endpoint. Here are tested providers:
+
+### OpenAI (Primary Support)
+
+```bash
+OPENAI_ACCESS_TOKEN=sk-proj-...
+# No other configuration needed
+
+# Optional: Request timeout in seconds (default: 60)
+# OPENAI_REQUEST_TIMEOUT=60
+```
+
+**Recommended models:**
+- `gpt-4.1` - Default, best balance of speed and quality
+- `gpt-5` - Latest model, highest quality (more expensive)
+- `gpt-4o-mini` - Cheaper, good quality
+
+**Pricing:** See [OpenAI Pricing](https://openai.com/api/pricing/)
+
+### Google Gemini (via OpenRouter)
+
+[OpenRouter](https://openrouter.ai/) provides access to many models including Gemini:
+
+```bash
+OPENAI_ACCESS_TOKEN=your-openrouter-api-key
+OPENAI_URI_BASE=https://openrouter.ai/api/v1
+OPENAI_MODEL=google/gemini-2.0-flash-exp
+```
+
+**Why OpenRouter?**
+- Single API for multiple providers
+- Competitive pricing
+- Automatic fallbacks
+- Usage tracking
+
+**Recommended Gemini models via OpenRouter:**
+- `google/gemini-2.5-flash` - Fast and capable
+- `google/gemini-2.5-pro` - High quality, good for complex queries
+
+### Anthropic Claude (via OpenRouter)
+
+```bash
+OPENAI_ACCESS_TOKEN=your-openrouter-api-key
+OPENAI_URI_BASE=https://openrouter.ai/api/v1
+OPENAI_MODEL=anthropic/claude-3.5-sonnet
+```
+
+**Recommended Claude models:**
+- `anthropic/claude-sonnet-4.5` - Excellent reasoning, good with financial data
+- `anthropic/claude-haiku-4.5` - Fast and cost-effective
+
+### Other Providers
+
+Any service offering an OpenAI-compatible API should work:
+- [Groq](https://groq.com/) - Fast inference, free tier available
+- [Together AI](https://together.ai/) - Various open models
+- [Anyscale](https://www.anyscale.com/) - Llama models
+- [Replicate](https://replicate.com/) - Various models
+
+## Local LLM Setup (Ollama)
+
+[Ollama](https://ollama.ai/) is the recommended tool for running LLMs locally.
+
+### Installation
+
+1. Install Ollama:
+   ```bash
+   # macOS
+   brew install ollama
+   
+   # Linux
+   curl -fsSL https://ollama.com/install.sh | sh
+   
+   # Windows
+   # Download from https://ollama.com/download
+   ```
+
+2. Start Ollama:
+   ```bash
+   ollama serve
+   ```
+
+3. Pull a model:
+   ```bash
+   # Smaller, faster (requires 8GB VRAM)
+   ollama pull gemma2:7b
+   
+   # Balanced (requires 16GB VRAM)
+   ollama pull llama3.1:13b
+   
+   # Larger, more capable (requires 24GB+ VRAM)
+   ollama pull qwen2.5:32b
+   ```
+
+### Configuration
+
+Configure Sure to use Ollama:
+
+```bash
+# Dummy token (Ollama doesn't need authentication)
+OPENAI_ACCESS_TOKEN=ollama-local
+
+# Ollama API endpoint
+OPENAI_URI_BASE=http://localhost:11434/v1
+
+# Model you pulled
+OPENAI_MODEL=llama3.1:13b
+
+# Optional: enable debug logging in the AI chat
+AI_DEBUG_MODE=true 
+```
+
+**Important:** When using Ollama or any custom provider:
+- You **must** set `OPENAI_MODEL` - the system cannot default to `gpt-4.1` as that model won't exist in Ollama
+- The `OPENAI_ACCESS_TOKEN` can be any non-empty value (Ollama ignores it)
+- If you don't set a model, chats will fail with a validation error
+
+### Docker Compose Example
+
+```yaml
+services:
+  sure:
+    environment:
+      - OPENAI_ACCESS_TOKEN=ollama-local
+      - OPENAI_URI_BASE=http://ollama:11434/v1
+      - OPENAI_MODEL=llama3.1:13b
+      - AI_DEBUG_MODE=true # Optional: enable debug logging in the AI chat
+    depends_on:
+      - ollama
+  
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Uncomment if you have an NVIDIA GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  ollama_data:
+```
+
+## Model Recommendations
+
+> [!CAUTION]
+> **REMINDER:** Only `gpt-4.1` was ever supported prior to `v0.6.5-alpha*` builds!
+
+> 👉 Help us by taking a structured approach to your testing of the models mentioned below. 🙏
+
+### For Chat Assistant
+
+The AI assistant needs to understand financial context and perform **function/tool** calling:
+
+**Cloud:**
+- **Best:** `gpt-4.1` or `gpt-5` - Most reliable, best function calling
+- **Good:** `anthropic/claude-4.5-sonnet` - Excellent reasoning
+- **Budget:** `google/gemini-2.5-flash` - Fast and affordable
+
+**Local:**
+- **Best:** `qwen3-30b` - Strong function calling and reasoning (24GB+ VRAM, 14GB at 3bit quantised )
+- **Good:** `openai/gpt-oss-20b` - Solid performance (12GB VRAM)
+- **Budget:** `qwen3-8b`, `llama3.1-8b` - Minimal hardware (8GB VRAM), still supports tool calling
+
+### For Auto-Categorization
+
+Transaction categorization doesn't require function calling:
+
+**Cloud:**
+- **Best:** Same as chat - `gpt-4.1` or `gpt-5`
+- **Budget:** `gpt-4o-mini` - Much cheaper, still very accurate
+
+**Local:**
+- Any model that works for chat will work for categorization
+- This is less demanding than chat, so smaller models may suffice
+- Some models don't support structured outputs, please validate when using.
+
+### For Merchant Detection
+
+Similar requirements to categorization:
+
+**Cloud:**
+- Same recommendations as auto-categorization
+
+**Local:**
+- Same recommendations as auto-categorization
+
+## Configuration via Settings UI
+
+For self-hosted deployments, you can configure AI settings through the web interface:
+
+1. Go to **Settings** → **Self-Hosting**
+2. Scroll to the **AI Provider** section
+3. Configure:
+   - **OpenAI Access Token** - Your API key
+   - **OpenAI URI Base** - Custom endpoint (leave blank for OpenAI)
+   - **OpenAI Model** - Model name (required for custom endpoints)
+
+**Note:** Environment variables take precedence over UI settings. When an env var is set, the corresponding UI field is disabled.
+
+## External AI Assistant
+
+Instead of using the built-in LLM (which calls OpenAI or a local model directly), you can delegate chat to an **external AI agent**. The agent receives the conversation, can call back to Sure's financial data via MCP, and streams a response.
+
+This is useful when:
+- You have a custom AI agent with domain knowledge, memory, or personality
+- You want to use a non-OpenAI-compatible model (the agent translates)
+- You want to keep LLM credentials and logic outside Sure entirely
+
+> [!IMPORTANT]
+> **Set `ASSISTANT_TYPE=external` to route all users to the external agent.** Without it, routing falls back to each family's `assistant_type` DB column (configurable per-family in the Settings UI), then defaults to `"builtin"`. If you want a global override that applies to every family regardless of their UI setting, set the env var. If you only want specific families to use the external agent, skip the env var and configure it per-family in Settings.
+
+> [!NOTE]
+> The external assistant handles **chat only**. Auto-categorization and merchant detection still use the OpenAI-compatible provider (`OPENAI_ACCESS_TOKEN`). See [Architecture: Two AI Pipelines](#architecture-two-ai-pipelines) for details.
+
+### How It Works
+
+1. User sends a message in the Sure chat UI
+2. Sure sends the conversation to your agent's API endpoint (OpenAI chat completions format)
+3. Your agent processes it using whatever LLM, tools, or context it needs
+4. Your agent can call Sure's `/mcp` endpoint for financial data (accounts, transactions, balance sheet, holdings)
+5. Your agent streams the response back to Sure via Server-Sent Events (SSE)
+
+The agent's API must be **OpenAI chat completions compatible**: accept `POST` with a `messages` array, return SSE with `delta.content` chunks.
+
+### Configuration
+
+Configure via the UI or environment variables:
+
+**Settings UI:**
+1. Go to **Settings** -> **Self-Hosting**
+2. Set **Assistant type** to "External (remote agent)"
+3. Enter the **Endpoint URL** and **API Token** from your agent provider
+4. Optionally set an **Agent ID** if the provider hosts multiple agents
+
+**Environment variables:**
+```bash
+ASSISTANT_TYPE=external                          # Global override (or set per-family in UI)
+EXTERNAL_ASSISTANT_URL=https://your-agent/v1/chat/completions
+EXTERNAL_ASSISTANT_TOKEN=your-api-token
+EXTERNAL_ASSISTANT_AGENT_ID=main                 # Optional, defaults to "main"
+EXTERNAL_ASSISTANT_SESSION_KEY=agent:main:main   # Optional, for session persistence
+EXTERNAL_ASSISTANT_ALLOWED_EMAILS=user@example.com  # Optional, comma-separated allowlist
+```
+
+When environment variables are set, the corresponding UI fields are disabled (env takes precedence).
+
+### MCP Callback Endpoint
+
+Sure exposes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) endpoint at `/mcp` so your external agent can call back and query financial data. This is how the agent accesses accounts, transactions, balance sheets, and other user data.
+
+**Protocol:** JSON-RPC 2.0 over HTTP POST
+
+**Authentication:** Bearer token via `Authorization` header
+
+**Environment variables:**
+```bash
+MCP_API_TOKEN=your-secret-token    # Bearer token the agent sends to authenticate
+MCP_USER_EMAIL=user@example.com    # Email of the Sure user the agent acts as
+```
+
+The agent must send requests to `https://your-sure-instance/mcp` with:
+```
+Authorization: Bearer <MCP_API_TOKEN>
+Content-Type: application/json
+```
+
+**Supported methods:**
+
+| Method | Description |
+|--------|-------------|
+| `initialize` | Handshake, returns server info and capabilities |
+| `tools/list` | Lists available tools with names, descriptions, and input schemas |
+| `tools/call` | Calls a specific tool by name with arguments |
+
+**Available tools** (exposed via `tools/list`):
+
+| Tool | Description |
+|------|-------------|
+| `get_accounts` | Retrieve account information |
+| `get_transactions` | Query transaction history |
+| `get_holdings` | Investment holdings data |
+| `get_balance_sheet` | Current financial position |
+| `get_income_statement` | Income and expenses |
+| `import_bank_statement` | Import bank statement data |
+| `search_family_files` | Search uploaded documents |
+
+**Example: list tools**
+```bash
+curl -X POST https://your-sure-instance/mcp \
+  -H "Authorization: Bearer $MCP_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+**Example: call a tool**
+```bash
+curl -X POST https://your-sure-instance/mcp \
+  -H "Authorization: Bearer $MCP_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_accounts","arguments":{}}}'
+```
+
+### OpenClaw Gateway Example
+
+[OpenClaw](https://github.com/luckyPipewrench/openclaw) is an AI agent gateway that exposes agents as OpenAI-compatible endpoints. If your agent runs behind OpenClaw, configure it like this:
+
+```bash
+ASSISTANT_TYPE=external
+EXTERNAL_ASSISTANT_URL=http://your-openclaw-host:18789/v1/chat/completions
+EXTERNAL_ASSISTANT_TOKEN=your-gateway-token
+EXTERNAL_ASSISTANT_AGENT_ID=your-agent-name
+```
+
+**OpenClaw setup requirements:**
+- The gateway must have `chatCompletions.enabled: true` in its config
+- The agent's MCP config must point to Sure's `/mcp` endpoint with the correct `MCP_API_TOKEN`
+- The URL format is always `/v1/chat/completions` (OpenAI-compatible)
+
+**Kubernetes in-cluster example** (agent in a different namespace):
+```bash
+# URL uses Kubernetes DNS: <service>.<namespace>.svc.cluster.local:<port>
+EXTERNAL_ASSISTANT_URL=http://my-agent.my-namespace.svc.cluster.local:18789/v1/chat/completions
+```
+
+### Security with Pipelock
+
+When [Pipelock](https://github.com/luckyPipewrench/pipelock) is enabled (`pipelock.enabled=true` in Helm, or the `pipelock` service in Docker Compose), all traffic between Sure and the external agent is scanned:
+
+- **Outbound** (Sure -> agent): routed through Pipelock's forward proxy via `HTTPS_PROXY`
+- **Inbound** (agent -> Sure /mcp): routed through Pipelock's MCP reverse proxy (port 8889)
+
+Pipelock scans for prompt injection, DLP violations, and tool poisoning. The external agent does not need Pipelock installed. Sure's Pipelock handles both directions.
+
+**`NO_PROXY` behavior (Helm/Kubernetes only):** The Helm chart's env template sets `NO_PROXY` to include `.svc.cluster.local` and other internal domains. This means in-cluster agent URLs (like `http://agent.namespace.svc.cluster.local:18789`) bypass the forward proxy and go directly. If your agent is in-cluster, its traffic won't be forward-proxy scanned (but MCP callbacks from the agent are still scanned by the reverse proxy). Docker Compose deployments use a different `NO_PROXY` set; check your compose file for the exact values.
+
+**`mcpToolPolicy` note:** The Helm chart's `pipelock.mcpToolPolicy.enabled` defaults to `true`. If you haven't defined any policy rules, disable it:
+
+```yaml
+# Helm values
+pipelock:
+  mcpToolPolicy:
+    enabled: false
+```
+
+See the [Pipelock documentation](https://github.com/luckyPipewrench/pipelock) for tool policy configuration details.
+
+### Network Policies (Kubernetes)
+
+If you use Kubernetes NetworkPolicies (and you should), both Sure and the agent's namespace need rules to allow traffic in both directions.
+
+> [!WARNING]
+> **Port number gotcha:** Kubernetes network policies evaluate **after** kube-proxy DNAT. This means egress rules must use the pod's `targetPort`, not the service port. If your agent's Service maps port 18789 to targetPort 18790, the network policy must allow port **18790**.
+
+**Sure namespace egress** (Sure calling the agent):
+```yaml
+# Allow Sure -> agent namespace
+- to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: agent-namespace
+  ports:
+    - protocol: TCP
+      port: 18790  # targetPort, not service port!
+```
+
+**Sure namespace ingress** (agent calling Sure's pipelock MCP reverse proxy):
+```yaml
+# Allow agent -> Sure pipelock MCP reverse proxy
+- from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: agent-namespace
+  ports:
+    - protocol: TCP
+      port: 8889
+```
+
+**Agent namespace** needs the reverse: egress to Sure on port 8889, ingress from Sure on its listening port.
+
+### Access Control
+
+Use `EXTERNAL_ASSISTANT_ALLOWED_EMAILS` to restrict which users can use the external assistant. When set, only users whose email matches the comma-separated list will see the AI chat. When blank, all users can access it.
+
+### Docker Compose Example
+
+```yaml
+x-rails-env: &rails_env
+  ASSISTANT_TYPE: external
+  EXTERNAL_ASSISTANT_URL: https://your-agent/v1/chat/completions
+  EXTERNAL_ASSISTANT_TOKEN: your-api-token
+  MCP_API_TOKEN: your-mcp-token          # For agent callback
+  MCP_USER_EMAIL: user@example.com        # User the agent acts as
+```
+
+Or configure the assistant via the Settings UI after startup (MCP env vars are still required for callback).
+
+## Assistant Architecture
+
+Sure's AI assistant system uses a modular architecture that allows different assistant implementations to be plugged in based on configuration. This section explains the architecture for contributors who want to understand or extend the system.
+
+### Overview
+
+The assistant system evolved from a monolithic class to a module-based architecture with a registry pattern. This allows Sure to support multiple assistant types (builtin, external) and makes it easy to add new implementations.
+
+**Key benefits:**
+- **Extensible:** Add new assistant types without modifying existing code
+- **Configurable:** Choose assistant type per family or globally
+- **Isolated:** Each implementation has its own logic and dependencies
+- **Testable:** Implementations are independent and can be tested separately
+
+### Component Hierarchy
+
+#### `Assistant` Module
+
+The main entry point for all assistant operations. Located in `app/models/assistant.rb`.
+
+**Key methods:**
+
+| Method | Description |
+|--------|-------------|
+| `.for_chat(chat)` | Returns the appropriate assistant instance for a chat |
+| `.config_for(chat)` | Returns configuration for builtin assistants |
+| `.available_types` | Lists all registered assistant types |
+| `.function_classes` | Returns all available function/tool classes |
+
+**Example usage:**
+
+```ruby
+# Get an assistant for a chat
+assistant = Assistant.for_chat(chat)
+
+# Respond to a message
+assistant.respond_to(message)
+```
+
+#### `Assistant::Base`
+
+Abstract base class that all assistant implementations inherit from. Located in `app/models/assistant/base.rb`.
+
+**Contract:**
+- Must implement `respond_to(message)` instance method
+- Includes `Assistant::Broadcastable` for real-time updates
+- Receives the `chat` object in the initializer
+
+**Example implementation:**
+
+```ruby
+class Assistant::MyCustom < Assistant::Base
+  def respond_to(message)
+    # Your custom logic here
+    assistant_message = AssistantMessage.new(chat: chat, content: "Response")
+    assistant_message.save!
+  end
+end
+```
+
+#### `Assistant::Builtin`
+
+The default implementation that uses the configured OpenAI-compatible LLM provider. Located in `app/models/assistant/builtin.rb`.
+
+**Features:**
+- Uses `Assistant::Provided` for LLM provider selection
+- Uses `Assistant::Configurable` for system prompts and function configuration
+- Supports function calling via `Assistant::FunctionToolCaller`
+- Streams responses in real-time
+
+**Key methods:**
+
+| Method | Description |
+|--------|-------------|
+| `.for_chat(chat)` | Creates a new builtin assistant with config |
+| `#respond_to(message)` | Processes a message using the LLM |
+
+#### `Assistant::External`
+
+Implementation for delegating chat to a remote AI agent. Located in `app/models/assistant/external.rb`.
+
+**Features:**
+- Sends conversation to external agent via OpenAI-compatible API
+- Agent calls back to Sure's `/mcp` endpoint for financial data
+- Supports access control via email allowlist
+- Streams responses from the agent
+
+**Configuration:**
+
+```ruby
+config = Assistant::External.config
+# => #<struct url="...", token="...", agent_id="...", session_key="...">
+```
+
+### Registry Pattern
+
+The `Assistant` module uses a registry to map type names to implementation classes:
+
+```ruby
+REGISTRY = {
+  "builtin" => Assistant::Builtin,
+  "external" => Assistant::External
+}.freeze
+```
+
+**Type selection logic:**
+
+1. Check `ENV["ASSISTANT_TYPE"]` (global override)
+2. Check `chat.user.family.assistant_type` (per-family setting)
+3. Default to `"builtin"`
+
+**Example:**
+
+```ruby
+# Global override
+ENV["ASSISTANT_TYPE"] = "external"
+Assistant.for_chat(chat) # => Assistant::External instance
+
+# Per-family setting
+family.update(assistant_type: "external")
+Assistant.for_chat(chat) # => Assistant::External instance
+
+# Default
+Assistant.for_chat(chat) # => Assistant::Builtin instance
+```
+
+### Function Registry
+
+The `Assistant.function_classes` method centralizes all available financial tools:
+
+```ruby
+def self.function_classes
+  [
+    Function::GetTransactions,
+    Function::GetAccounts,
+    Function::GetHoldings,
+    Function::GetBalanceSheet,
+    Function::GetIncomeStatement,
+    Function::ImportBankStatement,
+    Function::SearchFamilyFiles
+  ]
+end
+```
+
+These functions are:
+- Used by builtin assistants for LLM function calling
+- Exposed via the MCP endpoint for external agents
+- Defined in `app/models/assistant/function/`
+
+### Adding a New Assistant Type
+
+To add a custom assistant implementation:
+
+#### 1. Create the implementation class
+
+```ruby
+# app/models/assistant/my_custom.rb
+class Assistant::MyCustom < Assistant::Base
+  class << self
+    def for_chat(chat)
+      new(chat)
+    end
+  end
+
+  def respond_to(message)
+    # Your implementation here
+    # Must create and save an AssistantMessage
+    assistant_message = AssistantMessage.new(
+      chat: chat,
+      content: "My custom response"
+    )
+    assistant_message.save!
+  end
+end
+```
+
+#### 2. Register the implementation
+
+```ruby
+# app/models/assistant.rb
+REGISTRY = {
+  "builtin" => Assistant::Builtin,
+  "external" => Assistant::External,
+  "my_custom" => Assistant::MyCustom
+}.freeze
+```
+
+#### 3. Add validation
+
+```ruby
+# app/models/family.rb
+ASSISTANT_TYPES = %w[builtin external my_custom].freeze
+```
+
+#### 4. Use the new type
+
+```bash
+# Global override
+ASSISTANT_TYPE=my_custom
+
+# Or set per-family in the database
+family.update(assistant_type: "my_custom")
+```
+
+### Integration Points
+
+#### Pipelock Integration
+
+For external assistants, Pipelock can scan traffic:
+- **Outbound:** Sure -> agent (via `HTTPS_PROXY`)
+- **Inbound:** Agent -> Sure /mcp (via MCP reverse proxy on port 8889)
+
+See the [External AI Assistant](#external-ai-assistant) and [Pipelock](pipelock.md) documentation for configuration.
+
+#### OpenClaw/WebSocket Support
+
+The `Assistant::External` implementation currently uses HTTP streaming. Future implementations could use WebSocket connections via OpenClaw or other gateways.
+
+**Example future implementation:**
+
+```ruby
+class Assistant::WebSocket < Assistant::Base
+  def respond_to(message)
+    # Connect via WebSocket
+    # Stream bidirectional communication
+    # Handle tool calls via MCP
+  end
+end
+```
+
+Register it in the `REGISTRY` and add to `Family::ASSISTANT_TYPES` to activate.
+
+## AI Cache Management
+
+Sure caches AI-generated results (like auto-categorization and merchant detection) to avoid redundant API calls and costs. However, there are situations where you may want to clear this cache.
+
+### What is the AI Cache?
+
+When AI rules process transactions, Sure stores:
+- **Enrichment records**: Which attributes were set by AI (category, merchant, etc.)
+- **Attribute locks**: Prevents rules from re-processing already-handled transactions
+
+This caching means:
+- Transactions won't be sent to the LLM repeatedly
+- Your API costs are minimized
+- Processing is faster on subsequent rule runs
+
+### When to Reset the AI Cache
+
+You might want to reset the cache when:
+
+1. **Switching LLM models**: Different models may produce better categorizations
+2. **Improving prompts**: After system updates with better prompts
+3. **Fixing miscategorizations**: When AI made systematic errors
+4. **Testing**: During development or evaluation of AI features
+
+> [!CAUTION]
+> Resetting the AI cache will cause all transactions to be re-processed by AI rules on the next run. This **will incur API costs** if using a cloud provider.
+
+### How to Reset the AI Cache
+
+**Via UI (Recommended):**
+1. Go to **Settings** → **Rules**
+2. Click the menu button (three dots)
+3. Select **Reset AI cache**
+4. Confirm the action
+
+The cache is cleared asynchronously in the background. You'll see a confirmation message when the process starts.
+
+**Automatic Reset:**
+The AI cache is automatically cleared for all users when the OpenAI model setting is changed. This ensures that the new model processes transactions fresh.
+
+### What Happens When Cache is Reset
+
+1. **AI-locked attributes are unlocked**: Transactions can be re-enriched
+2. **AI enrichment records are deleted**: The history of AI changes is cleared
+3. **User edits are preserved**: If you manually changed a category after AI set it, your change is kept
+
+### Cost Implications
+
+Before resetting the cache, consider:
+
+| Scenario | Approximate Cost |
+|----------|------------------|
+| 100 transactions | $0.05-0.20 |
+| 1,000 transactions | $0.50-2.00 |
+| 10,000 transactions | $5.00-20.00 |
+
+*Costs vary by model. Use `gpt-4o-mini` for lower costs.*
+
+**Tips to minimize costs:**
+- Use narrow rule filters before running AI actions
+- Reset cache only when necessary
+- Consider using local LLMs for bulk re-processing
+
+## Observability with Langfuse
+
+Sure includes built-in support for [Langfuse](https://langfuse.com/), an open-source LLM observability platform.
+
+### What is Langfuse?
+
+Langfuse helps you:
+- Track all LLM requests and responses
+- Monitor costs per request
+- Measure response latency
+- Debug failed requests
+- Analyze usage patterns
+- Optimize prompts based on real data
+
+### Setup
+
+1. Create a free account at [Langfuse Cloud](https://cloud.langfuse.com/) or [self-host Langfuse](https://langfuse.com/docs/deployment/self-host)
+
+2. Get your API keys from the Langfuse dashboard
+
+3. Configure Sure:
+   ```bash
+   LANGFUSE_PUBLIC_KEY=pk-lf-...
+   LANGFUSE_SECRET_KEY=sk-lf-...
+   LANGFUSE_HOST=https://cloud.langfuse.com  # or your self-hosted URL
+   ```
+
+4. Restart Sure
+
+All LLM operations will now be logged to Langfuse, including:
+- Chat messages and responses
+- Auto-categorization requests
+- Merchant detection
+- Token usage and costs
+- Response times
+
+### Langfuse Features in Sure
+
+- **Automatic tracing:** Every LLM call is automatically traced
+- **Session tracking:** Chat sessions are tracked with a unique session ID
+- **User anonymization:** User IDs are hashed before sending to Langfuse
+- **Cost tracking:** Token usage is logged for cost analysis
+- **Error tracking:** Failed requests are logged with error details
+
+### Viewing Traces
+
+1. Go to your Langfuse dashboard
+2. Navigate to **Traces**
+3. You'll see traces for:
+   - `openai.chat_response` - Chat assistant interactions
+   - `openai.auto_categorize` - Transaction categorization
+   - `openai.auto_detect_merchants` - Merchant detection
+
+### Privacy Considerations
+
+**What's sent to Langfuse:**
+- Prompts and responses
+- Model names
+- Token counts
+- Timestamps
+- Session IDs
+- Hashed user IDs (not actual user data)
+
+**What's NOT sent:**
+- User email addresses
+- User names
+- Unhashed user IDs
+- Account credentials
+
+**For maximum privacy:** Self-host Langfuse on your own infrastructure.
+
+## Testing and Evaluation
+
+### Manual Testing
+
+Test your AI configuration:
+
+1. Go to the Chat interface in Sure
+2. Try these test prompts:
+   - "Show me my total spending this month"
+   - "What are my top 5 spending categories?"
+   - "How much do I have in savings?"
+
+3. Verify:
+   - Responses are relevant
+   - Function calls work (you should see "Analyzing your data..." briefly)
+   - Numbers match your actual data
+
+### Automated Evaluation
+
+Sure doesn't currently include automated evals, but you can build them using Langfuse:
+
+1. **Collect baseline responses:** Run test prompts and save responses
+2. **Create evaluation dataset:** Use Langfuse datasets feature
+3. **Run evaluations:** Test new models/prompts against the dataset
+4. **Compare results:** Use Langfuse's comparison tools
+
+### Benchmarking Models
+
+To compare models for your use case:
+
+1. **Speed Test:**
+   - Send the same prompt to different models
+   - Measure time to first token (TTFT)
+   - Measure overall response time
+
+2. **Quality Test:**
+   - Create a set of 10-20 realistic financial questions
+   - Get responses from each model
+   - Manually rate accuracy and helpfulness
+
+3. **Cost Test:**
+   - Calculate cost per interaction based on token usage
+   - Factor in your expected usage volume
+   - Consider speed vs. cost tradeoffs
+
+### Example Evaluation Queries
+
+Good test queries that exercise different capabilities:
+
+- **Simple retrieval:** "What's my checking account balance?"
+- **Aggregation:** "Total spending on restaurants last month?"
+- **Comparison:** "Am I spending more or less than last year?"
+- **Analysis:** "What are my biggest expenses this quarter?"
+- **Forecasting:** "Based on my spending, when will I reach $10k savings?"
+
+## Cost Considerations
+
+### Cloud Costs
+
+Typical costs for OpenAI (as of early 2025):
+
+- **gpt-4.1:** ~$5-15 per 1M input tokens, ~$15-60 per 1M output tokens
+- **gpt-5:** ~2-3x more expensive than gpt-4.1
+- **gpt-4o-mini:** ~$0.15 per 1M input tokens (very cheap)
+
+**Typical usage:**
+- Chat message: 500-2000 tokens (input) + 100-500 tokens (output)
+- Auto-categorization: 1000-3000 tokens per 25 transactions
+- Cost per chat message: $0.01-0.05 for gpt-4.1
+
+**Optimization tips:**
+1. Use `gpt-4o-mini` for categorization
+2. Use Langfuse to identify expensive prompts
+3. Cache results when possible
+4. Consider local LLMs for high-volume operations
+
+### Local Costs
+
+**One-time costs:**
+- GPU hardware: $500-2000+ depending on VRAM needs
+- Setup time: 2-8 hours
+
+**Ongoing costs:**
+- Electricity: ~$0.10-0.50 per hour of GPU usage
+- Maintenance: Occasional updates and monitoring
+
+**Break-even analysis:**
+
+If you process 10,000 messages/month:
+- Cloud (gpt-4.1): ~$200-500/month
+- Local (amortized): ~$50-100/month after hardware cost
+- Break-even: 6-12 months depending on hardware cost
+
+**Recommendation:** Start with cloud, switch to local if costs exceed $100-200/month.
+
+### Hybrid Approach
+
+You can mix providers:
+
+```python
+# Example: Use local for categorization, cloud for chat
+# Categorization (high volume, lower complexity)
+CATEGORIZATION_PROVIDER=ollama
+CATEGORIZATION_MODEL=gemma2:7b
+
+# Chat (lower volume, higher complexity)
+CHAT_PROVIDER=openai
+CHAT_MODEL=gpt-4.1
+```
+
+**Note:** Sure currently uses a single provider for all operations, but this could be customized.
+
+## Troubleshooting
+
+### "Messages is invalid" Error
+
+**Symptom:** Cannot start a chat, see validation error
+
+**Cause:** Using a custom provider (like Ollama) without setting `OPENAI_MODEL`
+
+**Fix:**
+```bash
+# Make sure all three are set for custom providers
+OPENAI_ACCESS_TOKEN=ollama-local  # Any non-empty value
+OPENAI_URI_BASE=http://localhost:11434/v1
+OPENAI_MODEL=your-model-name  # REQUIRED!
+```
+
+### Model Not Found
+
+**Symptom:** Error about model not being available
+
+**Cloud:** Check that you're using a valid model name for your provider
+
+**Local:** Make sure you've pulled the model:
+```bash
+ollama list  # See what's installed
+ollama pull model-name  # Install a model
+```
+
+### Slow Responses
+
+**Symptom:** Long wait times for AI responses
+
+**Cloud:**
+- Switch to a faster model (e.g., `gpt-4o-mini` or `gemini-2.0-flash-exp`)
+- Check your internet connection
+- Verify provider status page
+
+**Local:**
+- Check GPU utilization (should be near 100% during inference)
+- Try a smaller model
+- Ensure you're using GPU, not CPU
+- Check for thermal throttling
+
+### No Provider Available
+
+**Symptom:** "Provider not found" or similar error
+
+**Fix:**
+1. Check `OPENAI_ACCESS_TOKEN` is set
+2. For custom providers, verify `OPENAI_URI_BASE` and `OPENAI_MODEL`
+3. Restart Sure after changing environment variables
+4. Check logs for specific error messages
+
+### "Failed to generate response" with External Assistant
+
+**Symptom:** Chat shows "Failed to generate response" when expecting the external assistant
+
+**Check in order:**
+
+1. **Is external routing active?** Sure uses external mode when `ASSISTANT_TYPE=external` is set as an env var, OR when the family's `assistant_type` is set to "external" in Settings. Check what the pod sees:
+   ```bash
+   kubectl exec deploy/sure-web -c rails -- env | grep ASSISTANT_TYPE
+   kubectl exec deploy/sure-worker -c sidekiq -- env | grep ASSISTANT_TYPE
+   ```
+   If the env var is unset, check the family setting in the database or Settings UI.
+
+2. **Can Sure reach the agent?** Test from inside the worker pod (use `sh -c` so the env var expands inside the pod, not locally):
+   ```bash
+   kubectl exec deploy/sure-worker -c sidekiq -- \
+     sh -c 'curl -s -o /dev/null -w "%{http_code}" \
+     -H "Authorization: Bearer $EXTERNAL_ASSISTANT_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"model\":\"test\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}]}" \
+     $EXTERNAL_ASSISTANT_URL'
+   ```
+   - **Exit code 7 (connection refused):** Network policy is blocking. Check egress rules, and remember to use the `targetPort`, not the service port.
+   - **HTTP 401/403:** Token mismatch between Sure's `EXTERNAL_ASSISTANT_TOKEN` and the agent's expected token.
+   - **HTTP 404:** Wrong URL path. Must be `/v1/chat/completions`.
+
+3. **Check worker logs** for the actual error:
+   ```bash
+   kubectl logs deploy/sure-worker -c sidekiq --tail=50 | grep -i "external\|assistant\|error"
+   ```
+
+4. **If using Pipelock:** Check pipelock sidecar logs. A crashed pipelock can block outbound requests:
+   ```bash
+   kubectl logs deploy/sure-worker -c pipelock --tail=20
+   ```
+
+### High Costs
+
+**Symptom:** Unexpected bills from cloud provider
+
+**Analysis:**
+1. Check Langfuse for usage patterns
+2. Look for unusually long conversations
+3. Check if you're using an expensive model
+
+**Optimization:**
+1. Switch to cheaper model for categorization
+2. Consider local LLM for high-volume tasks
+3. Implement rate limiting if needed
+4. Review and optimize system prompts
+
+## Advanced Topics
+
+### Custom System Prompts
+
+The builtin AI assistant uses a system prompt that defines its behavior. The prompt is defined in `app/models/assistant/configurable.rb`. This does not apply to external assistants, which manage their own prompts.
+
+To customize:
+1. Fork the repository
+2. Edit the `default_instructions` method
+3. Rebuild and deploy
+
+**What you can customize:**
+- Tone and personality
+- Response format
+- Rules and constraints
+- Domain expertise
+
+### Function Calling
+
+The assistant uses OpenAI's function calling (tool use) to access user data:
+
+**Available functions:**
+- `get_transactions` - Retrieve transaction history
+- `get_accounts` - Get account information
+- `get_holdings` - Investment holdings data
+- `get_balance_sheet` - Current financial position
+- `get_income_statement` - Income and expenses
+- `import_bank_statement` - Import bank statement data
+- `search_family_files` - Search uploaded documents
+
+These are defined in `app/models/assistant/function/`.
+
+### Vector Store (Document Search)
+
+Sure's AI assistant can search documents that have been uploaded to a family's vault. Under the hood, documents are indexed in a **vector store** so the assistant can retrieve relevant passages when answering questions (Retrieval-Augmented Generation).
+
+#### How It Works
+
+1. When a user uploads a document to their family vault, it is automatically pushed to the configured vector store.
+2. When the assistant needs financial context from uploaded files, it calls the `search_family_files` function.
+3. The vector store returns the most relevant passages, which the assistant uses to answer the question.
+
+#### Supported Backends
+
+| Backend | Status | Best For | Requirements |
+|---------|--------|----------|--------------|
+| **OpenAI** (default) | ready | Cloud deployments, zero setup | `OPENAI_ACCESS_TOKEN` |
+| **Pgvector** | ready | Self-hosted, full data privacy | PostgreSQL with `pgvector` extension + embedding model |
+| **Qdrant** | scaffolded | Self-hosted, dedicated vector DB | Running Qdrant instance |
+
+#### Configuration
+
+##### OpenAI (Default)
+
+No extra configuration is needed. If you already have `OPENAI_ACCESS_TOKEN` set for the AI assistant, document search works automatically. OpenAI manages chunking, embedding, and retrieval.
+
+```bash
+# Already set for AI chat - document search uses the same token
+OPENAI_ACCESS_TOKEN=sk-proj-...
+```
+
+##### Pgvector (Self-Hosted)
+
+Use PostgreSQL's pgvector extension for fully local document search. All data stays on your infrastructure.
+
+**Requirements:**
+- Use the `pgvector/pgvector:pg16` Docker image instead of `postgres:16` (drop-in replacement)
+- An embedding model served via an OpenAI-compatible `/v1/embeddings` endpoint (e.g. Ollama with `nomic-embed-text`)
+- Run the migration with `VECTOR_STORE_PROVIDER=pgvector` to create the `vector_store_chunks` table
+
+```bash
+# Required
+VECTOR_STORE_PROVIDER=pgvector
+
+# Embedding model configuration
+EMBEDDING_MODEL=nomic-embed-text          # Default: nomic-embed-text
+EMBEDDING_DIMENSIONS=1024                 # Default: 1024 (must match your model)
+EMBEDDING_URI_BASE=http://ollama:11434/v1 # Falls back to OPENAI_URI_BASE if not set
+EMBEDDING_ACCESS_TOKEN=                   # Falls back to OPENAI_ACCESS_TOKEN if not set
+```
+
+If you are using Ollama (as in `compose.example.ai.yml`), pull the embedding model:
+
+```bash
+docker compose exec ollama ollama pull nomic-embed-text
+```
+
+##### Qdrant (Self-Hosted)
+
+> [!CAUTION]
+> Only `OpenAI` has been implemented!
+
+Use a dedicated Qdrant vector database:
+
+```bash
+VECTOR_STORE_PROVIDER=qdrant
+QDRANT_URL=http://localhost:6333   # Default if not set
+QDRANT_API_KEY=your-api-key        # Optional, for authenticated instances
+```
+
+Docker Compose example:
+
+```yaml
+services:
+  sure:
+    environment:
+      - VECTOR_STORE_PROVIDER=qdrant
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  qdrant_data:
+```
+
+> **Note:** The Qdrant adapter is currently a skeleton. A future release will add full support including collection management and embedding configuration.
+
+#### Verifying the Configuration
+
+You can check whether a vector store is properly configured from the Rails console:
+
+```ruby
+VectorStore.configured?          # => true / false
+VectorStore.adapter              # => #<VectorStore::Openai:...>
+VectorStore.adapter.class.name   # => "VectorStore::Openai"
+```
+
+#### Supported File Types
+
+The following file extensions are supported for document upload and search:
+
+`.pdf`, `.txt`, `.md`, `.csv`, `.json`, `.xml`, `.html`, `.css`, `.js`, `.rb`, `.py`, `.docx`, `.pptx`, `.xlsx`, `.yaml`, `.yml`, `.log`, `.sh`
+
+#### Privacy Notes
+
+- **OpenAI backend:** Document content is sent to OpenAI's API for indexing and search. The same privacy considerations as the AI chat apply.
+- **Pgvector / Qdrant backends:** All data stays on your infrastructure. No external API calls are made for document search.
+
+### Multi-Model Setup
+
+Currently not supported out of the box, but you could:
+1. Create multiple provider instances
+2. Add routing logic to select provider based on task
+3. Update controllers to specify which provider to use
+
+### Rate Limiting
+
+To prevent abuse or runaway costs:
+
+1. Use [Rack::Attack](https://github.com/rack/rack-attack) (already included)
+2. Configure in `config/initializers/rack_attack.rb`
+3. Limit requests per user or globally
+
+Example:
+```ruby
+# Limit chat creation to 10 per minute per user
+throttle('chats/create', limit: 10, period: 1.minute) do |req|
+  req.session[:user_id] if req.path == '/chats' && req.post?
+end
+```
+
+## Resources
+
+- [OpenAI Documentation](https://platform.openai.com/docs)
+- [Ollama Documentation](https://github.com/ollama/ollama)
+- [OpenRouter Documentation](https://openrouter.ai/docs)
+- [Langfuse Documentation](https://langfuse.com/docs)
+- [Sure GitHub Repository](https://github.com/we-promise/sure)
+
+## Support
+
+For issues with AI features:
+1. Check this documentation first
+2. Search [existing GitHub issues](https://github.com/we-promise/sure/issues)
+3. Open a new issue with:
+   - Your configuration (redact API keys!)
+   - Error messages
+   - Steps to reproduce
+   - Expected vs. actual behavior
+
+---
+
+**Last Updated:** March 2026

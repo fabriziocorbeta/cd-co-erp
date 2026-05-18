@@ -1,0 +1,41 @@
+<%= content_for :page_title, t(".title") %>
+<%= settings_section title: t(".ai_assistant") do %>
+  <%= render "settings/hostings/assistant_settings" %>
+<% end %>
+<%= settings_section title: t(".general") do %>
+    <div class="space-y-6">
+    <%= render "settings/hostings/openai_settings" %>
+    <%= render "settings/hostings/brand_fetch_settings" %>
+  </div>
+<% end %>
+<%= settings_section title: t(".financial_data_providers") do %>
+  <div class="space-y-6">
+    <%= render "settings/hostings/provider_selection" %>
+    <% if @show_yahoo_finance_settings %>
+      <%= render "settings/hostings/yahoo_finance_settings" %>
+    <% end %>
+    <% if @show_twelve_data_settings %>
+      <%= render "settings/hostings/twelve_data_settings" %>
+    <% end %>
+    <% if @show_tiingo_settings %>
+      <%= render "settings/hostings/tiingo_settings" %>
+    <% end %>
+    <% if @show_eodhd_settings %>
+      <%= render "settings/hostings/eodhd_settings" %>
+    <% end %>
+    <% if @show_alpha_vantage_settings %>
+      <%= render "settings/hostings/alpha_vantage_settings" %>
+    <% end %>
+  </div>
+<% end %>
+<%= settings_section title: t(".sync_settings") do %>
+  <%= render "settings/hostings/sync_settings" %>
+<% end %>
+<% if Current.user.super_admin? %>
+  <%= settings_section title: t(".invites") do %>
+    <%= render "settings/hostings/invite_code_settings" %>
+  <% end %>
+<% end %>
+<%= settings_section title: t(".danger_zone") do %>
+  <%= render "settings/hostings/danger_zone_settings" %>
+<% end %>

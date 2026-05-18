@@ -1,0 +1,34 @@
+{
+  "name": "Sure",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "runServices": [
+    "db",
+    "redis",
+    "selenium"
+  ],
+  "workspaceFolder": "/workspace",
+  "containerEnv": {
+    "GIT_EDITOR": "code --wait",
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "GITHUB_USER": "${localEnv:GITHUB_USER}"
+  },
+  "remoteEnv": {
+    "PATH": "/workspace/bin:${containerEnv:PATH}"
+  },
+  "postCreateCommand": "bundle install && npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "biomejs.biome",
+        "EditorConfig.EditorConfig",
+        "Shopify.ruby-extensions-pack"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.defaultProfile.osx": "zsh",
+        "terminal.integrated.defaultProfile.windows": "pwsh"
+      }
+    }
+  }
+}

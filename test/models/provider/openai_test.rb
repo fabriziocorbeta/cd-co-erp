@@ -1,0 +1,507 @@
+require "test_helper"
+
+class Provider::OpenaiTest < ActiveSupport::TestCase
+  include LLMInterfaceTest
+
+  setup do
+    @subject = @openai = Provider::Openai.new(ENV.fetch("OPENAI_ACCESS_TOKEN", "test-openai-token"))
+    @subject_model = "gpt-4.1"
+  end
+
+  test "openai errors are automatically raised" do
+    VCR.use_cassette("openai/chat/error") do
+      response = @openai.chat_response("Test", model: "invalid-model-that-will-trigger-api-error")
+
+      assert_not response.success?
+      assert_kind_of Provider::Openai::Error, response.error
+    end
+  end
+
+  test "auto categorizes transactions by various attributes" do
+    VCR.use_cassette("openai/auto_categorize") do
+      input_transactions = [
+        { id: "1", name: "McDonalds", amount: 20, classification: "expense", merchant: "McDonalds", hint: "Fast Food" },
+        { id: "2", name: "Amazon purchase", amount: 100, classification: "expense", merchant: "Amazon" },
+        { id: "3", name: "Netflix subscription", amount: 10, classification: "expense", merchant: "Netflix", hint: "Subscriptions" },
+        { id: "4", name: "paycheck", amount: 3000, classification: "income" },
+        { id: "5", name: "Italian dinner with friends", amount: 100, classification: "expense" },
+        { id: "6", name: "1212XXXBCaaa charge", amount: 2.99, classification: "expense" }
+      ]
+
+      response = @subject.auto_categorize(
+        transactions: input_transactions,
+        user_categories: [
+          { id: "shopping_id", name: "Shopping", is_subcategory: false, parent_id: nil, classification: "expense" },
+          { id: "subscriptions_id", name: "Subscriptions", is_subcategory: true, parent_id: nil, classification: "expense" },
+          { id: "restaurants_id", name: "Restaurants", is_subcategory: false, parent_id: nil, classification: "expense" },
+          { id: "fast_food_id", name: "Fast Food", is_subcategory: true, parent_id: "restaurants_id", classification: "expense" },
+          { id: "income_id", name: "Income", is_subcategory: false, parent_id: nil, classification: "income" }
+        ]
+      )
+
+      assert response.success?
+      assert_equal input_transactions.size, response.data.size
+
+      txn1 = response.data.find { |c| c.transaction_id == "1" }
+      txn2 = response.data.find { |c| c.transaction_id == "2" }
+      txn3 = response.data.find { |c| c.transaction_id == "3" }
+      txn4 = response.data.find { |c| c.transaction_id == "4" }
+      txn5 = response.data.find { |c| c.transaction_id == "5" }
+      txn6 = response.data.find { |c| c.transaction_id == "6" }
+
+      assert_equal "Fast Food", txn1.category_name
+      assert_equal "Shopping", txn2.category_name
+      assert_equal "Subscriptions", txn3.category_name
+      assert_equal "Income", txn4.category_name
+      assert_equal "Restaurants", txn5.category_name
+      assert_nil txn6.category_name
+    end
+  end
+
+  test "auto detects merchants" do
+    VCR.use_cassette("openai/auto_detect_merchants") do
+      input_transactions = [
+        { id: "1", name: "McDonalds", amount: 20, classification: "expense" },
+        { id: "2", name: "local pub", amount: 20, classification: "expense" },
+        { id: "3", name: "WMT purchases", amount: 20, classification: "expense" },
+        { id: "4", name: "amzn 123 abc", amount: 20, classification: "expense" },
+        { id: "5", name: "chaseX1231", amount: 2000, classification: "income" },
+        { id: "6", name: "check deposit 022", amount: 200, classification: "income" },
+        { id: "7", name: "shooters bar and grill", amount: 200, classification: "expense" },
+        { id: "8", name: "Microsoft Office subscription", amount: 200, classification: "expense" }
+      ]
+
+      response = @subject.auto_detect_merchants(
+        transactions: input_transactions,
+        user_merchants: [ { name: "Shooters" } ]
+      )
+
+      assert response.success?
+      assert_equal input_transactions.size, response.data.size
+
+      txn1 = response.data.find { |c| c.transaction_id == "1" }
+      txn2 = response.data.find { |c| c.transaction_id == "2" }
+      txn3 = response.data.find { |c| c.transaction_id == "3" }
+      txn4 = response.data.find { |c| c.transaction_id == "4" }
+      txn5 = response.data.find { |c| c.transaction_id == "5" }
+      txn6 = response.data.find { |c| c.transaction_id == "6" }
+      txn7 = response.data.find { |c| c.transaction_id == "7" }
+      txn8 = response.data.find { |c| c.transaction_id == "8" }
+
+      assert_equal "McDonald's", txn1.business_name
+      assert_equal "mcdonalds.com", txn1.business_url
+
+      assert_nil txn2.business_name
+      assert_nil txn2.business_url
+
+      assert_equal "Walmart", txn3.business_name
+      assert_equal "walmart.com", txn3.business_url
+
+      assert_equal "Amazon", txn4.business_name
+      assert_equal "amazon.com", txn4.business_url
+
+      assert_nil txn5.business_name
+      assert_nil txn5.business_url
+
+      assert_nil txn6.business_name
+      assert_nil txn6.business_url
+
+      assert_equal "Shooters", txn7.business_name
+      assert_nil txn7.business_url
+
+      assert_equal "Microsoft", txn8.business_name
+      assert_equal "microsoft.com", txn8.business_url
+    end
+  end
+
+  test "basic chat response" do
+    VCR.use_cassette("openai/chat/basic_response") do
+      response = @subject.chat_response(
+        "This is a chat test.  If it's working, respond with a single word: Yes",
+        model: @subject_model
+      )
+
+      assert response.success?
+      assert_equal 1, response.data.messages.size
+      assert_includes response.data.messages.first.output_text, "Yes"
+    end
+  end
+
+  test "streams basic chat response" do
+    VCR.use_cassette("openai/chat/basic_streaming_response") do
+      collected_chunks = []
+
+      mock_streamer = proc do |chunk|
+        collected_chunks << chunk
+      end
+
+      response = @subject.chat_response(
+        "This is a chat test.  If it's working, respond with a single word: Yes",
+        model: @subject_model,
+        streamer: mock_streamer
+      )
+
+      text_chunks = collected_chunks.select { |chunk| chunk.type == "output_text" }
+      response_chunks = collected_chunks.select { |chunk| chunk.type == "response" }
+
+      assert_equal 1, text_chunks.size
+      assert_equal 1, response_chunks.size
+      assert_equal "Yes", text_chunks.first.data
+      assert_equal "Yes", response_chunks.first.data.messages.first.output_text
+      assert_equal response_chunks.first.data, response.data
+    end
+  end
+
+  test "chat response with function calls" do
+    VCR.use_cassette("openai/chat/function_calls") do
+      prompt = "What is my net worth?"
+
+      functions = [
+        {
+          name: "get_net_worth",
+          description: "Gets a user's net worth",
+          params_schema: { type: "object", properties: {}, required: [], additionalProperties: false },
+          strict: true
+        }
+      ]
+
+      first_response = @subject.chat_response(
+        prompt,
+        model: @subject_model,
+        instructions: "Use the tools available to you to answer the user's question.",
+        functions: functions
+      )
+
+      assert first_response.success?
+
+      function_request = first_response.data.function_requests.first
+
+      assert function_request.present?
+
+      second_response = @subject.chat_response(
+        prompt,
+        model: @subject_model,
+        function_results: [ {
+          call_id: function_request.call_id,
+          output: { amount: 10000, currency: "USD" }.to_json
+        } ],
+        previous_response_id: first_response.data.id
+      )
+
+      assert second_response.success?
+      assert_equal 1, second_response.data.messages.size
+      assert_includes second_response.data.messages.first.output_text, "$10,000"
+    end
+  end
+
+  test "streams chat response with function calls" do
+    VCR.use_cassette("openai/chat/streaming_function_calls") do
+      collected_chunks = []
+
+      mock_streamer = proc do |chunk|
+        collected_chunks << chunk
+      end
+
+      prompt = "What is my net worth?"
+
+      functions = [
+        {
+          name: "get_net_worth",
+          description: "Gets a user's net worth",
+          params_schema: { type: "object", properties: {}, required: [], additionalProperties: false },
+          strict: true
+        }
+      ]
+
+      # Call #1: First streaming call, will return a function request
+      @subject.chat_response(
+        prompt,
+        model: @subject_model,
+        instructions: "Use the tools available to you to answer the user's question.",
+        functions: functions,
+        streamer: mock_streamer
+      )
+
+      text_chunks = collected_chunks.select { |chunk| chunk.type == "output_text" }
+      response_chunks = collected_chunks.select { |chunk| chunk.type == "response" }
+
+      assert_equal 0, text_chunks.size
+      assert_equal 1, response_chunks.size
+
+      first_response = response_chunks.first.data
+      function_request = first_response.function_requests.first
+
+      # Reset collected chunks for the second call
+      collected_chunks = []
+
+      # Call #2: Second streaming call, will return a function result
+      @subject.chat_response(
+        prompt,
+        model: @subject_model,
+        function_results: [
+          {
+            call_id: function_request.call_id,
+            output: { amount: 10000, currency: "USD" }
+          }
+        ],
+        previous_response_id: first_response.id,
+        streamer: mock_streamer
+      )
+
+      text_chunks = collected_chunks.select { |chunk| chunk.type == "output_text" }
+      response_chunks = collected_chunks.select { |chunk| chunk.type == "response" }
+
+      assert text_chunks.size >= 1
+      assert_equal 1, response_chunks.size
+
+      assert_includes response_chunks.first.data.messages.first.output_text, "$10,000"
+    end
+  end
+
+  test "provider_name returns OpenAI for standard provider" do
+    assert_equal "OpenAI", @subject.provider_name
+  end
+
+  test "provider_name returns custom info for custom provider" do
+    custom_provider = Provider::Openai.new(
+      "test-token",
+      uri_base: "https://custom-api.example.com/v1",
+      model: "custom-model"
+    )
+
+    assert_equal "Custom OpenAI-compatible (https://custom-api.example.com/v1)", custom_provider.provider_name
+  end
+
+  test "supported_models_description returns model prefixes for standard provider" do
+    expected = "models starting with: gpt-4, gpt-5, o1, o3"
+    assert_equal expected, @subject.supported_models_description
+  end
+
+  test "supported_models_description returns configured model for custom provider" do
+    custom_provider = Provider::Openai.new(
+      "test-token",
+      uri_base: "https://custom-api.example.com/v1",
+      model: "custom-model"
+    )
+
+    assert_equal "configured model: custom-model", custom_provider.supported_models_description
+  end
+
+  test "upsert_langfuse_trace uses client trace upsert" do
+    trace = Struct.new(:id).new("trace_123")
+    fake_client = mock
+
+    fake_client.expects(:trace).with(id: "trace_123", output: { ok: true }, level: "ERROR")
+    @subject.stubs(:langfuse_client).returns(fake_client)
+
+    @subject.send(:upsert_langfuse_trace, trace: trace, output: { ok: true }, level: "ERROR")
+  end
+
+  test "log_langfuse_generation upserts trace through client" do
+    trace = Struct.new(:id).new("trace_456")
+    generation = mock
+    fake_client = mock
+
+    @subject.stubs(:langfuse_client).returns(fake_client)
+    @subject.stubs(:create_langfuse_trace).returns(trace)
+
+    fake_client.expects(:trace).with(id: "trace_456", output: "hello")
+    trace.expects(:generation).returns(generation)
+    generation.expects(:end).with(output: "hello", usage: { "total_tokens" => 10 })
+
+    @subject.send(
+      :log_langfuse_generation,
+      name: "chat",
+      model: "gpt-4.1",
+      input: { prompt: "Hi" },
+      output: "hello",
+      usage: { "total_tokens" => 10 }
+    )
+  end
+
+  test "create_langfuse_trace logs full error details" do
+    fake_client = mock
+    error = StandardError.new("boom")
+
+    @subject.stubs(:langfuse_client).returns(fake_client)
+    fake_client.expects(:trace).raises(error)
+
+    Rails.logger.expects(:warn).with(regexp_matches(/Langfuse trace creation failed: boom.*test\/models\/provider\/openai_test\.rb/m))
+
+    @subject.send(:create_langfuse_trace, name: "openai.test", input: { foo: "bar" })
+  end
+
+  test "SUPPORTED_MODELS and VISION_CAPABLE_MODEL_PREFIXES are Ruby constants, not YAML-derived" do
+    assert_kind_of Array, Provider::Openai::SUPPORTED_MODELS
+    assert Provider::Openai::SUPPORTED_MODELS.all? { |s| s.is_a?(String) }
+    assert Provider::Openai::SUPPORTED_MODELS.frozen?
+
+    assert_kind_of Array, Provider::Openai::VISION_CAPABLE_MODEL_PREFIXES
+    assert Provider::Openai::VISION_CAPABLE_MODEL_PREFIXES.frozen?
+    assert_equal "gpt-4.1", Provider::Openai::DEFAULT_MODEL
+  end
+
+  test "budget readers default to conservative values" do
+    with_env_overrides(
+      "LLM_CONTEXT_WINDOW" => nil,
+      "LLM_MAX_RESPONSE_TOKENS" => nil,
+      "LLM_SYSTEM_PROMPT_RESERVE" => nil,
+      "LLM_MAX_HISTORY_TOKENS" => nil,
+      "LLM_MAX_ITEMS_PER_CALL" => nil
+    ) do
+      subject = Provider::Openai.new("test-token")
+      assert_equal 2048, subject.context_window
+      assert_equal 512, subject.max_response_tokens
+      assert_equal 256, subject.system_prompt_reserve
+      assert_equal 2048 - 512 - 256, subject.max_history_tokens
+      assert_equal 2048 - 512 - 256, subject.max_input_tokens
+      assert_equal 25, subject.max_items_per_call
+    end
+  end
+
+  test "budget readers respect explicit env overrides" do
+    with_env_overrides(
+      "LLM_CONTEXT_WINDOW" => "8192",
+      "LLM_MAX_RESPONSE_TOKENS" => "1024",
+      "LLM_SYSTEM_PROMPT_RESERVE" => "512",
+      "LLM_MAX_HISTORY_TOKENS" => "4096",
+      "LLM_MAX_ITEMS_PER_CALL" => "50"
+    ) do
+      subject = Provider::Openai.new("test-token")
+      assert_equal 8192, subject.context_window
+      assert_equal 1024, subject.max_response_tokens
+      assert_equal 512, subject.system_prompt_reserve
+      assert_equal 4096, subject.max_history_tokens  # explicit overrides derived
+      assert_equal 8192 - 1024 - 512, subject.max_input_tokens
+      assert_equal 50, subject.max_items_per_call
+    end
+  end
+
+  test "budget readers fall back to Setting when ENV unset" do
+    with_env_overrides(
+      "LLM_CONTEXT_WINDOW" => nil,
+      "LLM_MAX_RESPONSE_TOKENS" => nil,
+      "LLM_MAX_ITEMS_PER_CALL" => nil
+    ) do
+      Setting.llm_context_window = 8192
+      Setting.llm_max_response_tokens = 1024
+      Setting.llm_max_items_per_call = 40
+
+      subject = Provider::Openai.new("test-token")
+      assert_equal 8192, subject.context_window
+      assert_equal 1024, subject.max_response_tokens
+      assert_equal 40, subject.max_items_per_call
+    end
+  ensure
+    Setting.llm_context_window = nil
+    Setting.llm_max_response_tokens = nil
+    Setting.llm_max_items_per_call = nil
+  end
+
+  test "budget readers: ENV beats Setting when both present" do
+    with_env_overrides("LLM_CONTEXT_WINDOW" => "16384") do
+      Setting.llm_context_window = 4096
+      subject = Provider::Openai.new("test-token")
+      assert_equal 16384, subject.context_window
+    end
+  ensure
+    Setting.llm_context_window = nil
+  end
+
+  test "budget readers: zero or negative values fall through to default" do
+    with_env_overrides(
+      "LLM_CONTEXT_WINDOW" => "0",
+      "LLM_MAX_RESPONSE_TOKENS" => nil,
+      "LLM_MAX_ITEMS_PER_CALL" => nil
+    ) do
+      Setting.llm_context_window = 0
+      subject = Provider::Openai.new("test-token")
+      assert_equal 2048, subject.context_window
+    end
+  ensure
+    Setting.llm_context_window = nil
+  end
+
+  test "auto_categorize fans out oversized batches into sequential sub-calls" do
+    with_env_overrides("LLM_MAX_ITEMS_PER_CALL" => "10") do
+      subject = Provider::Openai.new("test-token")
+      transactions = Array.new(25) { |i| { id: i.to_s, name: "txn#{i}", amount: 10, classification: "expense" } }
+      user_categories = [ { id: "cat1", name: "Groceries", is_subcategory: false, parent_id: nil, classification: "expense" } ]
+
+      # Capture the batch size passed to each AutoCategorizer. `.new` is called
+      # once per sub-batch; we record each invocation's transactions count.
+      seen_sizes = []
+      fake_instance = mock
+      fake_instance.stubs(:auto_categorize).returns([])
+      Provider::Openai::AutoCategorizer.stubs(:new).with do |*_args, **kwargs|
+        seen_sizes << kwargs[:transactions].size
+        true
+      end.returns(fake_instance)
+
+      response = subject.auto_categorize(transactions: transactions, user_categories: user_categories)
+
+      assert response.success?
+      assert_equal [ 10, 10, 5 ], seen_sizes
+    end
+  end
+
+  test "streaming surfaces a useful error when the stream ends with response.failed and no completion" do
+    fake_responses = mock
+    fake_client = mock
+    fake_client.stubs(:responses).returns(fake_responses)
+    @subject.stubs(:client).returns(fake_client)
+
+    fake_responses.expects(:create).with do |*_args, **kwargs|
+      stream = kwargs.dig(:parameters, :stream)
+      stream.call({
+        "type" => "response.failed",
+        "response" => {
+          "error" => { "message" => "Previous response not found", "code" => "previous_response_not_found" }
+        }
+      })
+      true
+    end.returns(nil)
+
+    response = @subject.chat_response(
+      "hi",
+      model: @subject_model,
+      streamer: proc { |_| }
+    )
+
+    assert_not response.success?
+    assert_kind_of Provider::Openai::Error, response.error
+    assert_match(/Previous response not found/, response.error.message)
+    assert_match(/previous_response_not_found/, response.error.message)
+  end
+
+  test "streaming surfaces a useful error when the stream ends with no response and no error event" do
+    fake_responses = mock
+    fake_client = mock
+    fake_client.stubs(:responses).returns(fake_responses)
+    @subject.stubs(:client).returns(fake_client)
+
+    fake_responses.expects(:create).returns(nil)
+
+    response = @subject.chat_response(
+      "hi",
+      model: @subject_model,
+      streamer: proc { |_| }
+    )
+
+    assert_not response.success?
+    assert_kind_of Provider::Openai::Error, response.error
+    assert_match(/stream ended without a completion event/i, response.error.message)
+  end
+
+  test "build_input no longer accepts inline messages history" do
+    config = Provider::Openai::ChatConfig.new(functions: [], function_results: [])
+    # Positive control: prompt works
+    result = config.build_input(prompt: "hi")
+    assert_equal [ { role: "user", content: "hi" } ], result
+
+    # `messages:` kwarg is no longer part of the signature — calling with it must raise
+    assert_raises(ArgumentError) do
+      config.build_input(prompt: "hi", messages: [ { role: "user", content: "old" } ])
+    end
+  end
+end

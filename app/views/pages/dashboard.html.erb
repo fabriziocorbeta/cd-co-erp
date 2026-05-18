@@ -1,0 +1,99 @@
+<% content_for :page_header do %>
+  <div class="space-y-1 mb-6 flex gap-4 justify-between items-center lg:items-start">
+    <div class="space-y-1">
+      <h1 class="text-xl lg:text-3xl font-medium text-primary">
+        <%= t("pages.dashboard.welcome", name: Current.user.first_name) %>
+      </h1>
+      <p class="text-sm lg:text-base text-secondary">
+        <%= t("pages.dashboard.subtitle") %>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <%= render DS::Link.new(
+        icon: "plus",
+        text: t("pages.dashboard.new"),
+        href: new_account_path,
+        frame: :modal,
+        class: "hidden lg:inline-flex"
+      ) %>
+
+      <%= render DS::Link.new(
+          variant: "icon-inverse",
+          icon: "plus",
+          href: new_account_path,
+          frame: :modal,
+          class: "rounded-full lg:hidden"
+        ) %>
+    </div>
+  </div>
+<% end %>
+
+<div class="grid grid-cols-1 <%= "2xl:grid-cols-2" if Current.user.dashboard_two_column? %> gap-6 pb-6 lg:pb-12" data-controller="dashboard-sortable" data-action="dragover->dashboard-sortable#dragOver drop->dashboard-sortable#drop" role="list" aria-label="Dashboard sections">
+  <% if accessible_accounts.any? %>
+    <% @dashboard_sections.each do |section| %>
+      <% next unless section[:visible] %>
+      <section
+        class="bg-container rounded-xl shadow-border-xs transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
+        data-dashboard-sortable-target="section"
+        data-section-key="<%= section[:key] %>"
+        data-controller="dashboard-section<%= " cashflow-expand" if section[:key] == "cashflow_sankey" %>"
+        data-dashboard-section-section-key-value="<%= section[:key] %>"
+        data-dashboard-section-collapsed-value="<%= Current.user.dashboard_section_collapsed?(section[:key]) %>"
+        draggable="true"
+        tabindex="0"
+        role="listitem"
+        aria-grabbed="false"
+        aria-label="<%= t(section[:title]) %> section. Press Enter or Space to grab for reordering, then use arrow keys to move."
+        data-action="
+          dragstart->dashboard-sortable#dragStart
+          dragend->dashboard-sortable#dragEnd
+          touchstart->dashboard-sortable#touchStart
+          touchmove->dashboard-sortable#touchMove
+          touchend->dashboard-sortable#touchEnd
+          touchcancel->dashboard-sortable#touchEnd
+          keydown->dashboard-sortable#handleKeyDown">
+        <div class="px-4 py-2 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="text-secondary hover:text-primary transition-colors p-0.5"
+              data-action="click->dashboard-section#toggle keydown->dashboard-section#handleToggleKeydown"
+              data-dashboard-section-target="button"
+              aria-label="<%= t("pages.dashboard.toggle_section") %>"
+              aria-expanded="<%= !Current.user.dashboard_section_collapsed?(section[:key]) %>">
+              <%= icon("chevron-down", size: "sm", class: "transition-transform", data: { dashboard_section_target: "chevron" }) %>
+            </button>
+            <h2 class="text-base font-medium">
+              <%= t(section[:title]) %>
+            </h2>
+          </div>
+          <div class="flex items-center gap-1">
+            <% if section[:key] == "cashflow_sankey" && section[:locals][:sankey_data][:links].present? %>
+              <button
+                type="button"
+                class="text-secondary hover:text-primary transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center justify-center w-5 h-5 ml-auto lg:ml-0"
+                data-action="click->cashflow-expand#open"
+                aria-label="<%= t("global.expand") %>">
+                <%= icon("maximize-2", size: "sm", class: "!w-3.5 !h-3.5") %>
+              </button>
+            <% end %>
+            <button
+              type="button"
+              class="cursor-grab active:cursor-grabbing text-secondary hover:text-primary transition-colors p-0.5 opacity-0 group-hover:opacity-100 hidden lg:block"
+              aria-label="<%= t("pages.dashboard.drag_to_reorder") %>">
+              <%= icon("grip-vertical", size: "sm") %>
+            </button>
+          </div>
+        </div>
+        <div class="py-4" data-dashboard-section-target="content">
+          <%= render partial: section[:partial], locals: section[:locals] %>
+        </div>
+      </section>
+    <% end %>
+  <% else %>
+    <section>
+      <%= render "pages/dashboard/no_accounts_graph_placeholder" %>
+    </section>
+  <% end %>
+</div>

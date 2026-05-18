@@ -1,0 +1,51 @@
+<%# locals: (account:, url:) %>
+
+<% if @error_message.present? %>
+  <%= render DS::Alert.new(message: @error_message, variant: :error) %>
+<% end %>
+
+<%= styled_form_with model: account, url: url, scope: :account, data: { turbo: false }, class: "flex flex-col gap-4 justify-between grow text-primary" do |form| %>
+  <div class="grow space-y-2">
+    <%= form.hidden_field :accountable_type %>
+    <%= form.hidden_field :return_to, value: params[:return_to] %>
+
+    <%= form.text_field :name, placeholder: t(".name_placeholder"), required: "required", label: t(".name_label") %>
+
+    <% unless account.linked? %>
+      <%= form.money_field :balance, label: t(".balance"), required: true, default_currency: Current.family.currency %>
+    <% end %>
+
+    <% if account.new_record? && !account.linked? %>
+      <%= form.date_field :opening_balance_date,
+          label: t(".opening_balance_date_label"),
+          value: Time.zone.today - 2.years,
+          required: true %>
+    <% end %>
+
+    <%= yield form %>
+
+    <details class="group">
+      <summary class="cursor-pointer text-sm text-secondary hover:text-primary flex items-center gap-1 py-2">
+        <%= icon "chevron-right", size: "sm", class: "group-open:rotate-90 transition-transform" %>
+        <%= t(".additional_details") %>
+      </summary>
+
+      <div class="space-y-2 mt-2 pl-4 border-l border-primary">
+        <%= form.text_field :institution_name,
+            label: t(".institution_name_label"),
+            placeholder: account.provider&.institution_name || t(".institution_name_placeholder") %>
+
+        <%= form.text_field :institution_domain,
+            label: t(".institution_domain_label"),
+            placeholder: account.provider&.institution_domain || t(".institution_domain_placeholder") %>
+
+        <%= form.text_area :notes,
+            label: t(".notes_label"),
+            placeholder: t(".notes_placeholder"),
+            rows: 4 %>
+      </div>
+    </details>
+  </div>
+
+  <%= form.submit %>
+<% end %>

@@ -1,0 +1,25 @@
+<%= render DS::Dialog.new do |dialog| %>
+  <% dialog.with_header(title: t(".title"), subtitle: t(".subtitle", product_name: product_name, moniker: family_moniker_downcase)) %>
+
+  <% dialog.with_body do %>
+    <%= styled_form_with model: @invitation, class: "space-y-4", data: { turbo: false } do |form| %>
+      <%= form.email_field :email,
+        required: true,
+        placeholder: t(".email_placeholder"),
+        label: t(".email_label") %>
+
+      <%= form.select :role,
+        options_for_select([
+          (FeatureFlags.intro_ui? ? [t(".role_guest"), "guest"] : nil),
+          [t(".role_member"), "member"],
+          [t(".role_admin"), "admin"]
+        ].compact),
+        {},
+        { label: t(".role_label") } %>
+
+      <div class="w-full">
+        <%= form.submit t(".submit"), class: "bg-inverse text-inverse rounded-lg px-4 py-2 w-full" %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

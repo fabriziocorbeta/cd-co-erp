@@ -1,0 +1,56 @@
+<%# locals: (holding:) %>
+
+<%= turbo_frame_tag dom_id(holding) do %>
+  <div class="grid grid-cols-12 items-center text-primary text-sm font-medium p-4">
+    <div class="col-span-4 flex items-center gap-4">
+      <% if (logo = holding.security.display_logo_url).present? %>
+        <%= image_tag logo, class: "w-9 h-9 rounded-full", loading: "lazy" %>
+      <% else %>
+        <%= render DS::FilledIcon.new(variant: :text, text: holding.name, size: "md", rounded: true) %>
+      <% end %>
+      <div class="space-y-0.5">
+        <%= link_to holding.name, holding_path(holding), data: { turbo_frame: :drawer }, class: "hover:underline" %>
+
+        <% if holding.amount %>
+          <%= tag.p holding.ticker, class: "text-secondary text-xs uppercase" %>
+        <% else %>
+          <%= render "missing_price_tooltip" %>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="col-span-2 flex justify-end items-center gap-2">
+      <% if holding.weight %>
+        <%= render "shared/progress_circle", progress: holding.weight %>
+        <%= tag.p number_to_percentage(holding.weight, precision: 1) %>
+      <% else %>
+        <%= tag.p "--", class: "text-secondary mb-5" %>
+      <% end %>
+    </div>
+
+    <div class="col-span-2 text-right">
+      <%= render "holdings/cost_basis_cell", holding: holding, editable: false %>
+      <%= tag.p t(".per_share"), class: "font-normal text-secondary" %>
+    </div>
+
+    <div class="col-span-2 text-right">
+      <% if holding.amount_money %>
+        <%= tag.p format_money(holding.amount_money), class: "privacy-sensitive" %>
+      <% else %>
+        <%= tag.p "--", class: "text-secondary" %>
+      <% end %>
+      <%= tag.p t(".shares", qty: format_quantity(holding.qty)), class: "font-normal text-secondary" %>
+    </div>
+
+    <div class="col-span-2 text-right">
+      <%# Show Total Return (unrealized G/L) when cost basis exists (from trades or manual) %>
+      <% if holding.trend %>
+        <%= tag.p format_money(holding.trend.value), class: "privacy-sensitive", style: "color: #{holding.trend.color};" %>
+        <%= tag.p "(#{holding.trend.percent_formatted})", class: "privacy-sensitive", style: "color: #{holding.trend.color};" %>
+      <% else %>
+        <%= tag.p "--", class: "text-secondary" %>
+        <%= tag.p t(".no_cost_basis"), class: "text-xs text-secondary" %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

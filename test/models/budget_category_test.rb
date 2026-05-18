@@ -1,0 +1,258 @@
+require "test_helper"
+
+class BudgetCategoryTest < ActiveSupport::TestCase
+  setup do
+    @family = families(:dylan_family)
+    @budget = budgets(:one)
+
+    # Create parent category with unique name
+    @parent_category = Category.create!(
+      name: "Test Food & Groceries #{Time.now.to_f}",
+      family: @family,
+      color: "#4da568",
+      lucide_icon: "utensils"
+    )
+
+    # Create subcategories with unique names
+    @subcategory_with_limit = Category.create!(
+      name: "Test Restaurants #{Time.now.to_f}",
+      parent: @parent_category,
+      family: @family
+    )
+
+    @subcategory_inheriting = Category.create!(
+      name: "Test Groceries #{Time.now.to_f}",
+      parent: @parent_category,
+      family: @family
+    )
+
+    # Create budget categories
+    @parent_budget_category = BudgetCategory.create!(
+      budget: @budget,
+      category: @parent_category,
+      budgeted_spending: 1000,
+      currency: "USD"
+    )
+
+    @subcategory_with_limit_bc = BudgetCategory.create!(
+      budget: @budget,
+      category: @subcategory_with_limit,
+      budgeted_spending: 300,
+      currency: "USD"
+    )
+
+    @subcategory_inheriting_bc = BudgetCategory.create!(
+      budget: @budget,
+      category: @subcategory_inheriting,
+      budgeted_spending: 0,  # Inherits from parent
+      currency: "USD"
+    )
+  end
+
+  test "subcategory with zero budget inherits from parent" do
+    assert @subcategory_inheriting_bc.inherits_parent_budget?
+    refute @subcategory_with_limit_bc.inherits_parent_budget?
+    refute @parent_budget_category.inherits_parent_budget?
+  end
+
+  test "parent_budget_category returns parent for subcategories" do
+    assert_equal @parent_budget_category, @subcategory_inheriting_bc.parent_budget_category
+    assert_equal @parent_budget_category, @subcategory_with_limit_bc.parent_budget_category
+    assert_nil @parent_budget_category.parent_budget_category
+  end
+
+  test "display_budgeted_spending shows parent budget for inheriting subcategories" do
+    assert_equal 1000, @subcategory_inheriting_bc.display_budgeted_spending
+    assert_equal 300, @subcategory_with_limit_bc.display_budgeted_spending
+    assert_equal 1000, @parent_budget_category.display_budgeted_spending
+  end
+
+  test "inheriting subcategory shares parent available_to_spend" do
+    # Mock the actual spending values
+    # Parent's actual_spending from income_statement includes all children
+    @budget.stubs(:budget_category_actual_spending).with(@parent_budget_category).returns(150)
+    @budget.stubs(:budget_category_actual_spending).with(@subcategory_with_limit_bc).returns(100)
+    @budget.stubs(:budget_category_actual_spending).with(@subcategory_inheriting_bc).returns(50)
+
+    # Parent available calculation:
+    # shared_pool = 1000 (parent budget) - 300 (subcategory with limit budget) = 700
+    # shared_pool_spending = 150 (total) - 100 (subcategory with limit spending) = 50
+    # available = 700 - 50 = 650
+    assert_equal 650, @parent_budget_category.available_to_spend
+
+    # Inheriting subcategory shares parent's available (650)
+    assert_equal 650, @subcategory_inheriting_bc.available_to_spend
+
+    # Subcategory with limit: 300 (its budget) - 100 (its spending) = 200
+    assert_equal 200, @subcategory_with_limit_bc.available_to_spend
+  end
+
+  test "percent_of_budget_spent for inheriting subcategory uses parent budget" do
+    # Mock spending
+    @budget.stubs(:budget_category_actual_spending).with(@subcategory_inheriting_bc).returns(100)
+
+    # 100 / 1000 (parent budget) = 10%
+    assert_equal 10.0, @subcategory_inheriting_bc.percent_of_budget_spent
+  end
+
+  test "parent with no subcategories works as before" do
+    # Create a standalone parent category without subcategories
+    standalone_category = Category.create!(
+      name: "Test Entertainment #{Time.now.to_f}",
+      family: @family,
+      color: "#a855f7",
+      lucide_icon: "drama"
+    )
+
+    standalone_bc = BudgetCategory.create!(
+      budget: @budget,
+      category: standalone_category,
+      budgeted_spending: 500,
+      currency: "USD"
+    )
+
+    # Mock spending
+    @budget.stubs(:budget_category_actual_spending).with(standalone_bc).returns(200)
+
+    # Should work exactly as before: 500 - 200 = 300
+    assert_equal 300, standalone_bc.available_to_spend
+    assert_equal 40.0, standalone_bc.percent_of_budget_spent
+  end
+
+  test "uncategorized budget category returns no subcategories" do
+    uncategorized_bc = BudgetCategory.uncategorized
+    uncategorized_bc.budget = @budget
+
+    # Before the fix, this would return all top-level categories because
+    # category.id is nil, causing WHERE parent_id IS NULL to match all roots
+    assert_empty uncategorized_bc.subcategories
+  end
+
+  test "parent with only inheriting subcategories shares entire budget" do
+    # Set subcategory_with_limit to also inherit
+    @subcategory_with_limit_bc.update!(budgeted_spending: 0)
+
+    # Mock spending
+    @budget.stubs(:budget_category_actual_spending).with(@parent_budget_category).returns(200)
+    @budget.stubs(:budget_category_actual_spending).with(@subcategory_with_limit_bc).returns(100)
+    @budget.stubs(:budget_category_actual_spending).with(@subcategory_inheriting_bc).returns(100)
+
+    # All should show same available: 1000 - 200 = 800
+    assert_equal 800, @parent_budget_category.available_to_spend
+    assert_equal 800, @subcategory_with_limit_bc.available_to_spend
+    assert_equal 800, @subcategory_inheriting_bc.available_to_spend
+  end
+
+  test "update_budgeted_spending! preserves positive parent reserve when subcategory becomes individual" do
+    @subcategory_inheriting_bc.update_budgeted_spending!(200)
+
+    assert_equal 1200, @parent_budget_category.reload.budgeted_spending
+    assert_equal 200, @subcategory_inheriting_bc.reload.budgeted_spending
+    refute @subcategory_inheriting_bc.reload.inherits_parent_budget?
+  end
+
+  test "update_budgeted_spending! lowers parent when subcategory returns to shared" do
+    @subcategory_with_limit_bc.update_budgeted_spending!(0)
+
+    assert_equal 700, @parent_budget_category.reload.budgeted_spending
+    assert @subcategory_with_limit_bc.reload.inherits_parent_budget?
+  end
+
+  test "update_budgeted_spending! does not preserve a negative parent reserve" do
+    # Create an artificial inconsistent parent total to verify recovery behavior.
+    @parent_budget_category.update!(budgeted_spending: 50)
+    @subcategory_inheriting_bc.update!(budgeted_spending: 50)
+
+    @subcategory_with_limit_bc.update_budgeted_spending!(20)
+
+    assert_equal 70, @parent_budget_category.reload.budgeted_spending
+    assert_equal 20, @subcategory_with_limit_bc.reload.budgeted_spending
+    assert_equal 50, @subcategory_inheriting_bc.reload.budgeted_spending
+  end
+
+  test "budgeted? returns true only when display_budgeted_spending > 0" do
+    @subcategory_with_limit_bc.stubs(:display_budgeted_spending).returns(100)
+    assert @subcategory_with_limit_bc.budgeted?
+
+    @subcategory_with_limit_bc.stubs(:display_budgeted_spending).returns(0)
+    refute @subcategory_with_limit_bc.budgeted?
+
+    @subcategory_with_limit_bc.stubs(:display_budgeted_spending).returns(nil)
+    refute @subcategory_with_limit_bc.budgeted?
+  end
+
+  test "unbudgeted_with_spending? is true only when not budgeted and has spending" do
+    @subcategory_with_limit_bc.stubs(:budgeted?).returns(false)
+    @subcategory_with_limit_bc.stubs(:actual_spending).returns(10)
+    assert @subcategory_with_limit_bc.unbudgeted_with_spending?
+
+    @subcategory_with_limit_bc.stubs(:budgeted?).returns(true)
+    assert_not @subcategory_with_limit_bc.unbudgeted_with_spending?
+
+    @subcategory_with_limit_bc.stubs(:budgeted?).returns(false)
+    @subcategory_with_limit_bc.stubs(:actual_spending).returns(0)
+    assert_not @subcategory_with_limit_bc.unbudgeted_with_spending?
+
+    @subcategory_with_limit_bc.stubs(:actual_spending).returns(nil)
+    assert_not @subcategory_with_limit_bc.unbudgeted_with_spending?
+  end
+
+  test "over_budget_with_budget? requires both budgeted and over_budget" do
+    @subcategory_with_limit_bc.stubs(:budgeted?).returns(true)
+    @subcategory_with_limit_bc.stubs(:over_budget?).returns(true)
+    assert @subcategory_with_limit_bc.over_budget_with_budget?
+
+    @subcategory_with_limit_bc.stubs(:over_budget?).returns(false)
+    assert_not @subcategory_with_limit_bc.over_budget_with_budget?
+
+    @subcategory_with_limit_bc.stubs(:budgeted?).returns(false)
+    @subcategory_with_limit_bc.stubs(:over_budget?).returns(true)
+    assert_not @subcategory_with_limit_bc.over_budget_with_budget?
+  end
+
+  test "on_track? is true only when budgeted and not over_budget" do
+    @subcategory_with_limit_bc.stubs(:budgeted?).returns(true)
+    @subcategory_with_limit_bc.stubs(:over_budget?).returns(false)
+    assert @subcategory_with_limit_bc.on_track?
+
+    @subcategory_with_limit_bc.stubs(:over_budget?).returns(true)
+    assert_not @subcategory_with_limit_bc.on_track?
+
+    @subcategory_with_limit_bc.stubs(:budgeted?).returns(false)
+    @subcategory_with_limit_bc.stubs(:over_budget?).returns(false)
+    assert_not @subcategory_with_limit_bc.on_track?
+  end
+
+  test "any_over_budget? is true if either condition is true" do
+    @subcategory_with_limit_bc.stubs(:unbudgeted_with_spending?).returns(true)
+    @subcategory_with_limit_bc.stubs(:over_budget_with_budget?).returns(false)
+    assert @subcategory_with_limit_bc.any_over_budget?
+
+    @subcategory_with_limit_bc.stubs(:unbudgeted_with_spending?).returns(false)
+    @subcategory_with_limit_bc.stubs(:over_budget_with_budget?).returns(true)
+    assert @subcategory_with_limit_bc.any_over_budget?
+
+    @subcategory_with_limit_bc.stubs(:unbudgeted_with_spending?).returns(false)
+    @subcategory_with_limit_bc.stubs(:over_budget_with_budget?).returns(false)
+    assert_not @subcategory_with_limit_bc.any_over_budget?
+  end
+
+  test "visible_on_track? behavior for different category types" do
+    # 1. not on_track => always false
+    @subcategory_with_limit_bc.stubs(:on_track?).returns(false)
+    assert_not @subcategory_with_limit_bc.visible_on_track?
+
+    # 2. normal category (not subcategory) => true if on_track
+    @parent_budget_category.stubs(:on_track?).returns(true)
+    assert @parent_budget_category.visible_on_track?
+
+    # 3. subcategory inheriting, no spending => hidden
+    @subcategory_inheriting_bc.stubs(:on_track?).returns(true)
+    @subcategory_inheriting_bc.stubs(:actual_spending).returns(0)
+    assert_not @subcategory_inheriting_bc.visible_on_track?
+
+    # 4. subcategory inheriting, has spending => visible
+    @subcategory_inheriting_bc.stubs(:actual_spending).returns(10)
+    assert @subcategory_inheriting_bc.visible_on_track?
+  end
+end

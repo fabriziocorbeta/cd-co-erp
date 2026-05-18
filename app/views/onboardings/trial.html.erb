@@ -1,0 +1,83 @@
+<%= content_for :previous_path, goals_onboarding_path %>
+
+<%= content_for :header_nav do %>
+  <%= render "onboardings/onboarding_nav", user: @user %>
+<% end %>
+
+<%= content_for :cancel_action do %>
+  <%= render "onboardings/logout" %>
+<% end %>
+
+<%= content_for :footer do %>
+  <%= render "layouts/shared/footer" %>
+<% end %>
+
+<div class="grow flex flex-col gap-12 items-center justify-center">
+  <div class="max-w-sm mx-auto flex flex-col items-center">
+    <%= image_tag "logo-color.png", class: "w-16 mb-6" %>
+
+    <p class="text-xl lg:text-3xl text-primary font-display font-medium">
+      <%= t(".title") %>
+    </p>
+
+    <h2 class="text-xl lg:text-3xl font-display text-secondary font-medium mb-2">
+      <%= t(".data_deletion") %>
+    </h2>
+
+    <p class="text-sm text-secondary text-center mb-8">
+      <%= t(".description_html").html_safe %>
+    </p>
+
+    <div class="w-full">
+      <% if Current.family.can_start_trial? %>
+        <%= render DS::Button.new(
+          text: t(".try_button"),
+          href: subscription_path,
+          full_width: true,
+          data: { turbo: false }
+        ) %>
+      <% elsif Current.family.trialing? %>
+        <%= render DS::Link.new(
+          text: t(".continue_trial"),
+          href: root_path,
+          full_width: true,
+          ) %>
+      <% else %>
+        <%= render DS::Link.new(
+          text: t(".upgrade"),
+          href: upgrade_subscription_path,
+          full_width: true,
+          ) %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="space-y-8">
+    <h2 class="text-center text-lg lg:text-2xl font-medium text-primary"><%= t(".how_it_works") %></h2>
+
+    <div class="flex gap-3">
+      <div class="rounded-xl p-1 bg-gray-400/20 theme-dark:bg-gray-500/20 flex flex-col justify-between items-center text-secondary">
+        <%= render DS::FilledIcon.new(icon: "unlock-keyhole", variant: :inverse) %>
+        <%= render DS::FilledIcon.new(icon: "bell", variant: :inverse) %>
+        <%= render DS::FilledIcon.new(icon: "credit-card", variant: :inverse) %>
+      </div>
+
+      <div class="space-y-12">
+        <div class="space-y-1.5 text-sm">
+          <p class="text-primary font-medium"><%= t(".today") %></p>
+          <p class="text-secondary"><%= t(".today_description") %></p>
+        </div>
+
+        <div class="space-y-1.5 text-sm">
+          <p class="text-primary font-medium"><%= t(".in_40_days", date: l(40.days.from_now.to_date, format: :long)) %></p>
+          <p class="text-secondary"><%= t(".in_40_days_description") %></p>
+        </div>
+
+        <div class="space-y-1.5 text-sm">
+          <p class="text-primary font-medium"><%= t(".in_45_days", date: l(45.days.from_now.to_date, format: :long)) %></p>
+          <p class="text-secondary"><%= t(".in_45_days_description") %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

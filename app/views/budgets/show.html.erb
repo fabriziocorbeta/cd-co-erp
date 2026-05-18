@@ -1,0 +1,85 @@
+<div class="pb-6 lg:pb-12">
+  <%= render "budgets/budget_header",
+            budget: @budget,
+            previous_budget: @previous_budget,
+            next_budget: @next_budget,
+            latest_budget: @latest_budget %>
+
+  <div class="space-y-4">
+    <%# Top Section: Donut and Summary side by side %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <%# Budget Donut %>
+      <div class="min-h-[300px] bg-container rounded-xl shadow-border-xs p-8">
+        <% if !@budget.initialized? && @source_budget.present? %>
+          <%= render "budgets/copy_previous_prompt", budget: @budget, source_budget: @source_budget %>
+        <% elsif @budget.initialized? && @budget.available_to_allocate.negative? %>
+          <%= render "budgets/over_allocation_warning", budget: @budget %>
+        <% else %>
+          <%= render "budgets/budget_donut", budget: @budget %>
+        <% end %>
+      </div>
+
+      <%# Actuals Summary %>
+      <% if @budget.initialized? && @budget.available_to_allocate.positive? %>
+        <%= render DS::Tabs.new(active_tab: params[:tab].presence || "budgeted") do |tabs| %>
+          <% tabs.with_nav do |nav| %>
+            <% nav.with_btn(id: "budgeted", label: t("budgets.show.tabs.budgeted")) %>
+            <% nav.with_btn(id: "actuals", label: t("budgets.show.tabs.actual")) %>
+          <% end %>
+
+          <% tabs.with_panel(tab_id: "budgeted") do %>
+            <div class="bg-container rounded-xl shadow-border-xs">
+              <%= render "budgets/budgeted_summary", budget: @budget %>
+            </div>
+          <% end %>
+
+          <% tabs.with_panel(tab_id: "actuals") do %>
+            <div class="bg-container rounded-xl shadow-border-xs">
+              <%= render "budgets/actuals_summary", budget: @budget %>
+            </div>
+          <% end %>
+        <% end %>
+      <% else %>
+        <div class="bg-container rounded-xl shadow-border-xs">
+          <%= render "budgets/actuals_summary", budget: @budget %>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Bottom Section: Categories full width %>
+    <% has_over_budget = budget_has_over_budget?(@budget) %>
+    <%= content_tag :div,
+      class: "w-full bg-container rounded-xl shadow-border-xs p-4",
+      data: (has_over_budget ? { controller: "budget-filter" } : {}) do %>
+      <div class="flex items-center mb-4 flex-nowrap justify-between">
+        <h2 class="text-lg font-medium shrink-0">
+          <%= t("budgets.show.categories.title") %>
+        </h2>
+
+        <% if has_over_budget %>
+          <div class="hidden lg:flex flex-1 min-w-0 px-1">
+            <%= render "budgets/budget_tabs" %>
+          </div>
+        <% end %>
+
+        <div class="<%= has_over_budget ? "shrink-0 flex justify-end whitespace-nowrap" : "ml-auto" %>">
+          <% if @budget.initialized? %>
+            <%= render DS::Link.new(
+              text: t("budgets.show.categories.edit"),
+              variant: "secondary",
+              icon: "settings-2",
+              href: budget_budget_categories_path(@budget)
+            ) %>
+          <% end %>
+        </div>
+      </div>
+      <% if has_over_budget %>
+        <div class="flex lg:hidden flex-1 min-w-0 mb-4">
+          <%= render "budgets/budget_tabs" %>
+        </div>
+      <% end %>
+
+      <%= render "budgets/budget_categories", budget: @budget %>
+    <% end %>
+  </div>
+</div>

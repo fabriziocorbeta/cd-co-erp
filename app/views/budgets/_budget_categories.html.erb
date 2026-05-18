@@ -1,0 +1,34 @@
+<%# locals: (budget:) %>
+
+<% categories_state = budget_categories_view_state(budget) %>
+<% uncategorized_budget_category = categories_state[:uncategorized_budget_category] %>
+<% visible_expenses_empty = categories_state[:visible_expenses_empty] %>
+<% over_budget_groups = categories_state[:over_budget_groups] %>
+<% show_over_budget_uncategorized = categories_state[:show_over_budget_uncategorized] %>
+<% over_budget_count = categories_state[:over_budget_count] %>
+<% on_track_groups = categories_state[:on_track_groups] %>
+<% show_on_track_uncategorized = categories_state[:show_on_track_uncategorized] %>
+<% on_track_count = categories_state[:on_track_count] %>
+
+<div class="space-y-4">
+
+  <% if over_budget_count.positive? %>
+    <%= render "budgets/category_section",
+      budget: budget,
+      count: over_budget_count,
+      groups: over_budget_groups,
+      uncategorized: uncategorized_budget_category,
+      show_uncategorized: show_over_budget_uncategorized,
+      over_budget_mode: true %>
+  <% end %>
+
+  <%= render "budgets/category_section",
+    budget: budget,
+    count: on_track_count,
+    groups: on_track_groups,
+    uncategorized: uncategorized_budget_category,
+    show_uncategorized: show_on_track_uncategorized,
+    over_budget_mode: false
+  %>
+
+</div>

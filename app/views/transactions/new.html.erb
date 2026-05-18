@@ -1,0 +1,6 @@
+<%= render DS::Dialog.new(scrollable: false) do |dialog| %>
+  <% dialog.with_header(title: "New transaction") %>
+  <% dialog.with_body do %>
+    <%= render "form", entry: @entry, categories: @categories %>
+  <% end %>
+<% end %>
