@@ -21,6 +21,7 @@ module StatementParser
     end
 
     def build_and_save!(parsed)
+      raise ArgumentError, "Account must be persisted before importing transactions" unless @account.persisted?
       entry = build(parsed)
       entry.save!
       entry
