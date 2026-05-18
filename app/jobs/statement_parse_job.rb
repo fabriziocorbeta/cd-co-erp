@@ -7,10 +7,16 @@ class StatementParseJob < ApplicationJob
 
     import.update!(status: :processing)
 
-    file_bytes = import.source_file.download
-    content_type = import.source_file.content_type
+    unless import.source_file.attached?
+      raise StatementParser::ExtractionError, "No file attached to import"
+    end
 
-    raise StatementParser::ExtractionError, "Unsupported type: #{content_type}" unless content_type == "application/pdf"
+    content_type = import.source_file.content_type
+    unless content_type == "application/pdf"
+      raise StatementParser::ExtractionError, "Unsupported file type: #{content_type}"
+    end
+
+    file_bytes = import.source_file.download
 
     text = StatementParser::PdfExtractor.new(file_bytes).extract
     transactions = StatementParser::ClaudeParser.new(text, bank_name: import.bank_name).parse
