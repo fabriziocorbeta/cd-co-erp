@@ -588,6 +588,13 @@ Rails.application.routes.draw do
     end
   end
 
+  # Organization settings (renamed from Family)
+  resource :organization, only: %i[show edit update] do
+    member do
+      get :members
+    end
+  end
+
   # Defines the root path route ("/")
   root "pages#dashboard"
 end
