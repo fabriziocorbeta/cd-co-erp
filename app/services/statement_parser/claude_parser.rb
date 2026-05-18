@@ -43,9 +43,9 @@ module StatementParser
     private
 
     def user_prompt
-      parts = ["Bank: #{@bank_name}"] if @bank_name.present?
-      (parts || []) << "Statement:\n\n#{@text}"
-      (parts || ["Statement:\n\n#{@text}"]).join("\n")
+      parts = @bank_name.present? ? ["Bank: #{@bank_name}"] : []
+      parts << "Statement:\n\n#{@text}"
+      parts.join("\n")
     end
   end
 end
