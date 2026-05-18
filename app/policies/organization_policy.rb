@@ -22,8 +22,9 @@ class OrganizationPolicy < ApplicationPolicy
       if user.super_admin?
         scope.all
       else
-        scope.joins(:organization_memberships)
+        scope.includes(:organization_memberships)
              .where(organization_memberships: { user_id: user.id })
+             .references(:organization_memberships)
       end
     end
   end
