@@ -112,13 +112,13 @@ jobs:
           echo "Extracted version: $VERSION"
 
       - name: Download Android APK artifact
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v8
         with:
           name: app-release-apk
           path: ${{ runner.temp }}/mobile-artifacts
 
       - name: Download iOS build artifact
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v8
         with:
           name: ios-build-unsigned
           path: ${{ runner.temp }}/ios-build
