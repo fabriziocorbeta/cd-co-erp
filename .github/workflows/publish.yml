@@ -73,7 +73,7 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4.2.0
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
 
@@ -426,7 +426,7 @@ jobs:
           echo "branch=$SOURCE_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Check out source branch
-        uses: actions/checkout@v4.2.0
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.source_branch.outputs.branch }}
           token: ${{ secrets.GH_PAT }}
