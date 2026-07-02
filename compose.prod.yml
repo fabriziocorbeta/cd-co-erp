@@ -1,22 +1,16 @@
-# FinancePY — Producción en VM (Google Compute Engine)
+# FinancePY — Producción en VM (Google Compute Engine) + Supabase Postgres
+# Datos críticos viven en Supabase → la VM es descartable.
 # Uso:
 #   cp .env.production.example .env && editar valores
 #   docker compose -f compose.prod.yml up -d --build
 
-x-db-env: &db_env
-  POSTGRES_USER: ${POSTGRES_USER:-financespy}
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido en .env}
-  POSTGRES_DB: ${POSTGRES_DB:-financespy_production}
-
 x-rails-env: &rails_env
-  <<: *db_env
   SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE requerido en .env}
+  DATABASE_URL: ${DATABASE_URL:?DATABASE_URL requerido en .env (Supabase session pooler)}
   SELF_HOSTED: "true"
   RAILS_FORCE_SSL: "false"
   RAILS_ASSUME_SSL: "true"
   APP_DOMAIN: ${APP_DOMAIN:-finance.cd-co.com.py}
-  DB_HOST: db
-  DB_PORT: 5432
   REDIS_URL: redis://redis:6379/1
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN:-}
@@ -45,8 +39,6 @@ services:
     environment:
       <<: *rails_env
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     dns:
@@ -64,28 +56,11 @@ services:
     environment:
       <<: *rails_env
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     dns:
       - 8.8.8.8
       - 1.1.1.1
-    networks:
-      - financespy_net
-
-  db:
-    image: postgres:16
-    restart: unless-stopped
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      <<: *db_env
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - financespy_net
 
@@ -102,28 +77,8 @@ services:
     networks:
       - financespy_net
 
-  backup:
-    image: prodrigestivill/postgres-backup-local
-    restart: unless-stopped
-    volumes:
-      - ./backups:/backups
-    environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_DB=${POSTGRES_DB:-financespy_production}
-      - POSTGRES_USER=${POSTGRES_USER:-financespy}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - SCHEDULE=@daily
-      - BACKUP_KEEP_DAYS=7
-      - BACKUP_KEEP_WEEKS=4
-      - BACKUP_KEEP_MONTHS=6
-    depends_on:
-      - db
-    networks:
-      - financespy_net
-
 volumes:
   app-storage:
-  postgres-data:
   redis-data:
   caddy-data:
   caddy-config:
