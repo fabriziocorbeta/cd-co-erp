@@ -1,4 +1,4 @@
-class AddSaasFieldsToOrganizations < ActiveRecord::Migration[8.1]
+class AddSaasFieldsToOrganizations < ActiveRecord::Migration[7.2]
   def change
     add_column :organizations, :slug, :string
     add_column :organizations, :country, :string, default: "PY", null: false

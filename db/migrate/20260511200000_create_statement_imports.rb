@@ -1,4 +1,4 @@
-class CreateStatementImports < ActiveRecord::Migration[8.1]
+class CreateStatementImports < ActiveRecord::Migration[7.2]
   def change
     create_table :statement_imports do |t|
       t.references :organization, null: false, foreign_key: true

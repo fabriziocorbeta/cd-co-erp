@@ -1,4 +1,4 @@
-class RenameFamiliesToOrganizations < ActiveRecord::Migration[8.1]
+class RenameFamiliesToOrganizations < ActiveRecord::Migration[7.2]
   def change
     # Rename the primary families table
     rename_table :families, :organizations
