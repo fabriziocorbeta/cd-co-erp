@@ -108,7 +108,6 @@ gem "anthropic-rb", "~> 0.6"
 gem "mini_magick", "~> 4.12"
 
 # Localization & Money
-gem "money"
 
 group :development, :test do
   gem "debug", platforms: %i[mri windows]
