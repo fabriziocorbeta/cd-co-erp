@@ -1,0 +1,41 @@
+<%= content_for :page_title, "Business Mode" %>
+
+<div class="bg-container rounded-xl shadow-border-xs p-4">
+  <div class="mb-6">
+    <p class="text-sm text-secondary">Toggle premium business features (inventory, sales, orders, fleet) per family.</p>
+  </div>
+
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-secondary uppercase text-xs">
+        <th class="pb-2">Family</th>
+        <th class="pb-2">Business Mode</th>
+        <th class="pb-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @families.each do |family| %>
+        <tr class="border-t border-divider">
+          <td class="py-3"><%= family.name %></td>
+          <td class="py-3">
+            <% if family.business_mode_enabled? %>
+              <span class="text-sm font-medium text-green-600">Enabled</span>
+            <% else %>
+              <span class="text-sm text-secondary">Disabled</span>
+            <% end %>
+          </td>
+          <td class="py-3 text-right">
+            <%= render DS::Button.new(
+                  href: admin_family_path(family),
+                  method: :patch,
+                  params: { family: { business_mode_enabled: !family.business_mode_enabled? } },
+                  variant: family.business_mode_enabled? ? "destructive" : "primary",
+                  size: "sm",
+                  text: family.business_mode_enabled? ? "Disable" : "Enable"
+                ) %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

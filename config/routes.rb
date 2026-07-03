@@ -588,7 +588,7 @@ Rails.application.routes.draw do
     end
     resources :users, only: [ :index, :update ]
     resources :invitations, only: [ :destroy ]
-    resources :families, only: [] do
+    resources :families, only: [ :index, :update ] do
       member do
         delete :invitations, to: "invitations#destroy_all"
       end

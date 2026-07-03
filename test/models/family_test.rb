@@ -7,6 +7,17 @@ class FamilyTest < ActiveSupport::TestCase
     @syncable = families(:dylan_family)
   end
 
+  test "business_mode_enabled defaults to false" do
+    family = families(:dylan_family)
+    assert_not family.business_mode_enabled?
+  end
+
+  test "business_mode_enabled can be toggled" do
+    family = families(:dylan_family)
+    family.update!(business_mode_enabled: true)
+    assert family.reload.business_mode_enabled?
+  end
+
   test "investment_contributions_category creates category when missing" do
     family = families(:dylan_family)
     family.categories.where(name: Category.investment_contributions_name).destroy_all
