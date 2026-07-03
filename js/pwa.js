@@ -7,7 +7,12 @@
 (function(){
   const M={name:'CD & Co — ERP',short_name:'CD & Co',description:'Finanzas y gestión de negocio',start_url:'./',display:'standalone',orientation:'any',background_color:'#0c0b09',theme_color:'#0c0b09',
     shortcuts:[{name:'Nueva venta',short_name:'Venta',url:'./?action=sale'},{name:'Nuevo ingreso',short_name:'Ingreso',url:'./?action=income'},{name:'Nuevo pedido',short_name:'Pedido',url:'./?action=order'}],
-    icons:[{src:"data:image/svg+xml,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" fill="#0c0b09"/><circle cx="96" cy="96" r="82" fill="none" stroke="#c9960c" stroke-width="1.5"/><circle cx="96" cy="14.5" r="5" fill="#e8b124"/><text x="96" y="88" text-anchor="middle" font-family="serif" font-size="34" fill="#e8b124" font-weight="300" letter-spacing="4">CD</text><text x="96" y="114" text-anchor="middle" font-family="serif" font-size="16" fill="#8a8278" font-weight="300" letter-spacing="8">&amp; Co</text></svg>`),sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'}]};
+    icons:[
+      {src:'/icon-192.png',sizes:'192x192',type:'image/png',purpose:'any'},
+      {src:'/icon-192.png',sizes:'192x192',type:'image/png',purpose:'maskable'},
+      {src:'/icon-512.png',sizes:'512x512',type:'image/png',purpose:'any'},
+      {src:'/icon-512.png',sizes:'512x512',type:'image/png',purpose:'maskable'}
+    ]};
   const blob=new Blob([JSON.stringify(M)],{type:'application/manifest+json'});
   document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
 })();
