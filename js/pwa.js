@@ -8,10 +8,10 @@
   const M={name:'CD & Co — ERP',short_name:'CD & Co',description:'Finanzas y gestión de negocio',start_url:'./',display:'standalone',orientation:'any',background_color:'#0c0b09',theme_color:'#0c0b09',
     shortcuts:[{name:'Nueva venta',short_name:'Venta',url:'./?action=sale'},{name:'Nuevo ingreso',short_name:'Ingreso',url:'./?action=income'},{name:'Nuevo pedido',short_name:'Pedido',url:'./?action=order'}],
     icons:[
-      {src:'/icon-192.png',sizes:'192x192',type:'image/png',purpose:'any'},
-      {src:'/icon-192.png',sizes:'192x192',type:'image/png',purpose:'maskable'},
-      {src:'/icon-512.png',sizes:'512x512',type:'image/png',purpose:'any'},
-      {src:'/icon-512.png',sizes:'512x512',type:'image/png',purpose:'maskable'}
+      {src:'/assets/icon-192.png',sizes:'192x192',type:'image/png',purpose:'any'},
+      {src:'/assets/icon-192.png',sizes:'192x192',type:'image/png',purpose:'maskable'},
+      {src:'/assets/icon-512.png',sizes:'512x512',type:'image/png',purpose:'any'},
+      {src:'/assets/icon-512.png',sizes:'512x512',type:'image/png',purpose:'maskable'}
     ]};
   const blob=new Blob([JSON.stringify(M)],{type:'application/manifest+json'});
   document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
