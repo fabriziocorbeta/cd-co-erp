@@ -1,6 +1,10 @@
 ---
 es:
   transactions:
+    bulk_updates:
+      new:
+        name_label: Nombre
+        name_placeholder: Ingresá un nombre para aplicar a las transacciones seleccionadas
     unknown_name: Transacción desconocida
     form:
       account: Cuenta
