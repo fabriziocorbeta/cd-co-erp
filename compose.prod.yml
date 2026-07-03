@@ -11,6 +11,8 @@ x-rails-env: &rails_env
   RAILS_FORCE_SSL: "false"
   RAILS_ASSUME_SSL: "true"
   APP_DOMAIN: ${APP_DOMAIN:-finance.cd-co.com.py}
+  PRODUCT_NAME: ${PRODUCT_NAME:-FinancePY}
+  BRAND_NAME: ${BRAND_NAME:-CD & Co.}
   REDIS_URL: redis://redis:6379/1
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN:-}
