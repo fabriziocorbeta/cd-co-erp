@@ -1,4 +1,4 @@
-module Organization::PlaidConnectable
+module Family::PlaidConnectable
   extend ActiveSupport::Concern
 
   included do

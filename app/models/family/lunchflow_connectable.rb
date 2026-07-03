@@ -1,4 +1,4 @@
-module Organization::LunchflowConnectable
+module Family::LunchflowConnectable
   extend ActiveSupport::Concern
 
   included do

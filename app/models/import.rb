@@ -79,7 +79,7 @@ class Import < ApplicationRecord
     #   1. Formats that parse ALL samples beat those that only parse some.
     #   2. Among equal parse counts, formats whose parsed dates fall within a
     #      reasonable range (1970..today+5y) score higher.
-    def detect_date_format(samples, candidates: Organization::DATE_FORMATS.map(&:last), fallback: "%Y-%m-%d")
+    def detect_date_format(samples, candidates: Family::DATE_FORMATS.map(&:last), fallback: "%Y-%m-%d")
       return fallback if samples.blank?
 
       cleaned = samples.map(&:to_s).reject(&:blank?).uniq.first(50)
@@ -331,7 +331,7 @@ class Import < ApplicationRecord
     first_sample = raw_date_samples.find(&:present?)
     return [] if first_sample.blank?
 
-    Organization::DATE_FORMATS.filter_map do |label, fmt|
+    Family::DATE_FORMATS.filter_map do |label, fmt|
       parsed = try_parse_date_sample(first_sample, format: fmt)
       next unless parsed
       next unless self.class.reasonable_date_range.cover?(Date.parse(parsed))

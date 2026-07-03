@@ -1,6 +1,6 @@
 # Adds CoinStats connection capabilities to Family.
 # Allows families to create and manage CoinStats API connections.
-module Organization::CoinstatsConnectable
+module Family::CoinstatsConnectable
   extend ActiveSupport::Concern
 
   included do

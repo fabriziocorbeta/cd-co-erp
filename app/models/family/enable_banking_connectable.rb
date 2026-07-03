@@ -1,4 +1,4 @@
-module Organization::EnableBankingConnectable
+module Family::EnableBankingConnectable
   extend ActiveSupport::Concern
 
   included do

@@ -1,4 +1,4 @@
-module Organization::Subscribeable
+module Family::Subscribeable
   extend ActiveSupport::Concern
 
   CLEANUP_GRACE_PERIOD = 14.days

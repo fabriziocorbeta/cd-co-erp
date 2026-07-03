@@ -1,4 +1,4 @@
-class Organization < ApplicationRecord
+class Family < ApplicationRecord
   include Syncable, AutoTransferMatchable, Subscribeable, VectorSearchable
   include PlaidConnectable, SimplefinConnectable, LunchflowConnectable, EnableBankingConnectable
   include CoinbaseConnectable, BinanceConnectable, CoinstatsConnectable, SnaptradeConnectable, MercuryConnectable, SophtronConnectable
@@ -17,22 +17,17 @@ class Organization < ApplicationRecord
     [ "YYYYMMDD", "%Y%m%d" ]
   ].freeze
 
+
   MONIKERS = [ "Family", "Group" ].freeze
   ASSISTANT_TYPES = %w[builtin external].freeze
   SHARING_DEFAULTS = %w[shared private].freeze
 
-  # SaaS plan enum
-  enum :plan, { free: 0, pro: 1, enterprise: 2 }
-
-  # Membership association (SaaS multi-tenancy)
-  has_many :organization_memberships, dependent: :destroy
-  has_many :users, through: :organization_memberships
-
-  # Core associations carried over from Family
+  has_many :users, dependent: :destroy
   has_many :accounts, dependent: :destroy
   has_many :invitations, dependent: :destroy
 
   has_many :imports, dependent: :destroy
+  has_many :statement_imports, dependent: :destroy
   has_many :family_exports, dependent: :destroy
 
   has_many :entries, through: :accounts
@@ -51,13 +46,6 @@ class Organization < ApplicationRecord
   has_many :llm_usages, dependent: :destroy
   has_many :recurring_transactions, dependent: :destroy
 
-  # Core validations
-  validates :name, presence: true
-  validates :slug, presence: true, uniqueness: true,
-                   format: { with: /\A[a-z0-9-]+\z/, message: "solo letras minúsculas, números y guiones" }
-  validates :country, presence: true
-
-  # Original Family validations
   validates :locale, inclusion: { in: I18n.available_locales.map(&:to_s) }
   validates :date_format, inclusion: { in: DATE_FORMATS.map(&:last) }
   validates :month_start_day, inclusion: { in: 1..28 }
@@ -66,11 +54,6 @@ class Organization < ApplicationRecord
   validates :default_account_sharing, inclusion: { in: SHARING_DEFAULTS }
 
   before_validation :normalize_enabled_currencies!
-  before_validation :generate_slug, on: :create
-
-  def self.by_slug(slug)
-    find_by!(slug: slug)
-  end
 
   def primary_currency_code
     normalize_currency_code(currency) || "USD"
@@ -97,6 +80,7 @@ class Organization < ApplicationRecord
   def secondary_enabled_currency_objects(extra: [])
     enabled_currency_objects(extra:).reject { |currency| currency.iso_code == primary_currency_code }
   end
+
 
   def moniker_label
     moniker.presence || "Family"
@@ -197,13 +181,18 @@ class Organization < ApplicationRecord
     IncomeStatement.new(self, user: user)
   end
 
+  # Returns the Investment Contributions category for this family, creating it if it doesn't exist.
+  # This is used for auto-categorizing transfers to investment accounts.
+  # Always uses the family's locale to ensure consistent category naming across all users.
   def investment_contributions_category
+    # Find ALL legacy categories (created under old request-locale behavior)
     legacy = categories.where(name: Category.all_investment_contributions_names).order(:created_at).to_a
 
     if legacy.any?
       keeper = legacy.first
       duplicates = legacy[1..]
 
+      # Reassign transactions and subcategories from duplicates to keeper
       if duplicates.any?
         duplicate_ids = duplicates.map(&:id)
         categories.where(parent_id: duplicate_ids).update_all(parent_id: keeper.id)
@@ -212,6 +201,7 @@ class Organization < ApplicationRecord
         categories.where(id: duplicate_ids).delete_all
       end
 
+      # Rename keeper to family's locale name if needed
       I18n.with_locale(locale) do
         correct_name = Category.investment_contributions_name
         keeper.update!(name: correct_name) unless keeper.name == correct_name
@@ -219,6 +209,7 @@ class Organization < ApplicationRecord
       return keeper
     end
 
+    # Create new category using family's locale
     I18n.with_locale(locale) do
       categories.find_or_create_by!(name: Category.investment_contributions_name) do |cat|
         cat.color = "#0d9488"
@@ -226,13 +217,18 @@ class Organization < ApplicationRecord
       end
     end
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+    # Handle race condition: another process created the category
     I18n.with_locale(locale) do
       categories.find_by!(name: Category.investment_contributions_name)
     end
   end
 
+  # Returns account IDs for tax-advantaged accounts (401k, IRA, HSA, etc.)
+  # Used to exclude these accounts from budget/cashflow calculations.
+  # Tax-advantaged accounts are retirement savings, not daily expenses.
   def tax_advantaged_account_ids
     @tax_advantaged_account_ids ||= begin
+      # Investment accounts derive tax_treatment from subtype
       tax_advantaged_subtypes = Investment::SUBTYPES.select do |_, meta|
         meta[:tax_treatment].in?(%i[tax_deferred tax_exempt tax_advantaged])
       end.keys
@@ -242,6 +238,7 @@ class Organization < ApplicationRecord
         .where(investments: { subtype: tax_advantaged_subtypes })
         .pluck(:id)
 
+      # Crypto accounts have an explicit tax_treatment column
       crypto_ids = accounts
         .joins("INNER JOIN cryptos ON cryptos.id = accounts.accountable_id AND accounts.accountable_type = 'Crypto'")
         .where(cryptos: { tax_treatment: %w[tax_deferred tax_exempt] })
@@ -260,12 +257,15 @@ class Organization < ApplicationRecord
   end
 
   def requires_securities_data_provider?
+    # If family has any trades, they need a provider for historical prices
     trades.any?
   end
 
   def requires_exchange_rates_data_provider?
+    # If family has any accounts not denominated in the family's currency, they need a provider for historical exchange rates
     return true if accounts.where.not(currency: self.currency).any?
 
+    # If family has any entries in different currencies, they need a provider for historical exchange rates
     uniq_currencies = entries.pluck(:currency).uniq
     return true if uniq_currencies.count > 1
     return true if uniq_currencies.count > 0 && uniq_currencies.first != self.currency
@@ -278,6 +278,9 @@ class Organization < ApplicationRecord
     (requires_exchange_rates_data_provider? && ExchangeRate.provider.nil?)
   end
 
+  # Returns securities with plan restrictions for a specific provider
+  # @param provider [String] The provider name (e.g., "TwelveData")
+  # @return [Array<Hash>] Array of hashes with ticker, name, required_plan, provider
   def securities_with_plan_restrictions(provider:)
     security_ids = trades.joins(:security).pluck("securities.id").uniq
     return [] if security_ids.empty?
@@ -300,7 +303,10 @@ class Organization < ApplicationRecord
     entries.order(:date).first&.date || Date.current
   end
 
+  # Used for invalidating family / balance sheet related aggregation queries
   def build_cache_key(key, invalidate_on_data_updates: false)
+    # Our data sync process updates this timestamp whenever any family account successfully completes a data update.
+    # By including it in the cache key, we can expire caches every time family account data changes.
     data_invalidation_key = invalidate_on_data_updates ? latest_sync_completed_at : nil
 
     [
@@ -311,6 +317,7 @@ class Organization < ApplicationRecord
     ].compact.join("_")
   end
 
+  # Used for invalidating entry related aggregation queries
   def entries_cache_version
     @entries_cache_version ||= begin
       ts = entries.maximum(:updated_at)
@@ -323,13 +330,6 @@ class Organization < ApplicationRecord
   end
 
   private
-
-    def generate_slug
-      return if slug.present?
-      base = name.to_s.downcase.gsub(/[^a-z0-9]/, "-").squeeze("-").gsub(/\A-|-\z/, "")
-      self.slug = "#{base}-#{SecureRandom.hex(3)}"
-    end
-
     def normalize_enabled_currencies!
       if enabled_currencies.blank?
         self.enabled_currencies = nil

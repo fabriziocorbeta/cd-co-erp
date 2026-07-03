@@ -1,4 +1,4 @@
-module Organization::CoinbaseConnectable
+module Family::CoinbaseConnectable
   extend ActiveSupport::Concern
 
   included do

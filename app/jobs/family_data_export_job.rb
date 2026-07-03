@@ -4,7 +4,7 @@ class FamilyDataExportJob < ApplicationJob
   def perform(family_export)
     family_export.update!(status: :processing)
 
-    exporter = Organization::DataExporter.new(family_export.family)
+    exporter = Family::DataExporter.new(family_export.family)
     zip_file = exporter.generate_export
 
     family_export.export_file.attach(

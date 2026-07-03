@@ -1,4 +1,4 @@
-module Organization::AutoTransferMatchable
+module Family::AutoTransferMatchable
   def transfer_match_candidates(date_window: 4, exchange_rate_tolerance: 0.1)
     Entry.select([
       "inflow_candidates.entryable_id as inflow_transaction_id",

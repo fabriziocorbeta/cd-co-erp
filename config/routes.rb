@@ -64,27 +64,26 @@ Rails.application.routes.draw do
     end
   end
 
-  # Removed for MVP — Snaptrade not available in Paraguay
-  # resources :snaptrade_items, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
-  #   collection do
-  #     get :preload_accounts
-  #     get :select_accounts
-  #     post :link_accounts
-  #     get :select_existing_account
-  #     post :link_existing_account
-  #     get :callback
-  #   end
-  #
-  #   member do
-  #     post :sync
-  #     get :connect
-  #     get :setup_accounts
-  #     post :complete_account_setup
-  #     get :connections
-  #     delete :delete_connection
-  #     delete :delete_orphaned_user
-  #   end
-  # end
+  resources :snaptrade_items, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
+    collection do
+      get :preload_accounts
+      get :select_accounts
+      post :link_accounts
+      get :select_existing_account
+      post :link_existing_account
+      get :callback
+    end
+
+    member do
+      post :sync
+      get :connect
+      get :setup_accounts
+      post :complete_account_setup
+      get :connections
+      delete :delete_connection
+      delete :delete_orphaned_user
+    end
+  end
 
   # CoinStats routes
   resources :coinstats_items, only: [ :index, :new, :create, :update, :destroy ] do
@@ -97,24 +96,23 @@ Rails.application.routes.draw do
     end
   end
 
-  # Removed for MVP — Enable Banking not available in Paraguay
-  # resources :enable_banking_items, only: [ :new, :create, :update, :destroy ] do
-  #   collection do
-  #     get :callback
-  #     post :link_accounts
-  #     get :select_existing_account
-  #     post :link_existing_account
-  #   end
-  #   member do
-  #     post :sync
-  #     get :select_bank
-  #     post :authorize
-  #     post :reauthorize
-  #     get :setup_accounts
-  #     post :complete_account_setup
-  #     post :new_connection
-  #   end
-  # end
+  resources :enable_banking_items, only: [ :new, :create, :update, :destroy ] do
+    collection do
+      get :callback
+      post :link_accounts
+      get :select_existing_account
+      post :link_existing_account
+    end
+    member do
+      post :sync
+      get :select_bank
+      post :authorize
+      post :reauthorize
+      get :setup_accounts
+      post :complete_account_setup
+      post :new_connection
+    end
+  end
   use_doorkeeper
   # MFA routes
   resource :mfa, controller: "mfa", only: [ :new, :create ] do
@@ -275,6 +273,13 @@ Rails.application.routes.draw do
 
     resources :rows, only: %i[show update], module: :import
     resources :mappings, only: :update, module: :import
+  end
+
+  resources :statement_imports, only: %i[new create show] do
+    member do
+      post :confirm
+      post :reject
+    end
   end
 
   resources :holdings, only: %i[index new show update destroy] do
@@ -487,33 +492,31 @@ Rails.application.routes.draw do
     end
   end
 
-  # Removed for MVP — Plaid not available in Paraguay
-  # resources :plaid_items, only: %i[new edit create destroy] do
-  #   collection do
-  #     get :select_existing_account
-  #     post :link_existing_account
-  #   end
-  #
-  #   member do
-  #     post :sync
-  #   end
-  # end
+  resources :plaid_items, only: %i[new edit create destroy] do
+    collection do
+      get :select_existing_account
+      post :link_existing_account
+    end
 
-  # Removed for MVP — SimpleFin not available in Paraguay
-  # resources :simplefin_items, only: %i[index new create show edit update destroy] do
-  #   collection do
-  #     get :select_existing_account
-  #     post :link_existing_account
-  #   end
-  #
-  #   member do
-  #     post :sync
-  #     post :balances
-  #     get :setup_accounts
-  #     post :complete_account_setup
-  #     post :dismiss_replacement_suggestion
-  #   end
-  # end
+    member do
+      post :sync
+    end
+  end
+
+  resources :simplefin_items, only: %i[index new create show edit update destroy] do
+    collection do
+      get :select_existing_account
+      post :link_existing_account
+    end
+
+    member do
+      post :sync
+      post :balances
+      get :setup_accounts
+      post :complete_account_setup
+      post :dismiss_replacement_suggestion
+    end
+  end
 
   resources :lunchflow_items, only: %i[index new create show edit update destroy] do
     collection do
@@ -549,9 +552,8 @@ Rails.application.routes.draw do
   end
 
   namespace :webhooks do
-    # Removed for MVP — Plaid webhooks not needed for Paraguay
-    # post "plaid"
-    # post "plaid_eu"
+    post "plaid"
+    post "plaid_eu"
     post "stripe"
   end
 
@@ -590,20 +592,6 @@ Rails.application.routes.draw do
       member do
         delete :invitations, to: "invitations#destroy_all"
       end
-    end
-  end
-
-  resources :statement_imports, only: %i[new create show] do
-    member do
-      post :confirm
-      post :reject
-    end
-  end
-
-  # Organization settings (renamed from Family)
-  resource :organization, only: %i[show edit update] do
-    member do
-      get :members
     end
   end
 
