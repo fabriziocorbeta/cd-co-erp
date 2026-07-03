@@ -1,4 +1,4 @@
-class Family::Syncer
+class Organization::Syncer
   attr_reader :family
 
   # Registry of item association names that participate in family sync.

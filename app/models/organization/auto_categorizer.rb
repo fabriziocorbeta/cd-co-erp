@@ -1,4 +1,4 @@
-class Family::AutoCategorizer
+class Organization::AutoCategorizer
   Error = Class.new(StandardError)
 
   def initialize(family, transaction_ids: [])

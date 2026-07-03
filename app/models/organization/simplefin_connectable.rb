@@ -1,4 +1,4 @@
-module Family::SimplefinConnectable
+module Organization::SimplefinConnectable
   extend ActiveSupport::Concern
 
   included do

@@ -1,6 +1,6 @@
 require "set"
 
-class Family::DataImporter
+class Organization::DataImporter
   SUPPORTED_TYPES = %w[Account Category Tag Merchant RecurringTransaction Transaction Trade Holding Valuation Budget BudgetCategory Rule].freeze
   ACCOUNTABLE_TYPES = Accountable::TYPES.freeze
 

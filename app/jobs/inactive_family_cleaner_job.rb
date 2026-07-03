@@ -40,7 +40,7 @@ class InactiveFamilyCleanerJob < ApplicationJob
   private
 
     def archive_family_data(family)
-      export_data = Family::DataExporter.new(family).generate_export
+      export_data = Organization::DataExporter.new(family).generate_export
       email = family.users.order(:created_at).first&.email
 
       ActiveRecord::Base.transaction do

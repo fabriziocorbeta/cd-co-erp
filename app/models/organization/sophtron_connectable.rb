@@ -1,4 +1,4 @@
-module Family::SophtronConnectable
+module Organization::SophtronConnectable
   extend ActiveSupport::Concern
 
   included do

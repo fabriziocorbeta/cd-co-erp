@@ -66,7 +66,7 @@ class RulesController < ApplicationController
   def confirm
     # Compute provider, model, and cost estimation for auto-categorize actions
     if @rule.actions.any? { |a| a.action_type == "auto_categorize" }
-      # Use the same provider determination logic as Family::AutoCategorizer
+      # Use the same provider determination logic as Organization::AutoCategorizer
       llm_provider = Provider::Registry.get_provider(:openai)
 
       if llm_provider

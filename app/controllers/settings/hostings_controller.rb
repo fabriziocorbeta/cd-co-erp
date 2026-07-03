@@ -231,7 +231,7 @@ class Settings::HostingsController < ApplicationController
       return if ENV["ASSISTANT_TYPE"].present?
 
       assistant_type = params[:family][:assistant_type]
-      Current.family.update!(assistant_type: assistant_type) if Family::ASSISTANT_TYPES.include?(assistant_type)
+      Current.family.update!(assistant_type: assistant_type) if Organization::ASSISTANT_TYPES.include?(assistant_type)
     end
 
     def ensure_admin

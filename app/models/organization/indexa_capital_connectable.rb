@@ -1,4 +1,4 @@
-module Family::IndexaCapitalConnectable
+module Organization::IndexaCapitalConnectable
   extend ActiveSupport::Concern
 
   included do

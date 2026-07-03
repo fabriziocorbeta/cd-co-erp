@@ -1,7 +1,7 @@
 require "zip"
 require "csv"
 
-class Family::DataExporter
+class Organization::DataExporter
   def initialize(family)
     @family = family
   end

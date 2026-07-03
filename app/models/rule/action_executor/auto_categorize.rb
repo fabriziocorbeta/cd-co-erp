@@ -3,7 +3,7 @@ class Rule::ActionExecutor::AutoCategorize < Rule::ActionExecutor
     base_label = "Auto-categorize transactions with AI"
 
     if rule.family.self_hoster?
-      # Use the same provider determination logic as Family::AutoCategorizer
+      # Use the same provider determination logic as Organization::AutoCategorizer
       llm_provider = Provider::Registry.get_provider(:openai)
 
       if llm_provider

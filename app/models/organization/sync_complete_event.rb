@@ -1,4 +1,4 @@
-class Family::SyncCompleteEvent
+class Organization::SyncCompleteEvent
   attr_reader :family
 
   def initialize(family)
@@ -16,7 +16,7 @@ class Family::SyncCompleteEvent
     begin
       RecurringTransaction.identify_patterns_for(family)
     rescue => e
-      Rails.logger.error("Family::SyncCompleteEvent recurring transaction identification failed: #{e.message}\n#{e.backtrace&.join("\n")}")
+      Rails.logger.error("Organization::SyncCompleteEvent recurring transaction identification failed: #{e.message}\n#{e.backtrace&.join("\n")}")
     end
   end
 end

@@ -87,7 +87,7 @@ class SureImport < Import
   end
 
   def import!
-    importer = Family::DataImporter.new(family, ndjson_blob_string)
+    importer = Organization::DataImporter.new(family, ndjson_blob_string)
     result = importer.import!
 
     result[:accounts].each { |account| accounts << account }

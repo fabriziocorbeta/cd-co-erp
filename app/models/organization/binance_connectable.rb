@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Family::BinanceConnectable
+module Organization::BinanceConnectable
   extend ActiveSupport::Concern
 
   included do

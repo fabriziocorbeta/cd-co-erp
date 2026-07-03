@@ -1,4 +1,4 @@
-module Family::SnaptradeConnectable
+module Organization::SnaptradeConnectable
   extend ActiveSupport::Concern
 
   included do

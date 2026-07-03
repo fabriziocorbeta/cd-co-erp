@@ -1,4 +1,4 @@
-module Family::MercuryConnectable
+module Organization::MercuryConnectable
   extend ActiveSupport::Concern
 
   included do

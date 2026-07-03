@@ -1,4 +1,4 @@
-module Family::VectorSearchable
+module Organization::VectorSearchable
   extend ActiveSupport::Concern
 
   included do

@@ -1,4 +1,4 @@
-class Family::AutoMerchantDetector
+class Organization::AutoMerchantDetector
   Error = Class.new(StandardError)
 
   def initialize(family, transaction_ids: [])
