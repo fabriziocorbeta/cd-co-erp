@@ -1,0 +1,17 @@
+/*
+  Swap the CD & Co sidebar logo between the navy-on-light and gray-on-dark
+  variants based on the active theme, so it always has contrast against
+  the sidebar background.
+*/
+
+.cdco-logo-dark {
+  display: none;
+}
+
+[data-theme=dark] .cdco-logo-light {
+  display: none;
+}
+
+[data-theme=dark] .cdco-logo-dark {
+  display: inline;
+}
