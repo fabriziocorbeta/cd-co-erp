@@ -32,6 +32,7 @@ class Family < ApplicationRecord
   has_many :fleet_vehicles, dependent: :destroy
   has_many :sales, dependent: :destroy
   has_many :purchase_orders, dependent: :destroy
+  has_many :goals, dependent: :destroy
 
   has_many :entries, through: :accounts
   has_many :transactions, through: :accounts
@@ -333,7 +334,38 @@ class Family < ApplicationRecord
     Rails.application.config.app_mode.self_hosted?
   end
 
+  def savings_inflow_velocity(range: 30.days.ago.to_date..Date.current, account_ids: nil)
+    ids = account_ids || goal_linked_account_ids
+    return 0 if ids.empty?
+
+    net = Entry
+      .joins("INNER JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'")
+      .where(account_id: ids, date: range)
+      .where(excluded: false)
+      .merge(Transaction.excluding_pending)
+      .sum(:amount)
+
+    -net.to_d
+  end
+
+  def savings_inflow_windows(window_days: 30, now: Date.current)
+    ids = goal_linked_account_ids
+    {
+      current: savings_inflow_velocity(range: (now - window_days)..now, account_ids: ids),
+      prior:   savings_inflow_velocity(range: (now - 2 * window_days)..(now - window_days - 1), account_ids: ids)
+    }
+  end
+
   private
+    # Depository/investment accounts linked to this family's goals.
+    def goal_linked_account_ids
+      @goal_linked_account_ids ||= accounts
+        .joins(:goal_accounts)
+        .where(goal_accounts: { goal_id: goals.select(:id) })
+        .distinct
+        .pluck(:id)
+    end
+
     def normalize_enabled_currencies!
       if enabled_currencies.blank?
         self.enabled_currencies = nil

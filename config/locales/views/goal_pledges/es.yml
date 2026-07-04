@@ -1,0 +1,18 @@
+---
+es:
+  goal_pledges:
+    new:
+      title: "Nuevo compromiso"
+      subtitle: "Registrá cuánto vas a aportar a \"%{name}\"."
+      account: "Cuenta"
+      amount: "Monto"
+      cancel: "Cancelar"
+      submit: "Guardar"
+    create:
+      success: "Compromiso registrado."
+    renew:
+      success: "Compromiso renovado."
+      not_open: "Este compromiso ya no está abierto."
+    destroy:
+      success: "Compromiso cancelado."
+      not_open: "Este compromiso ya no está abierto."

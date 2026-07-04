@@ -9,9 +9,12 @@ class Account::ReconciliationManager
   def reconcile_balance(balance:, date: Date.current, dry_run: false, existing_valuation_entry: nil)
     old_balance_components = old_balance_components(reconciliation_date: date, existing_valuation_entry: existing_valuation_entry)
     prepared_valuation = prepare_reconciliation(balance, date, existing_valuation_entry)
+    prior_valuation_amount = prepared_valuation.amount_in_database
 
     unless dry_run
       prepared_valuation.save!
+      contribution = valuation_contribution(prepared_valuation, prior_valuation_amount, old_balance_components)
+      GoalPledge::Reconciler.new(prepared_valuation, valuation_delta: contribution).run
     end
 
     ReconciliationResult.new(
@@ -85,5 +88,13 @@ class Account::ReconciliationManager
         cash_balance: balance_record&.end_cash_balance,
         balance: balance_record&.end_balance
       }
+    end
+
+    # Contribution recorded by this reconciliation: how much the balance moved
+    # vs. the prior balance. This (not the full new balance) is what a
+    # manual_save GoalPledge matches against.
+    def valuation_contribution(valuation, prior_valuation_amount, old_balance_components)
+      prior_balance = prior_valuation_amount || old_balance_components[:balance] || 0
+      valuation.amount.to_d - prior_balance.to_d
     end
 end

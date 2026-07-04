@@ -1,0 +1,52 @@
+<%# locals: (goal:) %>
+
+<%= styled_form_with model: goal, class: "space-y-6" do |f| %>
+  <% if goal.errors.any? %>
+    <%= render "shared/form_errors", model: goal %>
+  <% end %>
+
+  <div class="space-y-4">
+    <%= f.text_field :name, label: t(".name"), required: true, autofocus: true %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <%= f.number_field :target_amount, label: t(".target_amount"), step: :any, required: true %>
+      <%= f.date_field :target_date, label: t(".target_date") %>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <%= f.select :color, Goal::COLORS.map { |c| [c, c] }, { label: t(".color") }, { class: "form-field__input" } %>
+      <%= f.select :icon, [ [ t(".no_icon"), "" ] ] + Goal::ICONS.map { |i| [ i, i ] }, { label: t(".icon") }, { class: "form-field__input" } %>
+    </div>
+
+    <%= f.text_area :notes, label: t(".notes"), rows: 2 %>
+  </div>
+
+  <div class="space-y-3">
+    <h3 class="text-lg font-medium text-primary border-b border-gray-100 pb-2"><%= t(".linked_accounts") %></h3>
+    <% if @linkable_accounts.empty? %>
+      <p class="text-sm text-secondary"><%= t(".no_linkable_accounts") %></p>
+    <% else %>
+      <div class="space-y-2">
+        <% @linkable_accounts.each do |account| %>
+          <label class="flex items-center gap-2.5 p-3 rounded-lg border border-tertiary cursor-pointer hover:bg-container transition-colors [&:has(input:checked)]:border-solid">
+            <input type="checkbox"
+                   name="goal[account_ids][]"
+                   value="<%= account.id %>"
+                   <%= "checked" if @currently_linked_account_ids&.include?(account.id.to_s) %>>
+            <span class="text-sm text-primary"><%= account.name %></span>
+            <span class="text-xs text-secondary ml-auto"><%= account.balance_money.format %></span>
+          </label>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="flex justify-end gap-2 pt-4">
+    <%= render DS::Link.new(
+      text: t(".cancel"),
+      href: (goal.persisted? ? goal_path(goal) : goals_path),
+      variant: "ghost"
+    ) %>
+    <%= f.submit t(".submit") %>
+  </div>
+<% end %>

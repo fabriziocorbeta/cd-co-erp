@@ -1,0 +1,20 @@
+---
+es:
+  activerecord:
+    attributes:
+      goal_pledge:
+        amount: Monto
+        currency: Moneda
+        account: Cuenta
+        kind: Tipo
+        status: Estado
+        expires_at: Vence
+    errors:
+      models:
+        goal_pledge:
+          attributes:
+            account:
+              must_be_linked_to_goal: Elegí una de las cuentas vinculadas a la meta.
+            currency:
+              must_match_goal: La moneda del compromiso debe coincidir con la de la meta.
+          duplicate_open_pledge: Ya tenés un compromiso abierto por este monto en esta cuenta. Cancelalo o extendelo antes de crear otro.

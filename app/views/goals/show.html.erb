@@ -1,0 +1,102 @@
+<%= content_for :page_title, @goal.name %>
+<%= content_for :page_actions do %>
+  <%= render DS::Menu.new do |menu| %>
+    <% menu.with_item(
+      variant: "button",
+      text: t(".delete"),
+      href: goal_path(@goal),
+      method: :delete,
+      icon: "trash-2",
+      confirm: t(".confirm_delete")
+    ) %>
+  <% end %>
+
+  <% case @goal.display_status %>
+  <% when :active %>
+    <%= render DS::Button.new(text: t(".pause"), variant: "ghost", icon: "pause", href: pause_goal_path(@goal), method: :patch) %>
+    <%= render DS::Button.new(text: t(".complete"), variant: "primary", icon: "check", href: complete_goal_path(@goal), method: :patch, confirm: t(".confirm_complete")) %>
+  <% when :paused %>
+    <%= render DS::Button.new(text: t(".resume"), variant: "primary", icon: "play", href: resume_goal_path(@goal), method: :patch) %>
+  <% when :completed %>
+    <%= render DS::Button.new(text: t(".reopen"), variant: "ghost", icon: "rotate-ccw", href: reopen_goal_path(@goal), method: :patch) %>
+  <% when :archived %>
+    <%= render DS::Button.new(text: t(".unarchive"), variant: "ghost", icon: "archive-restore", href: unarchive_goal_path(@goal), method: :patch) %>
+  <% end %>
+
+  <% unless @goal.archived? %>
+    <%= render DS::Button.new(text: t(".archive"), variant: "ghost", icon: "archive", href: archive_goal_path(@goal), method: :patch, confirm: t(".confirm_archive")) %>
+  <% end %>
+
+  <%= render DS::Link.new(text: t(".edit"), variant: "outline", icon: "pen", href: edit_goal_path(@goal)) %>
+<% end %>
+
+<div class="space-y-6">
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background-color: <%= @goal.color.presence || '#6471eb' %>20;">
+        <%= icon(@goal.icon.presence || "target", color: "current") %>
+      </div>
+      <div>
+        <p class="text-lg font-medium text-primary"><%= @goal.name %></p>
+        <% if @goal.target_date %>
+          <p class="text-sm text-secondary"><%= t(".target_by", date: l(@goal.target_date, format: :long)) %></p>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="w-full h-3 rounded-full bg-gray-100 overflow-hidden mb-2">
+      <div class="h-full rounded-full" style="width: <%= @goal.progress_percent %>%; background-color: <%= @goal.color.presence || '#6471eb' %>;"></div>
+    </div>
+    <div class="flex justify-between text-sm">
+      <span class="text-primary font-medium"><%= @goal.current_balance_money.format(precision: 0) %></span>
+      <span class="text-secondary"><%= t(".of_target", amount: @goal.target_amount_money.format(precision: 0)) %></span>
+    </div>
+
+    <% if @goal.notes.present? %>
+      <div class="mt-4 pt-4 border-t border-gray-100">
+        <p class="text-sm text-secondary whitespace-pre-wrap"><%= @goal.notes %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <div>
+    <h2 class="text-lg font-medium text-primary mb-3"><%= t(".linked_accounts") %></h2>
+    <div class="bg-container rounded-xl shadow-border-xs p-4 space-y-2">
+      <% @goal.linked_accounts.each do |account| %>
+        <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+          <span class="text-sm text-primary"><%= account.name %></span>
+          <span class="text-sm text-secondary"><%= @goal.account_backing(account).format(precision: 0) %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div>
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-lg font-medium text-primary"><%= t(".pledges") %></h2>
+      <% unless @goal.archived? || @goal.completed? %>
+        <%= render DS::Link.new(text: t(".add_pledge"), variant: "outline", icon: "plus", href: new_goal_pledge_path(@goal)) %>
+      <% end %>
+    </div>
+    <div class="bg-container rounded-xl shadow-border-xs p-4">
+      <% if @open_pledges.any? %>
+        <div class="space-y-2">
+          <% @open_pledges.each do |pledge| %>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <div>
+                <span class="text-sm text-primary font-medium"><%= pledge.amount_money.format(precision: 0) %></span>
+                <span class="text-xs text-secondary ml-2"><%= t(".days_left", count: pledge.days_left) %></span>
+              </div>
+              <div class="flex gap-2">
+                <%= render DS::Button.new(text: t(".renew"), variant: "ghost", size: "sm", href: renew_goal_pledge_path(@goal, pledge), method: :patch) %>
+                <%= render DS::Button.new(text: t(".cancel_pledge"), variant: "ghost", size: "sm", href: goal_pledge_path(@goal, pledge), method: :delete, confirm: t(".confirm_cancel_pledge")) %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-secondary text-center py-4"><%= t(".no_pledges") %></p>
+      <% end %>
+    </div>
+  </div>
+</div>

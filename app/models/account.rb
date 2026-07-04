@@ -20,6 +20,9 @@ class Account < ApplicationRecord
   has_many :holdings, dependent: :destroy
   has_many :balances, dependent: :destroy
   has_many :recurring_transactions, dependent: :destroy
+  has_many :goal_accounts, dependent: :destroy
+  has_many :goals, through: :goal_accounts
+  has_many :goal_pledges, dependent: :destroy
 
   monetize :balance, :cash_balance
 
@@ -103,6 +106,23 @@ class Account < ApplicationRecord
     event :mark_for_deletion do
       transitions from: [ :draft, :active, :disabled ], to: :pending_deletion
     end
+  end
+
+  # Default GoalPledge kind for this account. Manual accounts get
+  # "manual_save" (resolves on the next valuation), live-synced accounts
+  # get "transfer" (resolves when the synced deposit posts).
+  def default_pledge_kind
+    manual? && !investment? ? "manual_save" : "transfer"
+  end
+
+  # Total fixed earmark this account currently has reserved across every
+  # non-archived goal (unallocated/whole-balance links reserve no fixed slice).
+  def goal_earmarked_total
+    GoalAccount.joins(:goal)
+               .where(account_id: id)
+               .where.not(goals: { state: "archived" })
+               .where.not(allocated_amount: nil)
+               .sum(:allocated_amount)
   end
 
   class << self

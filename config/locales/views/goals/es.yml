@@ -1,0 +1,80 @@
+---
+es:
+  goals:
+    index:
+      title: "Metas"
+      new: "Nueva meta"
+      empty: "Todavía no tenés metas. Creá una para empezar a hacer seguimiento de tus objetivos financieros."
+      target_by: "Objetivo para %{date}"
+      archived_section: "%{count} meta(s) archivada(s)"
+      status:
+        paused: "Pausada"
+        completed: "Completada"
+        archived: "Archivada"
+    new:
+      title: "Nueva meta"
+    edit:
+      title: "Editar meta"
+    create:
+      success: "Meta creada exitosamente."
+    update:
+      success: "Meta actualizada exitosamente."
+    destroy:
+      archive_first: "Archivá la meta antes de eliminarla."
+      success: "Meta eliminada exitosamente."
+    pause:
+      success: "Meta pausada."
+      invalid_transition: "No se puede pausar la meta en su estado actual."
+    resume:
+      success: "Meta reanudada."
+      invalid_transition: "No se puede reanudar la meta en su estado actual."
+    complete:
+      success: "¡Meta completada!"
+      invalid_transition: "No se puede completar la meta en su estado actual."
+    archive:
+      success: "Meta archivada."
+      invalid_transition: "No se puede archivar la meta en su estado actual."
+    unarchive:
+      success: "Meta restaurada."
+      invalid_transition: "No se puede restaurar la meta en su estado actual."
+    reopen:
+      success: "Meta reabierta."
+      invalid_transition: "No se puede reabrir la meta en su estado actual."
+    show:
+      delete: "Eliminar"
+      confirm_delete: "¿Estás seguro de que querés eliminar esta meta?"
+      pause: "Pausar"
+      complete: "Completar"
+      confirm_complete: "¿Marcar esta meta como completada?"
+      resume: "Reanudar"
+      reopen: "Reabrir"
+      unarchive: "Restaurar"
+      archive: "Archivar"
+      confirm_archive: "¿Estás seguro de que querés archivar esta meta?"
+      edit: "Editar"
+      target_by: "Objetivo para %{date}"
+      of_target: "de %{amount}"
+      linked_accounts: "Cuentas vinculadas"
+      pledges: "Compromisos"
+      add_pledge: "Agregar compromiso"
+      days_left:
+        one: "vence en 1 día"
+        other: "vence en %{count} días"
+      renew: "Renovar"
+      cancel_pledge: "Cancelar"
+      confirm_cancel_pledge: "¿Cancelar este compromiso?"
+      no_pledges: "No hay compromisos abiertos."
+    form:
+      name: "Nombre"
+      target_amount: "Monto objetivo"
+      target_date: "Fecha objetivo"
+      color: "Color"
+      icon: "Ícono"
+      no_icon: "Sin ícono"
+      notes: "Notas"
+      linked_accounts: "Cuentas vinculadas"
+      no_linkable_accounts: "No tenés cuentas de efectivo o inversión disponibles para vincular."
+      cancel: "Cancelar"
+      submit: "Guardar"
+    errors:
+      not_found: "Meta no encontrada."
