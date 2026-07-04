@@ -1,0 +1,117 @@
+<%= content_for :page_title, @fleet_vehicle.plate %>
+<%= content_for :page_actions do %>
+  <%= render DS::Menu.new do |menu| %>
+    <% menu.with_item(
+      variant: "button",
+      text: t("fleet_vehicles.show.delete"),
+      href: fleet_vehicle_path(@fleet_vehicle),
+      method: :delete,
+      icon: "trash-2",
+      confirm: t("fleet_vehicles.confirm_deletion", plate: @fleet_vehicle.plate)
+    ) %>
+  <% end %>
+
+  <%= render DS::Link.new(
+    text: t("fleet_vehicles.show.edit"),
+    variant: "primary",
+    icon: "pen",
+    href: edit_fleet_vehicle_path(@fleet_vehicle)
+  ) %>
+<% end %>
+
+<div class="space-y-6">
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.index.columns.brand") %></h4>
+        <p class="text-primary mt-1"><%= @fleet_vehicle.brand %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.index.columns.model") %></h4>
+        <p class="text-primary mt-1"><%= @fleet_vehicle.model %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.index.columns.year") %></h4>
+        <p class="text-primary mt-1"><%= @fleet_vehicle.year.presence || "-" %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.index.columns.status") %></h4>
+        <p class="text-primary mt-1 capitalize"><%= t("fleet_vehicles.statuses.#{@fleet_vehicle.status}") %></p>
+      </div>
+    </div>
+    <% if @fleet_vehicle.notes.present? %>
+      <div class="mt-4 pt-4 border-t border-gray-100">
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.notes") %></h4>
+        <p class="text-sm text-secondary mt-1 whitespace-pre-wrap"><%= @fleet_vehicle.notes %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <h2 class="text-lg font-medium text-primary"><%= t("fleet_vehicles.show.fuel_logs_history") %></h2>
+
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <% if @fleet_vehicle.fuel_logs.any? %>
+      <div class="overflow-x-auto mb-6">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t("fuel_logs.columns.date") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t("fuel_logs.columns.liters") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t("fuel_logs.columns.cost") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t("fuel_logs.columns.odometer") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t("fuel_logs.columns.notes") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @fleet_vehicle.fuel_logs.order(logged_at: :desc).each do |log| %>
+              <tr class="hover:bg-gray-50/50">
+                <td class="px-4 py-3 text-sm text-primary">
+                  <%= l(log.logged_at.to_date, format: :short) %>
+                </td>
+                <td class="px-4 py-3 text-sm text-right text-primary">
+                  <%= number_with_precision(log.liters, precision: 2) %>
+                </td>
+                <td class="px-4 py-3 text-sm text-right text-primary font-medium">
+                  <%= number_to_currency(log.cost, unit: "", separator: ",", delimiter: ".") %> <span class="text-xs uppercase text-secondary"><%= log.currency %></span>
+                </td>
+                <td class="px-4 py-3 text-sm text-right text-secondary">
+                  <%= log.odometer.presence || "-" %>
+                </td>
+                <td class="px-4 py-3 text-sm text-secondary truncate max-w-[150px]">
+                  <%= log.notes.presence || "-" %>
+                </td>
+                <td class="px-4 py-3 text-sm text-right">
+                  <%= button_to fleet_vehicle_fuel_log_path(@fleet_vehicle, log), method: :delete, form: { data: { turbo_confirm: t("fuel_logs.confirm_deletion") } }, class: "text-secondary hover:text-red-600 p-1" do %>
+                    <%= icon("trash-2", size: 16, color: "current") %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary py-4 text-center mb-6"><%= t("fleet_vehicles.show.no_fuel_logs") %></p>
+    <% end %>
+
+    <div class="border-t border-gray-100 pt-6">
+      <h3 class="text-md font-medium text-primary mb-4"><%= t("fleet_vehicles.show.add_fuel_log") %></h3>
+      <%= styled_form_with model: [@fleet_vehicle, @fleet_vehicle.fuel_logs.new], class: "space-y-4" do |f| %>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <%= f.date_field :logged_at, label: t("fuel_logs.columns.date"), required: true, value: Date.current %>
+          <%= f.number_field :liters, label: t("fuel_logs.columns.liters"), required: true, step: :any %>
+          <%= f.number_field :cost, label: t("fuel_logs.columns.cost"), required: true, step: :any %>
+          <%= f.select :currency, options_for_select(FuelLog.currencies.keys.map { |k| [k.upcase, k] }, "pyg"), label: t("fuel_logs.columns.currency") %>
+          <%= f.number_field :odometer, label: t("fuel_logs.columns.odometer"), step: 1 %>
+          <div class="lg:col-span-3">
+            <%= f.text_field :notes, label: t("fuel_logs.columns.notes") %>
+          </div>
+        </div>
+        <div class="flex justify-end pt-2">
+          <%= f.submit t("fleet_vehicles.show.save_fuel_log") %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

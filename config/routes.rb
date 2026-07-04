@@ -226,6 +226,9 @@ Rails.application.routes.draw do
   end
 
   resources :products
+  resources :fleet_vehicles do
+    resources :fuel_logs, only: [ :create, :destroy ]
+  end
   resources :sales do
     member do
       patch :complete
