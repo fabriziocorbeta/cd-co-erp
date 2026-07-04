@@ -54,14 +54,14 @@ class ProductsController < ApplicationController
 
   private
 
-  def set_product
-    @product = Current.family.products.find(params[:id])
-  end
+    def set_product
+      @product = Current.family.products.find(params[:id])
+    end
 
-  def product_params
-    params.require(:product).permit(
-      :name, :sku, :category, :supplier, :buy_price, :sell_price,
-      :currency, :min_stock, :initial_stock
-    )
-  end
+    def product_params
+      params.require(:product).permit(
+        :name, :sku, :category, :supplier, :buy_price, :sell_price,
+        :currency, :min_stock, :initial_stock
+      )
+    end
 end
