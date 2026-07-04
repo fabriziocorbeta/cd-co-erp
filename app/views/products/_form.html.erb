@@ -1,0 +1,38 @@
+<%# locals: (product:, show_initial_stock: false) %>
+
+<%= styled_form_with model: product, class: "space-y-4" do |f| %>
+  <% if product.errors.any? %>
+    <%= render "shared/form_errors", model: product %>
+  <% end %>
+
+  <div class="space-y-4">
+    <%= f.text_field :name, label: t(".name"), required: true, autofocus: true %>
+    <%= f.text_field :sku, label: t(".sku") %>
+    <%= f.text_field :category, label: t(".category") %>
+
+    <div class="grid grid-cols-2 gap-4">
+      <%= f.number_field :buy_price, label: t(".buy_price"), step: :any %>
+      <%= f.number_field :sell_price, label: t(".sell_price"), step: :any %>
+    </div>
+
+    <%= f.text_field :currency, label: t(".currency") %>
+
+    <div class="grid grid-cols-2 gap-4">
+      <%= f.text_field :supplier, label: t(".supplier") %>
+      <%= f.number_field :min_stock, label: t(".min_stock"), step: 1 %>
+    </div>
+
+    <% if show_initial_stock %>
+      <%= f.number_field :initial_stock, label: t(".initial_stock"), step: 1, min: 0, value: 0 %>
+    <% end %>
+  </div>
+
+  <div class="flex justify-end gap-2 pt-4">
+    <%= render DS::Link.new(
+      text: t(".cancel"),
+      href: (product.persisted? ? product_path(product) : products_path),
+      variant: "ghost"
+    ) %>
+    <%= f.submit t(".submit") %>
+  </div>
+<% end %>

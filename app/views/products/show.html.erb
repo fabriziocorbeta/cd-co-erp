@@ -1,0 +1,82 @@
+<%= content_for :page_title, @product.name %>
+<%= content_for :page_actions do %>
+  <%= render DS::Menu.new do |menu| %>
+    <% menu.with_item(
+      variant: "button",
+      text: t(".delete"),
+      href: product_path(@product),
+      method: :delete,
+      icon: "trash-2",
+      confirm: CustomConfirm.for_resource_deletion(@product.name)
+    ) %>
+  <% end %>
+
+  <%= render DS::Link.new(
+    text: t(".edit"),
+    variant: "primary",
+    icon: "pen",
+    href: edit_product_path(@product)
+  ) %>
+<% end %>
+
+<div class="space-y-6">
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("products.index.columns.sku") %></h4>
+        <p class="text-primary mt-1"><%= @product.sku.presence || "-" %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("products.index.columns.category") %></h4>
+        <p class="text-primary mt-1"><%= @product.category.presence || "-" %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("products.index.columns.stock") %></h4>
+        <p class="mt-1 font-medium <%= @product.stock <= 0 ? 'text-red-600' : 'text-primary' %>"><%= @product.stock %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("products.index.columns.sell_price") %></h4>
+        <p class="text-primary mt-1"><%= number_to_currency(@product.sell_price, unit: "", separator: ",", delimiter: ".") %> <%= @product.currency %></p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-lg font-medium text-primary"><%= t(".stock_history") %></h2>
+
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <% if @product.stock_movements.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.date") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.reason") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.quantity") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.note") %></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @product.stock_movements.order(created_at: :desc).each do |movement| %>
+              <tr class="hover:bg-gray-50/50">
+                <td class="px-4 py-3 text-sm text-primary">
+                  <%= l(movement.created_at, format: :short) %>
+                </td>
+                <td class="px-4 py-3 text-sm text-secondary capitalize">
+                  <%= movement.reason %>
+                </td>
+                <td class="px-4 py-3 text-sm text-right font-medium <%= movement.quantity_delta > 0 ? 'text-green-600' : (movement.quantity_delta < 0 ? 'text-red-600' : 'text-primary') %>">
+                  <%= movement.quantity_delta > 0 ? "+#{movement.quantity_delta}" : movement.quantity_delta %>
+                </td>
+                <td class="px-4 py-3 text-sm text-secondary">
+                  <%= movement.note.presence || "-" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary py-4 text-center"><%= t(".no_history") %></p>
+    <% end %>
+  </div>
+</div>
