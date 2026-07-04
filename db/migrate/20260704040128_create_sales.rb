@@ -14,6 +14,6 @@ class CreateSales < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    add_index :sales, [:family_id, :sale_number], unique: true
+    add_index :sales, [ :family_id, :sale_number ], unique: true
   end
 end

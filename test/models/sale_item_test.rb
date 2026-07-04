@@ -2,7 +2,7 @@ require "test_helper"
 
 class SaleItemTest < ActiveSupport::TestCase
   setup do
-    @family = families(:one)
+    @family = families(:dylan_family)
     # Manually create a product if fixtures aren't available
     @product = Product.create!(
       family: @family,
