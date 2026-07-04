@@ -134,6 +134,7 @@ es:
       profile_label: Información del Perfil
       recurring_transactions_label: Recurrentes
       sales_label: Ventas
+      purchase_orders_label: "Pedidos a Proveedores"
       rules_label: Reglas
       security_label: Seguridad
       self_hosting_label: Autoalojamiento

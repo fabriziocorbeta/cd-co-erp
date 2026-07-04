@@ -1,0 +1,133 @@
+<%= content_for :page_title, "#{t('.title')} ##{@purchase_order.order_number}" %>
+<%= content_for :page_actions do %>
+  <%= render DS::Menu.new do |menu| %>
+    <% menu.with_item(
+      variant: "button",
+      text: t(".delete"),
+      href: purchase_order_path(@purchase_order),
+      method: :delete,
+      icon: "trash-2",
+      confirm: t(".confirm_delete")
+    ) %>
+  <% end %>
+
+  <% if @purchase_order.draft? %>
+    <%= render DS::Button.new(
+      text: t(".cancel_order"),
+      variant: "ghost",
+      icon: "x",
+      href: cancel_purchase_order_path(@purchase_order),
+      method: :patch,
+      confirm: t(".confirm_cancel")
+    ) %>
+
+    <%= render DS::Button.new(
+      text: t(".receive_order"),
+      variant: "primary",
+      icon: "check",
+      href: receive_purchase_order_path(@purchase_order),
+      method: :patch,
+      confirm: t(".confirm_receive")
+    ) %>
+
+    <%= render DS::Link.new(
+      text: t(".edit"),
+      variant: "outline",
+      icon: "pen",
+      href: edit_purchase_order_path(@purchase_order)
+    ) %>
+  <% elsif @purchase_order.received? %>
+    <%= render DS::Button.new(
+      text: t(".cancel_order"),
+      variant: "ghost",
+      icon: "x",
+      href: cancel_purchase_order_path(@purchase_order),
+      method: :patch,
+      confirm: t(".confirm_cancel_received")
+    ) %>
+
+    <%= render DS::Link.new(
+      text: t(".edit"),
+      variant: "outline",
+      icon: "pen",
+      href: edit_purchase_order_path(@purchase_order)
+    ) %>
+  <% else %>
+    <%= render DS::Link.new(
+      text: t(".edit"),
+      variant: "outline",
+      icon: "pen",
+      href: edit_purchase_order_path(@purchase_order)
+    ) %>
+  <% end %>
+<% end %>
+
+<div class="space-y-6">
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("purchase_orders.index.columns.supplier_name") %></h4>
+        <p class="text-primary mt-1"><%= @purchase_order.supplier_name.presence || "-" %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("purchase_orders.index.columns.status") %></h4>
+        <p class="text-primary mt-1 capitalize"><%= t("purchase_orders.status.#{@purchase_order.status}") %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("purchase_orders.form.expected_date") %></h4>
+        <p class="text-primary mt-1"><%= @purchase_order.expected_date.presence || "-" %></p>
+      </div>
+      <div class="col-span-2 md:col-span-3">
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("purchase_orders.form.notes") %></h4>
+        <p class="text-primary mt-1"><%= @purchase_order.notes.presence || "-" %></p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-lg font-medium text-primary"><%= t(".items") %></h2>
+
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <% if @purchase_order.purchase_order_items.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.product") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.quantity") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.unit_cost") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.subtotal") %></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @purchase_order.purchase_order_items.each do |item| %>
+              <tr class="hover:bg-gray-50/50">
+                <td class="px-4 py-3 text-sm text-primary font-medium">
+                  <%= item.product.name %>
+                </td>
+                <td class="px-4 py-3 text-sm text-primary text-right">
+                  <%= item.quantity %>
+                </td>
+                <td class="px-4 py-3 text-sm text-primary text-right">
+                  <%= number_to_currency(item.unit_cost, unit: "", separator: ",", delimiter: ".") %>
+                </td>
+                <td class="px-4 py-3 text-sm text-primary font-medium text-right">
+                  <%= number_to_currency(item.subtotal, unit: "", separator: ",", delimiter: ".") %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot>
+            <tr class="border-t border-gray-200">
+              <td colspan="3" class="px-4 py-3 text-sm font-semibold text-secondary text-right uppercase tracking-wider"><%= t(".columns.total") %></td>
+              <td class="px-4 py-3 text-sm text-primary font-bold text-right">
+                <%= number_to_currency(@purchase_order.total, unit: "", separator: ",", delimiter: ".") %> <%= @purchase_order.currency.upcase %>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary py-4 text-center"><%= t(".no_items") %></p>
+    <% end %>
+  </div>
+</div>

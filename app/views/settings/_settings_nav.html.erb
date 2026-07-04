@@ -21,7 +21,8 @@ nav_sections = [
       { label: t(".merchants_label"), path: family_merchants_path, icon: "store" },
       { label: t(".recurring_transactions_label"), path: recurring_transactions_path, icon: "repeat" },
       { label: "Inventario", path: products_path, icon: "package", if: Current.family.business_mode_enabled? },
-      { label: t(".sales_label"), path: sales_path, icon: "receipt", if: Current.family.business_mode_enabled? }
+      { label: t(".sales_label"), path: sales_path, icon: "receipt", if: Current.family.business_mode_enabled? },
+      { label: t(".purchase_orders_label"), path: purchase_orders_path, icon: "truck", if: Current.family.business_mode_enabled? }
     ]
   },
   (
