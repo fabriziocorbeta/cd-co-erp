@@ -4,7 +4,7 @@ class SalesController < ApplicationController
   before_action :set_sale, only: %i[show edit update destroy complete cancel]
 
   def index
-    @sales = Current.family.sales.order(created_at: :desc)
+    @sales = Current.family.sales.includes(:sale_items).order(created_at: :desc)
   end
 
   def show

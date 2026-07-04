@@ -18,7 +18,7 @@
       icon: "x",
       href: cancel_sale_path(@sale),
       method: :patch,
-      confirm: "Are you sure you want to cancel this sale?"
+      confirm: t(".confirm_cancel")
     ) %>
 
     <%= render DS::Button.new(
@@ -27,7 +27,7 @@
       icon: "check",
       href: complete_sale_path(@sale),
       method: :patch,
-      confirm: "Are you sure you want to complete this sale? This will deduct stock."
+      confirm: t(".confirm_complete")
     ) %>
 
     <%= render DS::Link.new(
@@ -43,7 +43,7 @@
       icon: "x",
       href: cancel_sale_path(@sale),
       method: :patch,
-      confirm: "Are you sure you want to cancel this completed sale? Stock will be restored."
+      confirm: t(".confirm_cancel_completed")
     ) %>
 
     <%= render DS::Link.new(
