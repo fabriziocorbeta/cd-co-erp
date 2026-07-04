@@ -44,18 +44,20 @@ end %>
     </div>
 
     <%# MOBILE - Top nav %>
-    <nav class="lg:hidden flex justify-between items-center p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-      <% if intro_mode %>
-      <% else %>
-        <%= icon("panel-left", as_button: true, data: { action: "app-layout#openMobileSidebar"}) %>
+    <nav class="lg:hidden grid grid-cols-3 items-center p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+      <div class="justify-self-start">
+        <% if intro_mode %>
+        <% else %>
+          <%= icon("panel-left", as_button: true, data: { action: "app-layout#openMobileSidebar"}) %>
+        <% end %>
+      </div>
+
+      <%= link_to home_path, class: "block justify-self-center" do %>
+        <%= image_tag "cdco-icon-light.png", class: "w-9 h-9 block mx-auto cdco-logo-light" %>
+        <%= image_tag "cdco-icon-dark.png", class: "w-9 h-9 block mx-auto cdco-logo-dark" %>
       <% end %>
 
-      <%= link_to home_path, class: "block" do %>
-        <%= image_tag "cdco-icon-light.png", class: "w-9 h-9 mx-auto cdco-logo-light" %>
-        <%= image_tag "cdco-icon-dark.png", class: "w-9 h-9 mx-auto cdco-logo-dark" %>
-      <% end %>
-
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-1 justify-self-end">
         <button type="button"
                 class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-secondary hover:text-primary transition-colors"
                 data-action="click->privacy-mode#toggle"
