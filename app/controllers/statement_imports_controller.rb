@@ -3,7 +3,7 @@ class StatementImportsController < ApplicationController
 
   def new
     @import = StatementImport.new
-    @banks = ["Itaú Paraguay", "Banco Continental", "Visión Banco", "GNB Paraguay", "Otro"]
+    @banks = [ "Itaú Paraguay", "Banco Continental", "Visión Banco", "GNB Paraguay", "Otro" ]
   end
 
   def create
@@ -19,7 +19,7 @@ class StatementImportsController < ApplicationController
       StatementParseJob.perform_later(@import.id)
       redirect_to @import, notice: "Extracto enviado para procesamiento."
     else
-      @banks = ["Itaú Paraguay", "Banco Continental", "Visión Banco", "GNB Paraguay", "Otro"]
+      @banks = [ "Itaú Paraguay", "Banco Continental", "Visión Banco", "GNB Paraguay", "Otro" ]
       render :new, status: :unprocessable_entity
     end
   end
@@ -50,7 +50,7 @@ class StatementImportsController < ApplicationController
 
   private
 
-  def set_import
-    @import = Current.family.statement_imports.find(params[:id])
-  end
+    def set_import
+      @import = Current.family.statement_imports.find(params[:id])
+    end
 end

@@ -14,16 +14,16 @@ class SaleItem < ApplicationRecord
 
   private
 
-  def sale_must_be_draft
-    if sale.present? && !sale.draft?
-      errors.add(:base, "Cannot modify items if the sale is not in draft status")
+    def sale_must_be_draft
+      if sale.present? && !sale.draft?
+        errors.add(:base, "Cannot modify items if the sale is not in draft status")
+      end
     end
-  end
 
-  def prevent_destroy_if_sale_not_draft
-    if sale.present? && !sale.draft?
-      errors.add(:base, "Cannot remove items if the sale is not in draft status")
-      throw :abort
+    def prevent_destroy_if_sale_not_draft
+      if sale.present? && !sale.draft?
+        errors.add(:base, "Cannot remove items if the sale is not in draft status")
+        throw :abort
+      end
     end
-  end
 end

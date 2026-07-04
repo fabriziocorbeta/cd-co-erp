@@ -68,15 +68,15 @@ class Sale < ApplicationRecord
 
   private
 
-  def assign_sale_number
-    if sale_number.blank? && family.present?
-      self.sale_number = family.sales.maximum(:sale_number).to_i + 1
+    def assign_sale_number
+      if sale_number.blank? && family.present?
+        self.sale_number = family.sales.maximum(:sale_number).to_i + 1
+      end
     end
-  end
 
-  def status_cannot_be_changed_directly
-    if status_changed? && !@allow_status_change
-      errors.add(:status, "cannot be changed directly. Use complete! or cancel! instead.")
+    def status_cannot_be_changed_directly
+      if status_changed? && !@allow_status_change
+        errors.add(:status, "cannot be changed directly. Use complete! or cancel! instead.")
+      end
     end
-  end
 end
