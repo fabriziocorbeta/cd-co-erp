@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_05_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -1127,6 +1127,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
     t.index ["plaid_id"], name: "index_plaid_items_on_plaid_id", unique: true
   end
 
+  create_table "product_stock_movements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "product_id", null: false
+    t.integer "quantity_delta", null: false
+    t.string "reason", null: false
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_product_stock_movements_on_product_id"
+  end
+
   create_table "products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.string "name", null: false
@@ -1749,6 +1759,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
   add_foreign_key "oidc_identities", "users"
   add_foreign_key "plaid_accounts", "plaid_items"
   add_foreign_key "plaid_items", "families"
+  add_foreign_key "product_stock_movements", "products"
   add_foreign_key "products", "families"
   add_foreign_key "recurring_transactions", "accounts"
   add_foreign_key "recurring_transactions", "families"

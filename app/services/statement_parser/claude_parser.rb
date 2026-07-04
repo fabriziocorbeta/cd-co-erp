@@ -28,7 +28,7 @@ module StatementParser
         model:      MODEL,
         max_tokens: 8192,
         system:     SYSTEM_PROMPT,
-        messages:   [{ role: "user", content: user_prompt }]
+        messages:   [ { role: "user", content: user_prompt } ]
       )
       raw_json = response.content.first.text
       transactions = JSON.parse(raw_json)
