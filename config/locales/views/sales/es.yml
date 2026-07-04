@@ -43,6 +43,9 @@ es:
       edit: "Editar"
       cancel_sale: "Cancelar venta"
       complete_sale: "Completar venta"
+      confirm_cancel: "¿Estás seguro de que deseas cancelar esta venta?"
+      confirm_complete: "¿Estás seguro de que deseas completar esta venta? Esto descontará el stock."
+      confirm_cancel_completed: "¿Estás seguro de que deseas cancelar esta venta completada? El stock será restaurado."
       items: "Artículos"
       no_items: "No hay artículos en esta venta."
       columns:
