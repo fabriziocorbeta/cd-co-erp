@@ -197,7 +197,7 @@ class Goal < ApplicationRecord
         @display_status
         @current_balance @current_balance_money
         @remaining_amount @remaining_amount_money
-        @progress_percent @pooled_allocations
+        @progress_percent @pooled_allocations @market_flows
       ].each do |ivar|
         remove_instance_variable(ivar) if instance_variable_defined?(ivar)
       end
