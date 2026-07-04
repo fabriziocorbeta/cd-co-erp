@@ -30,6 +30,7 @@ class Family < ApplicationRecord
   has_many :statement_imports, dependent: :destroy
   has_many :family_exports, dependent: :destroy
   has_many :sales, dependent: :destroy
+  has_many :purchase_orders, dependent: :destroy
 
   has_many :entries, through: :accounts
   has_many :transactions, through: :accounts

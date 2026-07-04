@@ -1,0 +1,15 @@
+dylan_product_1:
+  family: dylan_family
+  name: "Dylan Product 1"
+  buy_price: 10.0
+  sell_price: 20.0
+  stock: 100
+  min_stock: 10
+
+dylan_product_2:
+  family: dylan_family
+  name: "Dylan Product 2"
+  buy_price: 15.0
+  sell_price: 30.0
+  stock: 50
+  min_stock: 5
