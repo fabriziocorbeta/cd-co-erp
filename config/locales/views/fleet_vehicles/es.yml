@@ -1,0 +1,53 @@
+---
+es:
+  fleet_vehicles:
+    index:
+      title: "Flota"
+      new: "Nuevo Vehículo"
+      empty: "No hay vehículos en la flota todavía. Agrega uno nuevo para comenzar a llevar el registro."
+      columns:
+        plate: "Chapa"
+        brand: "Marca"
+        model: "Modelo"
+        year: "Año"
+        status: "Estado"
+    show:
+      delete: "Eliminar"
+      edit: "Editar"
+      fuel_logs_history: "Historial de Combustible"
+      no_fuel_logs: "No hay registros de combustible todavía."
+      add_fuel_log: "Agregar Registro de Combustible"
+      save_fuel_log: "Guardar"
+    new:
+      title: "Nuevo Vehículo"
+    edit:
+      title: "Editar Vehículo"
+    form:
+      cancel: "Cancelar"
+      submit: "Guardar Vehículo"
+    confirm_deletion: "¿Estás seguro que deseas eliminar el vehículo %{plate}? Esta acción eliminará también su historial de combustible."
+    notes: "Notas Adicionales"
+    statuses:
+      active: "Activo"
+      maintenance: "En Mantenimiento"
+      inactive: "Inactivo"
+    create:
+      success: "Vehículo agregado exitosamente."
+    update:
+      success: "Vehículo actualizado exitosamente."
+    destroy:
+      success: "Vehículo eliminado exitosamente."
+  fuel_logs:
+    columns:
+      date: "Fecha"
+      liters: "Litros"
+      cost: "Costo Total"
+      currency: "Moneda"
+      odometer: "Kilometraje"
+      notes: "Notas"
+    confirm_deletion: "¿Estás seguro que deseas eliminar este registro de combustible?"
+    create:
+      success: "Registro de combustible agregado exitosamente."
+      error: "Error al agregar el registro de combustible. Revisa los datos."
+    destroy:
+      success: "Registro de combustible eliminado exitosamente."
