@@ -1,0 +1,57 @@
+es:
+  sales:
+    index:
+      title: "Ventas"
+      new: "Nueva venta"
+      empty: "No hay ventas registradas."
+      columns:
+        sale_number: "Número"
+        client_name: "Cliente"
+        status: "Estado"
+        total: "Total"
+        currency: "Moneda"
+    form:
+      client_name: "Cliente"
+      currency: "Moneda"
+      payment_method: "Método de pago"
+      invoice_number: "Número de factura"
+      condition: "Condición"
+      notes: "Notas"
+      items: "Artículos"
+      items_help: "Agregue los artículos a vender. Los campos vacíos serán ignorados."
+      product: "Producto"
+      select_product: "Seleccione un producto"
+      quantity: "Cantidad"
+      unit_price: "Precio unitario"
+      cancel: "Cancelar"
+      submit: "Guardar"
+    new:
+      title: "Nueva venta"
+      success: "Venta creada exitosamente."
+    edit:
+      title: "Editar venta"
+      success: "Venta actualizada exitosamente."
+    destroy:
+      success: "Venta eliminada exitosamente."
+    complete:
+      success: "Venta completada exitosamente."
+    cancel:
+      success: "Venta cancelada exitosamente."
+    show:
+      title: "Venta"
+      delete: "Eliminar"
+      edit: "Editar"
+      cancel_sale: "Cancelar venta"
+      complete_sale: "Completar venta"
+      items: "Artículos"
+      no_items: "No hay artículos en esta venta."
+      columns:
+        product: "Producto"
+        quantity: "Cantidad"
+        unit_price: "Precio"
+        subtotal: "Subtotal"
+        total: "Total"
+    status:
+      draft: "Borrador"
+      completed: "Completada"
+      cancelled: "Cancelada"
