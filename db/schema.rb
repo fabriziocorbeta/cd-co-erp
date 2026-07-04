@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -595,6 +595,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
     t.string "assistant_type", default: "builtin", null: false
     t.string "default_account_sharing", default: "shared", null: false
     t.string "enabled_currencies", array: true
+    t.boolean "business_mode_enabled", default: false, null: false
     t.check_constraint "default_account_sharing::text = ANY (ARRAY['shared'::character varying::text, 'private'::character varying::text])", name: "chk_families_default_account_sharing"
     t.check_constraint "month_start_day >= 1 AND month_start_day <= 28", name: "month_start_day_range"
   end
@@ -1126,6 +1127,24 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
     t.index ["plaid_id"], name: "index_plaid_items_on_plaid_id", unique: true
   end
 
+  create_table "products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "name", null: false
+    t.string "sku"
+    t.string "category"
+    t.string "supplier"
+    t.decimal "buy_price", precision: 19, scale: 4, default: "0.0"
+    t.decimal "sell_price", precision: 19, scale: 4, default: "0.0"
+    t.string "currency", default: "pyg", null: false
+    t.integer "stock", default: 0, null: false
+    t.integer "min_stock", default: 0, null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "sku"], name: "index_products_on_family_id_and_sku", unique: true, where: "(sku IS NOT NULL)"
+    t.index ["family_id"], name: "index_products_on_family_id"
+  end
+
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -1248,7 +1267,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
     t.index ["kind"], name: "index_securities_on_kind"
     t.index ["price_provider", "offline_reason"], name: "index_securities_on_price_provider_and_offline_reason"
     t.index ["price_provider"], name: "index_securities_on_price_provider"
-    t.check_constraint "kind::text = ANY (ARRAY['standard'::character varying, 'cash'::character varying]::text[])", name: "chk_securities_kind"
+    t.check_constraint "kind::text = ANY (ARRAY['standard'::character varying::text, 'cash'::character varying::text])", name: "chk_securities_kind"
   end
 
   create_table "security_prices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1405,8 +1424,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_sophtron_accounts_on_account_id"
-    t.index ["sophtron_item_id"], name: "index_sophtron_accounts_on_sophtron_item_id"
     t.index ["sophtron_item_id", "account_id"], name: "idx_unique_sophtron_accounts_per_item", unique: true
+    t.index ["sophtron_item_id"], name: "index_sophtron_accounts_on_sophtron_item_id"
   end
 
   create_table "sophtron_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1462,6 +1481,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
     t.datetime "updated_at", null: false
     t.index ["enabled"], name: "index_sso_providers_on_enabled"
     t.index ["name"], name: "index_sso_providers_on_name", unique: true
+  end
+
+  create_table "statement_imports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "user_id", null: false
+    t.integer "status", default: 0, null: false
+    t.string "bank_name"
+    t.integer "parsed_count", default: 0
+    t.integer "imported_count", default: 0
+    t.jsonb "raw_transactions", default: []
+    t.text "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_statement_imports_on_family_id"
+    t.index ["user_id"], name: "index_statement_imports_on_user_id"
   end
 
   create_table "subscriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1648,9 +1682,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
     t.datetime "last_used_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.check_constraint "sign_count >= 0", name: "chk_webauthn_credentials_sign_count_non_negative"
     t.index ["credential_id"], name: "index_webauthn_credentials_on_credential_id", unique: true
     t.index ["user_id"], name: "index_webauthn_credentials_on_user_id"
+    t.check_constraint "sign_count >= 0", name: "chk_webauthn_credentials_sign_count_non_negative"
   end
 
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
@@ -1715,6 +1749,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
   add_foreign_key "oidc_identities", "users"
   add_foreign_key "plaid_accounts", "plaid_items"
   add_foreign_key "plaid_items", "families"
+  add_foreign_key "products", "families"
   add_foreign_key "recurring_transactions", "accounts"
   add_foreign_key "recurring_transactions", "families"
   add_foreign_key "recurring_transactions", "merchants"
@@ -1735,6 +1770,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_03_180000) do
   add_foreign_key "sophtron_accounts", "sophtron_items"
   add_foreign_key "sophtron_items", "families"
   add_foreign_key "sso_audit_logs", "users"
+  add_foreign_key "statement_imports", "families"
+  add_foreign_key "statement_imports", "users"
   add_foreign_key "subscriptions", "families"
   add_foreign_key "syncs", "syncs", column: "parent_id"
   add_foreign_key "taggings", "tags"
