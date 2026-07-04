@@ -1,0 +1,74 @@
+<%= content_for :page_title, t(".title") %>
+<%= content_for :page_actions do %>
+  <%= render DS::Link.new(
+    text: t(".new"),
+    variant: "primary",
+    icon: "plus",
+    href: new_purchase_order_path
+  ) %>
+<% end %>
+
+<div class="bg-container rounded-xl shadow-border-xs p-4">
+  <% if @purchase_orders.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-gray-100">
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.order_number") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.supplier_name") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.status") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.total") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-center"><%= t(".columns.currency") %></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @purchase_orders.each do |purchase_order| %>
+            <tr class="hover:bg-gray-50/50 cursor-pointer" onclick="window.location='<%= purchase_order_path(purchase_order) %>'">
+              <td class="px-4 py-3 text-sm text-primary font-medium">
+                #<%= purchase_order.order_number %>
+              </td>
+              <td class="px-4 py-3 text-sm text-secondary">
+                <%= purchase_order.supplier_name.presence || "-" %>
+              </td>
+              <td class="px-4 py-3 text-sm">
+                <% if purchase_order.draft? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                    <%= t("purchase_orders.status.draft") %>
+                  </span>
+                <% elsif purchase_order.received? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    <%= t("purchase_orders.status.received") %>
+                  </span>
+                <% else %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                    <%= t("purchase_orders.status.cancelled") %>
+                  </span>
+                <% end %>
+              </td>
+              <td class="px-4 py-3 text-sm text-primary text-right">
+                <%= number_to_currency(purchase_order.total, unit: "", separator: ",", delimiter: ".") %>
+              </td>
+              <td class="px-4 py-3 text-sm text-secondary text-center uppercase">
+                <%= purchase_order.currency %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="flex justify-center items-center py-20">
+      <div class="text-center flex flex-col items-center max-w-[500px]">
+        <p class="text-sm text-secondary mb-4"><%= t(".empty") %></p>
+        <div class="flex items-center gap-2">
+          <%= render DS::Link.new(
+            text: t(".new"),
+            variant: "outline",
+            icon: "plus",
+            href: new_purchase_order_path
+          ) %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
