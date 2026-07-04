@@ -1,0 +1,141 @@
+<%= content_for :page_title, "#{t('.title')} ##{@sale.sale_number}" %>
+<%= content_for :page_actions do %>
+  <%= render DS::Menu.new do |menu| %>
+    <% menu.with_item(
+      variant: "button",
+      text: t(".delete"),
+      href: sale_path(@sale),
+      method: :delete,
+      icon: "trash-2",
+      confirm: CustomConfirm.for_resource_deletion("Sale ##{@sale.sale_number}")
+    ) %>
+  <% end %>
+
+  <% if @sale.draft? %>
+    <%= render DS::Button.new(
+      text: t(".cancel_sale"),
+      variant: "ghost",
+      icon: "x",
+      href: cancel_sale_path(@sale),
+      method: :patch,
+      confirm: "Are you sure you want to cancel this sale?"
+    ) %>
+
+    <%= render DS::Button.new(
+      text: t(".complete_sale"),
+      variant: "primary",
+      icon: "check",
+      href: complete_sale_path(@sale),
+      method: :patch,
+      confirm: "Are you sure you want to complete this sale? This will deduct stock."
+    ) %>
+
+    <%= render DS::Link.new(
+      text: t(".edit"),
+      variant: "outline",
+      icon: "pen",
+      href: edit_sale_path(@sale)
+    ) %>
+  <% elsif @sale.completed? %>
+    <%= render DS::Button.new(
+      text: t(".cancel_sale"),
+      variant: "ghost",
+      icon: "x",
+      href: cancel_sale_path(@sale),
+      method: :patch,
+      confirm: "Are you sure you want to cancel this completed sale? Stock will be restored."
+    ) %>
+
+    <%= render DS::Link.new(
+      text: t(".edit"),
+      variant: "outline",
+      icon: "pen",
+      href: edit_sale_path(@sale)
+    ) %>
+  <% else %>
+    <%= render DS::Link.new(
+      text: t(".edit"),
+      variant: "outline",
+      icon: "pen",
+      href: edit_sale_path(@sale)
+    ) %>
+  <% end %>
+<% end %>
+
+<div class="space-y-6">
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.index.columns.client_name") %></h4>
+        <p class="text-primary mt-1"><%= @sale.client_name.presence || "-" %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.index.columns.status") %></h4>
+        <p class="text-primary mt-1 capitalize"><%= t("sales.status.#{@sale.status}") %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.form.payment_method") %></h4>
+        <p class="text-primary mt-1"><%= @sale.payment_method.presence || "-" %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.form.invoice_number") %></h4>
+        <p class="text-primary mt-1"><%= @sale.invoice_number.presence || "-" %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.form.condition") %></h4>
+        <p class="text-primary mt-1"><%= @sale.condition.presence || "-" %></p>
+      </div>
+      <div class="col-span-2 md:col-span-3">
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.form.notes") %></h4>
+        <p class="text-primary mt-1"><%= @sale.notes.presence || "-" %></p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-lg font-medium text-primary"><%= t(".items") %></h2>
+
+  <div class="bg-container rounded-xl shadow-border-xs p-4">
+    <% if @sale.sale_items.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.product") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.quantity") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.unit_price") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.subtotal") %></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @sale.sale_items.each do |item| %>
+              <tr class="hover:bg-gray-50/50">
+                <td class="px-4 py-3 text-sm text-primary font-medium">
+                  <%= item.product.name %>
+                </td>
+                <td class="px-4 py-3 text-sm text-primary text-right">
+                  <%= item.quantity %>
+                </td>
+                <td class="px-4 py-3 text-sm text-primary text-right">
+                  <%= number_to_currency(item.unit_price, unit: "", separator: ",", delimiter: ".") %>
+                </td>
+                <td class="px-4 py-3 text-sm text-primary font-medium text-right">
+                  <%= number_to_currency(item.subtotal, unit: "", separator: ",", delimiter: ".") %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot>
+            <tr class="border-t border-gray-200">
+              <td colspan="3" class="px-4 py-3 text-sm font-semibold text-secondary text-right uppercase tracking-wider"><%= t(".columns.total") %></td>
+              <td class="px-4 py-3 text-sm text-primary font-bold text-right">
+                <%= number_to_currency(@sale.total, unit: "", separator: ",", delimiter: ".") %> <%= @sale.currency.upcase %>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary py-4 text-center"><%= t(".no_items") %></p>
+    <% end %>
+  </div>
+</div>
