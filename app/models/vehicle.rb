@@ -1,36 +1,11 @@
 class Vehicle < ApplicationRecord
-  include Accountable
+  include RequireBusinessMode
 
-  attribute :mileage_unit, :string, default: "mi"
+  belongs_to :family
+  has_many :fuel_logs, dependent: :destroy
 
-  def mileage
-    Measurement.new(mileage_value, mileage_unit) if mileage_value.present?
-  end
+  enum :status, { active: "active", maintenance: "maintenance", inactive: "inactive" }, default: "active"
 
-  def purchase_price
-    first_valuation_amount
-  end
-
-  def trend
-    Trend.new(current: account.balance_money, previous: first_valuation_amount)
-  end
-
-  class << self
-    def color
-      "#F23E94"
-    end
-
-    def icon
-      "car-front"
-    end
-
-    def classification
-      "asset"
-    end
-  end
-
-  private
-    def first_valuation_amount
-      account.entries.valuations.order(:date).first&.amount_money || account.balance_money
-    end
+  validates :plate, presence: true, uniqueness: { scope: :family_id }
+  validates :brand, :model, presence: true
 end
