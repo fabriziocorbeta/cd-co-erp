@@ -1,0 +1,39 @@
+es:
+  products:
+    index:
+      title: "Productos"
+      new: "Nuevo producto"
+      empty: "No hay productos registrados."
+      columns:
+        name: "Nombre"
+        sku: "SKU"
+        category: "Categoría"
+        stock: "Stock"
+        sell_price: "Precio"
+        currency: "Moneda"
+    form:
+      name: "Nombre"
+      sku: "SKU"
+      category: "Categoría"
+      supplier: "Proveedor"
+      buy_price: "Precio de compra"
+      sell_price: "Precio de venta"
+      currency: "Moneda"
+      min_stock: "Stock mínimo"
+      initial_stock: "Stock inicial"
+      cancel: "Cancelar"
+      submit: "Guardar"
+    new:
+      title: "Nuevo producto"
+    edit:
+      title: "Editar producto"
+    show:
+      edit: "Editar"
+      delete: "Eliminar"
+      stock_history: "Historial de stock"
+      no_history: "No hay movimientos de stock."
+      columns:
+        date: "Fecha"
+        reason: "Motivo"
+        quantity: "Cantidad"
+        note: "Nota"

@@ -1,0 +1,66 @@
+<%= content_for :page_title, t(".title") %>
+<%= content_for :page_actions do %>
+  <%= render DS::Link.new(
+    text: t(".new"),
+    variant: "primary",
+    icon: "plus",
+    href: new_product_path
+  ) %>
+<% end %>
+
+<div class="bg-container rounded-xl shadow-border-xs p-4">
+  <% if @products.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-gray-100">
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.name") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.sku") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t(".columns.category") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.stock") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t(".columns.sell_price") %></th>
+            <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-center"><%= t(".columns.currency") %></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @products.each do |product| %>
+            <tr class="hover:bg-gray-50/50 cursor-pointer" onclick="window.location='<%= product_path(product) %>'">
+              <td class="px-4 py-3 text-sm text-primary font-medium">
+                <%= product.name %>
+              </td>
+              <td class="px-4 py-3 text-sm text-secondary">
+                <%= product.sku.presence || "-" %>
+              </td>
+              <td class="px-4 py-3 text-sm text-secondary">
+                <%= product.category.presence || "-" %>
+              </td>
+              <td class="px-4 py-3 text-sm text-primary text-right font-medium <%= product.stock <= 0 ? 'text-red-600' : '' %>">
+                <%= product.stock %>
+              </td>
+              <td class="px-4 py-3 text-sm text-primary text-right">
+                <%= number_to_currency(product.sell_price, unit: "", separator: ",", delimiter: ".") %>
+              </td>
+              <td class="px-4 py-3 text-sm text-secondary text-center uppercase">
+                <%= product.currency.presence || "USD" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="flex justify-center items-center py-20">
+      <div class="text-center flex flex-col items-center max-w-[500px]">
+        <p class="text-sm text-secondary mb-4"><%= t(".empty") %></p>
+        <div class="flex items-center gap-2">
+          <%= render DS::Link.new(
+            text: t(".new"),
+            variant: "outline",
+            icon: "plus",
+            href: new_product_path
+          ) %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

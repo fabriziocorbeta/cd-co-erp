@@ -225,6 +225,8 @@ Rails.application.routes.draw do
     resource :dropdown, only: :show
   end
 
+  resources :products
+
   resources :categories, except: :show do
     resources :deletions, only: %i[new create], module: :category
 

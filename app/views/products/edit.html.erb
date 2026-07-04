@@ -1,0 +1,5 @@
+<%= content_for :page_title, t(".title") %>
+
+<div class="bg-container rounded-xl shadow-border-xs p-4 max-w-2xl mx-auto">
+  <%= render "form", product: @product, show_initial_stock: false %>
+</div>
