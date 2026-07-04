@@ -227,6 +227,20 @@ Rails.application.routes.draw do
 
   resources :products
 
+  resources :sales do
+    member do
+      patch :complete
+      patch :cancel
+    end
+  end
+
+  resources :purchase_orders do
+    member do
+      patch :receive
+      patch :cancel
+    end
+  end
+
   resources :categories, except: :show do
     resources :deletions, only: %i[new create], module: :category
 
