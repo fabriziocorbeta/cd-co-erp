@@ -83,7 +83,7 @@
                 </td>
                 <td class="px-4 py-3 text-sm text-right">
                   <%= button_to fleet_vehicle_fuel_log_path(@fleet_vehicle, log), method: :delete, form: { data: { turbo_confirm: t("fuel_logs.confirm_deletion") } }, class: "text-secondary hover:text-red-600 p-1" do %>
-                    <%= icon("trash-2", size: 16, color: "current") %>
+                    <%= icon("trash-2", size: "sm", color: "current") %>
                   <% end %>
                 </td>
               </tr>
