@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_05_050000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -18,6 +18,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
   create_enum "account_status", ["ok", "syncing", "error"]
+  create_enum "goal_pledge_kind", ["transfer", "manual_save"]
+  create_enum "goal_pledge_status", ["open", "matched", "cancelled", "expired"]
 
   create_table "account_providers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id", null: false
@@ -767,6 +769,93 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
     t.index ["family_id"], name: "index_imports_on_family_id"
   end
 
+  create_table "fleet_vehicles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "plate", null: false
+    t.string "brand", null: false
+    t.string "model", null: false
+    t.integer "year"
+    t.string "status", default: "active", null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "plate"], name: "index_fleet_vehicles_on_family_id_and_plate", unique: true
+    t.index ["family_id"], name: "index_fleet_vehicles_on_family_id"
+  end
+
+  create_table "fuel_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "fleet_vehicle_id", null: false
+    t.decimal "liters", precision: 10, scale: 2, null: false
+    t.decimal "cost", precision: 19, scale: 4, null: false
+    t.integer "odometer"
+    t.string "currency", default: "pyg", null: false
+    t.date "logged_at", null: false
+    t.string "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["date"], name: "idx_fuel_logs_date"
+    t.index ["fleet_vehicle_id"], name: "index_fuel_logs_on_fleet_vehicle_id"
+    t.index ["is_settled"], name: "idx_fuel_logs_is_settled"
+    t.index ["odometer_reading"], name: "idx_fuel_logs_odometer"
+    t.index ["user_id"], name: "idx_fuel_logs_user_id"
+    t.index ["vehicle_id"], name: "idx_fuel_logs_vehicle_id"
+  end
+
+  create_table "goal_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "goal_id", null: false
+    t.uuid "account_id", null: false
+    t.decimal "allocated_amount", precision: 19, scale: 4
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_goal_accounts_on_account_id"
+    t.index ["goal_id", "account_id"], name: "index_goal_accounts_on_goal_and_account", unique: true
+    t.index ["goal_id"], name: "index_goal_accounts_on_goal_id"
+    t.check_constraint "allocated_amount IS NULL OR allocated_amount >= 0::numeric", name: "chk_goal_accounts_allocation_non_negative"
+  end
+
+  create_table "goal_pledges", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "goal_id", null: false
+    t.uuid "account_id", null: false
+    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.string "currency", null: false
+    t.enum "kind", null: false, enum_type: "goal_pledge_kind"
+    t.enum "status", default: "open", null: false, enum_type: "goal_pledge_status"
+    t.datetime "expires_at", null: false
+    t.uuid "matched_transaction_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_goal_pledges_on_account_id"
+    t.index ["goal_id", "status"], name: "index_goal_pledges_on_goal_id_and_status"
+    t.index ["goal_id"], name: "index_goal_pledges_on_goal_id"
+    t.index ["matched_transaction_id"], name: "index_goal_pledges_on_matched_transaction_id", unique: true, where: "(matched_transaction_id IS NOT NULL)"
+    t.index ["status", "expires_at"], name: "index_goal_pledges_open_by_expiry", where: "(status = 'open'::goal_pledge_status)"
+    t.check_constraint "amount > 0::numeric", name: "chk_goal_pledges_amount_positive"
+  end
+
+  create_table "goals", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "name", null: false
+    t.decimal "target_amount", precision: 19, scale: 4, null: false
+    t.string "currency", null: false
+    t.date "target_date"
+    t.string "color"
+    t.string "icon"
+    t.text "notes"
+    t.string "state", default: "active", null: false
+    t.string "progress_basis", default: "balance", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "state"], name: "index_goals_on_family_id_and_state"
+    t.index ["family_id"], name: "index_goals_on_family_id"
+    t.index ["user_id"], name: "idx_goals_user_id"
+    t.check_constraint "char_length(name::text) <= 255", name: "chk_goals_name_length"
+    t.check_constraint "current_amount IS NULL OR current_amount >= 0::numeric", name: "goals_current_nonneg"
+    t.check_constraint "progress_basis::text = ANY (ARRAY['balance'::character varying, 'contributions'::character varying]::text[])", name: "chk_goals_progress_basis_enum"
+    t.check_constraint "state::text = ANY (ARRAY['active'::character varying, 'paused'::character varying, 'completed'::character varying, 'archived'::character varying]::text[])", name: "chk_goals_state_enum"
+    t.check_constraint "target_amount > 0::numeric", name: "chk_goals_target_amount_positive"
+    t.check_constraint "target_amount IS NULL OR target_amount >= 0::numeric", name: "goals_target_nonneg"
+  end
+
   create_table "indexa_capital_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "indexa_capital_item_id", null: false
     t.string "name"
@@ -1127,6 +1216,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
     t.index ["plaid_id"], name: "index_plaid_items_on_plaid_id", unique: true
   end
 
+  create_table "product_stock_movements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "product_id", null: false
+    t.integer "quantity_delta", null: false
+    t.string "reason", null: false
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_product_stock_movements_on_product_id"
+  end
+
   create_table "products", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.string "name", null: false
@@ -1153,6 +1252,31 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
     t.string "area_unit"
     t.jsonb "locked_attributes", default: {}
     t.string "subtype"
+  end
+
+  create_table "purchase_order_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "purchase_order_id", null: false
+    t.uuid "product_id", null: false
+    t.integer "quantity", null: false
+    t.decimal "unit_cost", precision: 19, scale: 4, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_purchase_order_items_on_product_id"
+    t.index ["purchase_order_id"], name: "index_purchase_order_items_on_purchase_order_id"
+  end
+
+  create_table "purchase_orders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.integer "order_number", null: false
+    t.string "supplier_name"
+    t.string "status", default: "draft", null: false
+    t.string "currency", default: "pyg", null: false
+    t.date "expected_date"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "order_number"], name: "index_purchase_orders_on_family_id_and_order_number", unique: true
+    t.index ["family_id"], name: "index_purchase_orders_on_family_id"
   end
 
   create_table "recurring_transactions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1240,6 +1364,36 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
     t.datetime "updated_at", null: false
     t.string "name"
     t.index ["family_id"], name: "index_rules_on_family_id"
+  end
+
+  create_table "sale_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "sale_id", null: false
+    t.uuid "product_id", null: false
+    t.integer "quantity", null: false
+    t.decimal "unit_price", precision: 19, scale: 4, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_sale_items_on_product_id"
+    t.index ["sale_id"], name: "index_sale_items_on_sale_id"
+  end
+
+  create_table "sales", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.integer "sale_number", null: false
+    t.string "client_name"
+    t.string "status", default: "draft", null: false
+    t.string "currency", default: "pyg", null: false
+    t.string "payment_method"
+    t.string "invoice_number"
+    t.string "condition"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "idx_sales_client_id"
+    t.index ["family_id", "sale_number"], name: "index_sales_on_family_id_and_sale_number", unique: true
+    t.index ["family_id"], name: "index_sales_on_family_id"
+    t.index ["user_id"], name: "idx_sales_user_id"
+    t.check_constraint "total IS NULL OR total >= 0::numeric", name: "sales_total_nonneg"
   end
 
   create_table "securities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1727,6 +1881,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
   add_foreign_key "holdings", "accounts", on_delete: :cascade
   add_foreign_key "holdings", "securities"
   add_foreign_key "holdings", "securities", column: "provider_security_id"
+  add_foreign_key "fleet_vehicles", "families"
+  add_foreign_key "fuel_logs", "fleet_vehicles"
+  add_foreign_key "goal_accounts", "accounts", on_delete: :restrict
+  add_foreign_key "goal_accounts", "goals", on_delete: :cascade
+  add_foreign_key "goal_pledges", "accounts", on_delete: :restrict
+  add_foreign_key "goal_pledges", "goals", on_delete: :cascade
+  add_foreign_key "goal_pledges", "transactions", column: "matched_transaction_id", on_delete: :nullify
+  add_foreign_key "goals", "families", on_delete: :cascade
   add_foreign_key "impersonation_session_logs", "impersonation_sessions"
   add_foreign_key "impersonation_sessions", "users", column: "impersonated_id"
   add_foreign_key "impersonation_sessions", "users", column: "impersonator_id"
@@ -1749,7 +1911,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
   add_foreign_key "oidc_identities", "users"
   add_foreign_key "plaid_accounts", "plaid_items"
   add_foreign_key "plaid_items", "families"
+  add_foreign_key "product_stock_movements", "products"
   add_foreign_key "products", "families"
+  add_foreign_key "purchase_order_items", "products"
+  add_foreign_key "purchase_order_items", "purchase_orders"
+  add_foreign_key "purchase_orders", "families"
   add_foreign_key "recurring_transactions", "accounts"
   add_foreign_key "recurring_transactions", "families"
   add_foreign_key "recurring_transactions", "merchants"
@@ -1760,6 +1926,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_04_012423) do
   add_foreign_key "rule_conditions", "rules"
   add_foreign_key "rule_runs", "rules"
   add_foreign_key "rules", "families"
+  add_foreign_key "sale_items", "products"
+  add_foreign_key "sale_items", "sales"
+  add_foreign_key "sales", "families"
   add_foreign_key "security_prices", "securities"
   add_foreign_key "sessions", "impersonation_sessions", column: "active_impersonator_session_id"
   add_foreign_key "sessions", "users"
