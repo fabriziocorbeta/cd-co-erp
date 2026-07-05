@@ -16,7 +16,20 @@ else
   ]
 end %>
 
-<% desktop_nav_items = mobile_nav_items.reject { |item| item[:mobile_only] } %>
+<% business_nav_items = if !intro_mode && Current.family.business_mode_enabled?
+  [
+    { name: "Inventario", path: products_path, icon: "package", icon_custom: false, active: page_active?(products_path) },
+    { name: "Ventas", path: sales_path, icon: "receipt", icon_custom: false, active: page_active?(sales_path) },
+    { name: "Pedidos", path: purchase_orders_path, icon: "truck", icon_custom: false, active: page_active?(purchase_orders_path) },
+    { name: "Flota", path: fleet_vehicles_path, icon: "car", icon_custom: false, active: page_active?(fleet_vehicles_path) }
+  ]
+else
+  []
+end %>
+
+<%# Business modules (Inventario/Ventas/Pedidos/Flota) only show on desktop sidebar —
+    the mobile bottom nav bar has no room for them without crowding the 5 core tabs. %>
+<% desktop_nav_items = mobile_nav_items.reject { |item| item[:mobile_only] } + business_nav_items %>
 <% expanded_sidebar_class = "w-full" %>
 <% collapsed_sidebar_class = "w-0 overflow-hidden" %>
 
