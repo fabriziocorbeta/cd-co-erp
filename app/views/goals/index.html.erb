@@ -25,38 +25,7 @@
 <% else %>
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     <% (@active_goals + @completed_goals).each do |goal| %>
-      <%= link_to goal_path(goal), class: "block bg-container rounded-xl shadow-border-xs p-4 hover:bg-gray-50/50 transition-colors" do %>
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style="background-color: <%= goal.color.presence || '#6471eb' %>20;">
-            <%= icon(goal.icon.presence || "target", color: "current") %>
-          </div>
-          <h3 class="text-sm font-medium text-primary truncate"><%= goal.name %></h3>
-        </div>
-
-        <div class="mb-2">
-          <div class="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-            <div class="h-full rounded-full" style="width: <%= goal.progress_percent %>%; background-color: <%= goal.color.presence || '#6471eb' %>;"></div>
-          </div>
-        </div>
-
-        <div class="flex justify-between text-xs text-secondary">
-          <span><%= goal.current_balance_money.format(precision: 0) %> / <%= goal.target_amount_money.format(precision: 0) %></span>
-          <span><%= goal.progress_percent %>%</span>
-        </div>
-
-        <div class="mt-2">
-          <% case goal.display_status %>
-          <% when :paused %>
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"><%= t(".status.paused") %></span>
-          <% when :completed %>
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"><%= t(".status.completed") %></span>
-          <% else %>
-            <% if goal.target_date %>
-              <span class="text-xs text-secondary"><%= t(".target_by", date: l(goal.target_date, format: :long)) %></span>
-            <% end %>
-          <% end %>
-        </div>
-      <% end %>
+      <%= render Goals::CardComponent.new(goal: goal, filterable: false) %>
     <% end %>
   </div>
 
@@ -65,10 +34,7 @@
       <summary class="text-sm text-secondary cursor-pointer"><%= t(".archived_section", count: @archived_goals.size) %></summary>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
         <% @archived_goals.each do |goal| %>
-          <%= link_to goal_path(goal), class: "block bg-container rounded-xl shadow-border-xs p-4 opacity-60 hover:opacity-100 transition-opacity" do %>
-            <h3 class="text-sm font-medium text-primary truncate"><%= goal.name %></h3>
-            <span class="inline-flex items-center mt-2 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"><%= t(".status.archived") %></span>
-          <% end %>
+          <%= render Goals::CardComponent.new(goal: goal, filterable: false) %>
         <% end %>
       </div>
     </details>

@@ -31,45 +31,54 @@
 <% end %>
 
 <div class="space-y-6">
-  <div class="bg-container rounded-xl shadow-border-xs p-4">
-    <div class="flex items-center gap-3 mb-4">
-      <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background-color: <%= @goal.color.presence || '#6471eb' %>20;">
-        <%= icon(@goal.icon.presence || "target", color: "current") %>
-      </div>
-      <div>
-        <p class="text-lg font-medium text-primary"><%= @goal.name %></p>
-        <% if @goal.target_date %>
-          <p class="text-sm text-secondary"><%= t(".target_by", date: l(@goal.target_date, format: :long)) %></p>
-        <% end %>
-      </div>
-    </div>
+  <div class="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-3">
+    <div class="bg-container rounded-xl shadow-border-xs p-5 flex flex-col items-center justify-center text-center">
+      <%= render Goals::ProgressRingComponent.new(goal: @goal, size: 180) %>
+      <p class="text-xl font-medium text-primary tabular-nums privacy-sensitive mt-4"><%= @goal.current_balance_money.format(precision: 0) %></p>
 
-    <div class="w-full h-3 rounded-full bg-gray-100 overflow-hidden mb-2">
-      <div class="h-full rounded-full" style="width: <%= @goal.progress_percent %>%; background-color: <%= @goal.color.presence || '#6471eb' %>;"></div>
-    </div>
-    <div class="flex justify-between text-sm">
-      <span class="text-primary font-medium"><%= @goal.current_balance_money.format(precision: 0) %></span>
-      <span class="text-secondary"><%= t(".of_target", amount: @goal.target_amount_money.format(precision: 0)) %></span>
-    </div>
-
-    <% if @goal.notes.present? %>
-      <div class="mt-4 pt-4 border-t border-gray-100">
-        <p class="text-sm text-secondary whitespace-pre-wrap"><%= @goal.notes %></p>
-      </div>
-    <% end %>
-  </div>
-
-  <div>
-    <h2 class="text-lg font-medium text-primary mb-3"><%= t(".linked_accounts") %></h2>
-    <div class="bg-container rounded-xl shadow-border-xs p-4 space-y-2">
-      <% @goal.linked_accounts.each do |account| %>
-        <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-          <span class="text-sm text-primary"><%= account.name %></span>
-          <span class="text-sm text-secondary"><%= @goal.account_backing(account).format(precision: 0) %></span>
-        </div>
+      <% unless @goal.completed? %>
+        <p class="text-xs text-subdued tabular-nums mt-0.5 privacy-sensitive"><%= t(".ring.to_go", amount: @goal.remaining_amount_money.format(precision: 0)) %></p>
       <% end %>
     </div>
+
+    <div class="bg-container rounded-xl shadow-border-xs p-5 flex flex-col">
+      <div class="flex flex-col gap-2 mb-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div class="min-w-0">
+          <h2 class="text-sm font-medium text-primary"><%= t(".projection.heading", default: "Projection") %></h2>
+        </div>
+      </div>
+
+      <%
+        # Determine values to plot for the time series chart
+        data_points = []
+        if @goal.current_balance.to_d > 0
+          data_points << { date: @goal.created_at.strftime("%Y-%m-%d"), value: 0 }
+          data_points << { date: Date.today.strftime("%Y-%m-%d"), value: @goal.current_balance.to_f, trend: { color: @goal.color || "#6471eb", current: @goal.current_balance_money.format, value: @goal.current_balance.to_f, previous: { amount: 0 }, percent_formatted: "100%" } }
+        end
+        series = {
+          trend: { color: @goal.color || "#6471eb" },
+          values: data_points
+        }
+      %>
+      <div class="flex-1 min-h-[200px]"
+           data-controller="time-series-chart"
+           data-time-series-chart-data-value="<%= series.to_json %>">
+      </div>
+    </div>
   </div>
+
+  <% if @goal.linked_accounts.any? %>
+    <section class="bg-container rounded-xl shadow-border-xs p-5">
+      <%= render Goals::FundingAccountsBreakdownComponent.new(goal: @goal) %>
+    </section>
+  <% end %>
+
+  <% if @goal.notes.present? %>
+    <section class="bg-container rounded-xl shadow-border-xs p-5">
+      <h2 class="text-sm font-medium text-primary mb-2"><%= t(".notes") %></h2>
+      <p class="text-sm text-secondary whitespace-pre-line"><%= @goal.notes %></p>
+    </section>
+  <% end %>
 
   <div>
     <div class="flex justify-between items-center mb-3">
