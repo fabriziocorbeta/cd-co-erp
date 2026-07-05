@@ -15,7 +15,10 @@ x-rails-env: &rails_env
   BRAND_NAME: ${BRAND_NAME:-CD & Co.}
   REDIS_URL: redis://redis:6379/1
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  # AI Assistant vía NVIDIA API Catalog (endpoint OpenAI-compatible, modelos open-weight)
   OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN:-}
+  OPENAI_URI_BASE: ${OPENAI_URI_BASE:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-}
 
 services:
   caddy:
