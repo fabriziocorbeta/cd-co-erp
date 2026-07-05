@@ -15,7 +15,7 @@
       <%= f.number_field :sell_price, label: t(".sell_price"), step: :any %>
     </div>
 
-    <%= f.text_field :currency, label: t(".currency") %>
+    <%= f.select :currency, Product.currencies.keys.map { |k| [k.upcase, k] }, label: t(".currency") %>
 
     <div class="grid grid-cols-2 gap-4">
       <%= f.text_field :supplier, label: t(".supplier") %>
