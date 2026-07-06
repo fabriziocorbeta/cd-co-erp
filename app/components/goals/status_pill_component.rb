@@ -19,7 +19,7 @@ class Goals::StatusPillComponent < ApplicationComponent
   end
 
   def status_key
-    @goal.display_status
+    @goal.status
   end
 
   def variant
