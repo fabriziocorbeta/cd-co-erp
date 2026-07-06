@@ -356,6 +356,28 @@ class Family < ApplicationRecord
     }
   end
 
+  def sync_inventory_account!
+    return unless business_mode_enabled
+
+    account = accounts.find_or_create_by!(name: "Inventario", accountable_type: "OtherAsset") do |acc|
+      acc.accountable = OtherAsset.new
+      acc.currency = self.currency
+      acc.balance = 0
+    end
+
+    balances_by_currency = products.group(:currency).sum("stock * buy_price")
+
+    total_balance = 0
+    rates = ExchangeRate.rates_for(balances_by_currency.keys, to: self.currency)
+
+    balances_by_currency.each do |currency, amount|
+      rate = rates[currency] || 1
+      total_balance += amount * rate
+    end
+
+    account.update!(balance: total_balance)
+  end
+
   private
     # Depository/investment accounts linked to this family's goals.
     def goal_linked_account_ids
