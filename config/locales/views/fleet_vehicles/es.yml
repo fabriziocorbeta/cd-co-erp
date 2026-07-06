@@ -1,4 +1,3 @@
----
 es:
   fleet_vehicles:
     index:
@@ -18,6 +17,10 @@ es:
       no_fuel_logs: "No hay registros de combustible todavía."
       add_fuel_log: "Agregar Registro de Combustible"
       save_fuel_log: "Guardar"
+      average_efficiency: "Rendimiento prom."
+      efficiency_value: "%{value} km/L"
+      efficiency_no_data: "Sin datos"
+      select_account: "Seleccione una cuenta"
     new:
       title: "Nuevo Vehículo"
     edit:
@@ -45,6 +48,7 @@ es:
       currency: "Moneda"
       odometer: "Kilometraje"
       notes: "Notas"
+      account: "Cuenta"
     confirm_deletion: "¿Estás seguro que deseas eliminar este registro de combustible?"
     create:
       success: "Registro de combustible agregado exitosamente."

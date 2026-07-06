@@ -30,6 +30,6 @@ class FuelLogsController < ApplicationController
     end
 
     def fuel_log_params
-      params.require(:fuel_log).permit(:liters, :cost, :odometer, :currency, :logged_at, :notes)
+      params.require(:fuel_log).permit(:liters, :cost, :odometer, :account_id, :logged_at, :notes)
     end
 end
