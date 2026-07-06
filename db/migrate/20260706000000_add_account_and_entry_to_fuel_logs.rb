@@ -4,7 +4,7 @@ class AddAccountAndEntryToFuelLogs < ActiveRecord::Migration[7.2]
 
     remove_column :fuel_logs, :currency
 
-    add_column :fuel_logs, :account_id, :uuid
+    add_column :fuel_logs, :account_id, :uuid, null: false
     add_column :fuel_logs, :entry_id, :uuid, null: true
 
     add_foreign_key :fuel_logs, :accounts, column: :account_id

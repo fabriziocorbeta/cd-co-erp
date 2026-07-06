@@ -3,7 +3,7 @@ require "test_helper"
 class FuelLogTest < ActiveSupport::TestCase
   setup do
     @family = families(:dylan_family)
-    @account = accounts(:dylan_cash) rescue accounts(:other_asset)
+    @account = accounts(:other_asset)
     @vehicle = FleetVehicle.create!(
       family: @family,
       plate: "XYZ-123",

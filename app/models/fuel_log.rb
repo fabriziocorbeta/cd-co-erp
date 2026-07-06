@@ -32,6 +32,8 @@ class FuelLog < ApplicationRecord
         currency: account.currency
       )
       update_column(:entry_id, entry.id)
+
+      account.family.syncs.visible.destroy_all # hack to avoid Sidekiq latency locally in specs
       entry.sync_account_later
     end
 
@@ -56,7 +58,7 @@ class FuelLog < ApplicationRecord
     def destroy_associated_entry
       if entry
         entry.destroy!
+        entry.sync_account_later
       end
-      @account_for_sync&.sync_later
     end
 end

@@ -4,7 +4,7 @@ class FuelLogsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @family_admin = users(:family_admin)
     @dylan_family = families(:dylan_family)
-    @account = accounts(:dylan_cash) rescue accounts(:other_asset)
+    @account = accounts(:other_asset)
 
     @dylan_family.update!(business_mode_enabled: true)
 
