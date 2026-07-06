@@ -96,6 +96,113 @@ class Goal < ApplicationRecord
     @current_balance_money ||= Money.new(current_balance, currency)
   end
 
+  def to_donut_segments_json
+    filled = current_balance.to_d
+    rem = remaining_amount.to_d
+
+    if filled.zero? && rem.zero?
+      return [ { color: "var(--budget-unused-fill)", amount: 1, id: "unused" } ]
+    end
+
+    segments = []
+    segments << { color: color.presence || "var(--color-blue-500)", amount: filled, id: "saved" } if filled.positive?
+    segments << { color: "var(--budget-unused-fill)", amount: rem, id: "unused" } if rem.positive?
+    segments
+  end
+
+  def account_color_map
+    @account_color_map ||= begin
+      palette = Goals::AvatarComponent::PALETTE
+      linked_accounts.sort_by(&:id).each_with_index.to_h do |account, i|
+        [ account.id, palette[i % palette.size] ]
+      end
+    end
+  end
+
+  def pace
+    return @pace if defined?(@pace)
+
+    @pace = if linked_accounts.empty?
+      0
+    else
+      account_ids = linked_accounts.map(&:id)
+      net = Entry
+        .joins("INNER JOIN transactions ON transactions.id = entries.entryable_id AND entries.entryable_type = 'Transaction'")
+        .where(account_id: account_ids, date: 90.days.ago.to_date..Date.current)
+        .where(excluded: false)
+        .merge(Transaction.excluding_pending)
+        .sum(:amount)
+      (-net.to_d / 3).round(2)
+    end
+  end
+
+  def pace_money
+    @pace_money ||= Money.new(pace, currency)
+  end
+
+  def months_remaining
+    return nil unless target_date
+
+    days = (target_date - Date.current).to_i
+    [ (days / 30.0), 0.0 ].max
+  end
+
+  def monthly_target_amount
+    return @monthly_target_amount if defined?(@monthly_target_amount)
+
+    @monthly_target_amount = if target_date.nil?
+      nil
+    elsif months_remaining.zero?
+      remaining_amount
+    else
+      (remaining_amount.to_d / months_remaining.to_d).ceil(2)
+    end
+  end
+
+  def status
+    return @status if defined?(@status)
+
+    @status = if archived? || paused? || completed?
+      # These mutually-exclusive states override progress tracking.
+      display_status
+    elsif target_date.nil?
+      :no_target_date
+    elsif progress_percent >= 100
+      # Can be :reached without being complete! / AASM completed.
+      # User hasn't hit the explicit "Complete" action.
+      :reached
+    elsif monthly_target_amount.to_d <= pace.to_d
+      :on_track
+    else
+      :behind
+    end
+  end
+
+  def catch_up_delta_money
+    return Money.new(0, currency) if monthly_target_amount.nil?
+
+    pending = open_pledges.sum(:amount).to_d
+    delta = [ monthly_target_amount.to_d - pace.to_d - pending, 0 ].max
+    Money.new(delta, currency)
+  end
+
+  def last_matched_pledge_at
+    return @last_matched_pledge_at if defined?(@last_matched_pledge_at)
+
+    @last_matched_pledge_at = Entry
+      .where(entryable_type: "Transaction")
+      .joins("INNER JOIN goal_pledges ON goal_pledges.matched_transaction_id = entries.entryable_id")
+      .where(goal_pledges: { goal_id: id, status: "matched" })
+      .maximum(:date)
+  end
+
+  def last_matched_pledge_days_ago
+    last = last_matched_pledge_at
+    return nil if last.nil?
+
+    (Date.current - last).to_i
+  end
+
   def account_backing(account)
     Money.new(account_amount_for(account), currency)
   end
@@ -198,6 +305,8 @@ class Goal < ApplicationRecord
         @current_balance @current_balance_money
         @remaining_amount @remaining_amount_money
         @progress_percent @pooled_allocations @market_flows
+        @pace @pace_money @status @monthly_target_amount
+        @account_color_map @last_matched_pledge_at
       ].each do |ivar|
         remove_instance_variable(ivar) if instance_variable_defined?(ivar)
       end
