@@ -28,7 +28,10 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
   end
 
   def call(params = {})
-    period = Period.custom(start_date: Date.parse(params["start_date"]), end_date: Date.parse(params["end_date"]))
+    start_date = params["start_date"].present? ? Date.parse(params["start_date"]) : Date.current.beginning_of_month
+    end_date = params["end_date"].present? ? Date.parse(params["end_date"]) : Date.current
+
+    period = Period.custom(start_date: start_date, end_date: end_date)
     income_data = family.income_statement.income_totals(period: period)
     expense_data = family.income_statement.expense_totals(period: period)
 
