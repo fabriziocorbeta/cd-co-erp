@@ -171,7 +171,7 @@ class Category < ApplicationRecord
     # Returns all possible uncategorized names across all supported locales
     # Used to detect uncategorized filter regardless of URL parameter language
     def all_uncategorized_names
-      LanguagesHelper::SUPPORTED_LOCALES.map do |locale|
+      I18n.available_locales.map do |locale|
         I18n.t(UNCATEGORIZED_NAME_KEY, locale: locale)
       end.uniq
     end
@@ -189,7 +189,7 @@ class Category < ApplicationRecord
     # Returns all possible investment contributions names across all supported locales
     # Used to detect investment contributions category regardless of locale
     def all_investment_contributions_names
-      LanguagesHelper::SUPPORTED_LOCALES.map do |locale|
+      I18n.available_locales.map do |locale|
         I18n.t(INVESTMENT_CONTRIBUTIONS_NAME_KEY, locale: locale)
       end.uniq
     end
