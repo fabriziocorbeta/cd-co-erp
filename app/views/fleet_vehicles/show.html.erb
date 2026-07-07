@@ -21,7 +21,7 @@
 
 <div class="space-y-6">
   <div class="bg-container rounded-xl shadow-border-xs p-4">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
       <div>
         <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.index.columns.brand") %></h4>
         <p class="text-primary mt-1"><%= @fleet_vehicle.brand %></p>
@@ -37,6 +37,16 @@
       <div>
         <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.index.columns.status") %></h4>
         <p class="text-primary mt-1 capitalize"><%= t("fleet_vehicles.statuses.#{@fleet_vehicle.status}") %></p>
+      </div>
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("fleet_vehicles.show.average_efficiency") %></h4>
+        <p class="text-primary mt-1">
+          <% if @fleet_vehicle.average_fuel_efficiency %>
+            <%= t("fleet_vehicles.show.efficiency_value", value: number_with_precision(@fleet_vehicle.average_fuel_efficiency, precision: 2)) %>
+          <% else %>
+            <%= t("fleet_vehicles.show.efficiency_no_data") %>
+          <% end %>
+        </p>
       </div>
     </div>
     <% if @fleet_vehicle.notes.present? %>
@@ -58,6 +68,7 @@
               <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t("fuel_logs.columns.date") %></th>
               <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t("fuel_logs.columns.liters") %></th>
               <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t("fuel_logs.columns.cost") %></th>
+              <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t("fuel_logs.columns.account") %></th>
               <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider text-right"><%= t("fuel_logs.columns.odometer") %></th>
               <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"><%= t("fuel_logs.columns.notes") %></th>
               <th class="px-4 py-3 text-xs font-medium text-secondary uppercase tracking-wider"></th>
@@ -73,7 +84,10 @@
                   <%= number_with_precision(log.liters, precision: 2) %>
                 </td>
                 <td class="px-4 py-3 text-sm text-right text-primary font-medium">
-                  <%= number_to_currency(log.cost, unit: "", separator: ",", delimiter: ".") %> <span class="text-xs uppercase text-secondary"><%= log.currency %></span>
+                  <%= number_to_currency(log.cost, unit: "", separator: ",", delimiter: ".") %> <span class="text-xs uppercase text-secondary"><%= log.account.currency %></span>
+                </td>
+                <td class="px-4 py-3 text-sm text-primary truncate max-w-[150px]">
+                  <%= log.account.name %>
                 </td>
                 <td class="px-4 py-3 text-sm text-right text-secondary">
                   <%= log.odometer.presence || "-" %>
@@ -102,7 +116,7 @@
           <%= f.date_field :logged_at, label: t("fuel_logs.columns.date"), required: true, value: Date.current %>
           <%= f.number_field :liters, label: t("fuel_logs.columns.liters"), required: true, step: :any %>
           <%= f.number_field :cost, label: t("fuel_logs.columns.cost"), required: true, step: :any %>
-          <%= f.select :currency, options_for_select(FuelLog.currencies.keys.map { |k| [k.upcase, k] }, "pyg"), label: t("fuel_logs.columns.currency") %>
+          <%= f.collection_select :account_id, Current.family.accounts.active.alphabetically, :id, :name, { prompt: t("fleet_vehicles.show.select_account") }, label: t("fuel_logs.columns.account"), required: true %>
           <%= f.number_field :odometer, label: t("fuel_logs.columns.odometer"), step: 1 %>
           <div class="lg:col-span-3">
             <%= f.text_field :notes, label: t("fuel_logs.columns.notes") %>

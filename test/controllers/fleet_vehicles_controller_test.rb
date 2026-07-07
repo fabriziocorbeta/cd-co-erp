@@ -38,8 +38,8 @@ class FleetVehiclesControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to fleet_vehicle_url(FleetVehicle.last)
-    assert_equal "BBB-456", FleetVehicle.last.plate
+    assert_redirected_to fleet_vehicle_url(FleetVehicle.order(created_at: :asc).last)
+    assert_equal "BBB-456", FleetVehicle.order(created_at: :asc).last.plate
   end
 
   test "should show fleet vehicle" do
@@ -79,15 +79,14 @@ class FleetVehiclesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "cannot access fleet vehicle from another family" do
-    other_family = Family.create!(name: "Other Family", business_mode_enabled: true)
+    other_family = Family.create!(name: "Other Family", business_mode_enabled: true, currency: "pyg")
     other_vehicle = other_family.fleet_vehicles.create!(
       plate: "CCC-789",
       brand: "Nissan",
       model: "Frontier"
     )
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get fleet_vehicle_url(other_vehicle)
-    end
+    get fleet_vehicle_url(id: other_vehicle.id)
+    assert_response :not_found
   end
 end

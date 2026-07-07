@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-ruby file: ".ruby-version"
+ruby "3.2.3"
 
 # Rails
 gem "rails", "~> 7.2.2"
@@ -104,7 +104,7 @@ gem "after_commit_everywhere", "~> 1.0"
 # AI
 gem "ruby-openai"
 gem "langfuse-ruby", "~> 0.1.4", require: "langfuse"
-gem "anthropic-rb", "~> 0.6"
+gem "anthropic-rb"
 gem "mini_magick", "~> 4.12"
 
 # Localization & Money

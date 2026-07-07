@@ -4,6 +4,7 @@ class FuelLogsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @family_admin = users(:family_admin)
     @dylan_family = families(:dylan_family)
+    @account = accounts(:other_asset)
 
     @dylan_family.update!(business_mode_enabled: true)
 
@@ -16,6 +17,7 @@ class FuelLogsControllerTest < ActionDispatch::IntegrationTest
     )
 
     @fuel_log = @fleet_vehicle.fuel_logs.create!(
+      account: @account,
       liters: 50.5,
       cost: 150000,
       logged_at: Date.current
@@ -26,6 +28,7 @@ class FuelLogsControllerTest < ActionDispatch::IntegrationTest
     assert_difference("FuelLog.count", 1) do
       post fleet_vehicle_fuel_logs_url(@fleet_vehicle), params: {
         fuel_log: {
+          account_id: @account.id,
           liters: 45.0,
           cost: 135000,
           logged_at: Date.current
@@ -49,6 +52,7 @@ class FuelLogsControllerTest < ActionDispatch::IntegrationTest
 
     post fleet_vehicle_fuel_logs_url(@fleet_vehicle), params: {
       fuel_log: {
+        account_id: @account.id,
         liters: 45.0,
         cost: 135000,
         logged_at: Date.current

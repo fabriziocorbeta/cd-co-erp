@@ -79,15 +79,15 @@ GEM
       minitest (>= 5.1, < 6)
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
-    addressable (2.8.7)
-      public_suffix (>= 2.0.2, < 7.0)
+    addressable (2.9.0)
+      public_suffix (>= 2.0.2, < 8.0)
     aes_key_wrap (1.1.0)
     afm (1.0.0)
     after_commit_everywhere (1.6.0)
       activerecord (>= 4.2)
       activesupport
     android_key_attestation (0.3.0)
-    anthropic-rb (0.6.0)
+    anthropic-rb (0.5.0)
       httpx (>= 1.1.5)
       json-schema (>= 4.1.1)
     ast (2.4.3)
@@ -297,7 +297,7 @@ GEM
       turbo-rails (>= 1.2)
     htmlbeautifier (1.4.3)
     htmlentities (4.3.4)
-    http-2 (1.2.0)
+    http-2 (1.2.1)
     httparty (0.24.0)
       csv
       mini_mime (>= 1.0.0)
@@ -525,7 +525,7 @@ GEM
     psych (5.2.6)
       date
       stringio
-    public_suffix (6.0.2)
+    public_suffix (7.0.5)
     puma (6.6.0)
       nio4r (~> 2.0)
     pundit (2.5.2)
@@ -857,7 +857,7 @@ DEPENDENCIES
   aasm
   activerecord-import
   after_commit_everywhere (~> 1.0)
-  anthropic-rb (~> 0.6)
+  anthropic-rb
   aws-sdk-s3 (~> 1.208.0)
   bcrypt (~> 3.1)
   benchmark-ips
@@ -953,7 +953,7 @@ DEPENDENCIES
   webmock
 
 RUBY VERSION
-   ruby 3.4.7p58
+   ruby 3.2.3p157
 
 BUNDLED WITH
    2.6.7
