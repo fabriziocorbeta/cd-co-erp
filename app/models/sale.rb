@@ -10,6 +10,7 @@ class Sale < ApplicationRecord
   validate :status_cannot_be_changed_directly, on: :update
 
   before_validation :assign_sale_number, on: :create
+  before_destroy :prevent_destroy_unless_draft
 
   attr_accessor :allow_status_change
 
@@ -78,6 +79,13 @@ class Sale < ApplicationRecord
     def status_cannot_be_changed_directly
       if status_changed? && !@allow_status_change
         errors.add(:status, "cannot be changed directly. Use complete! or cancel! instead.")
+      end
+    end
+
+    def prevent_destroy_unless_draft
+      unless draft?
+        errors.add(:base, "Cannot delete a sale that is not in draft status. Cancel it first.")
+        throw :abort
       end
     end
 end

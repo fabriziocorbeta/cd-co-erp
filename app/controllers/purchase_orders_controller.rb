@@ -47,6 +47,8 @@ class PurchaseOrdersController < ApplicationController
   def destroy
     @purchase_order.destroy!
     redirect_to purchase_orders_url, notice: t(".success")
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to @purchase_order, alert: e.record.errors.full_messages.join(", ")
   end
 
   def receive
