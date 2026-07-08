@@ -25,6 +25,13 @@ class Sale < ApplicationRecord
       end
 
       sale_items.each do |item|
+        if item.product.stock < item.quantity
+          errors.add(:base, "Insufficient stock for #{item.product.name}")
+          raise ActiveRecord::RecordInvalid.new(self)
+        end
+      end
+
+      sale_items.each do |item|
         ProductStockMovement.create!(
           product: item.product,
           reason: "salida",
