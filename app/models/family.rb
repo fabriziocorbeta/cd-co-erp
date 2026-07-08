@@ -368,10 +368,12 @@ class Family < ApplicationRecord
     balances_by_currency = products.group(:currency).sum("stock * buy_price")
 
     total_balance = 0
-    rates = ExchangeRate.rates_for(balances_by_currency.keys, to: self.currency)
+
+    upcased_currencies = balances_by_currency.keys.map { |c| c&.upcase }
+    rates = ExchangeRate.rates_for(upcased_currencies, to: self.currency&.upcase)
 
     balances_by_currency.each do |currency, amount|
-      rate = rates[currency] || 1
+      rate = rates[currency&.upcase] || 1
       total_balance += amount * rate
     end
 
