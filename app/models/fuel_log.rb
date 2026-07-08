@@ -33,7 +33,6 @@ class FuelLog < ApplicationRecord
       )
       update_column(:entry_id, entry.id)
 
-      account.family.syncs.visible.destroy_all # hack to avoid Sidekiq latency locally in specs
       entry.sync_account_later
     end
 
