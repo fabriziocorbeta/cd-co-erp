@@ -49,6 +49,8 @@ class SalesController < ApplicationController
   def destroy
     @sale.destroy!
     redirect_to sales_url, notice: t(".success")
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to @sale, alert: e.record.errors.full_messages.join(", ")
   end
 
   def complete
