@@ -19,6 +19,7 @@ class Invitation < ApplicationRecord
 
   before_validation :normalize_email
   before_validation :generate_token, on: :create
+  before_validation :expire_stale_unaccepted_invitation, on: :create
   before_create :set_expiration
 
   scope :pending, -> { where(accepted_at: nil).where("expires_at > ?", Time.current) }
@@ -62,6 +63,24 @@ class Invitation < ApplicationRecord
 
     def normalize_email
       self.email = email.to_s.strip.downcase if email.present?
+    end
+
+    # The unique index on (email, family_id) only excludes accepted invitations
+    # (WHERE accepted_at IS NULL), while the `pending` scope/`pending?` also
+    # excludes expired ones. That gap let an expired-but-unaccepted invitation
+    # pass the `no_duplicate_pending_invitation_in_family` validation and then
+    # crash the insert with a raw PG::UniqueViolation. Clear the stale row
+    # before validating so the two "pending" definitions can't disagree.
+    def expire_stale_unaccepted_invitation
+      return if email.blank? || family_id.blank?
+
+      scope = self.class.where(family_id: family_id, accepted_at: nil)
+
+      if self.class.encryption_ready?
+        scope.where(email: email).delete_all
+      else
+        scope.where("LOWER(email) = ?", email.to_s.strip.downcase).delete_all
+      end
     end
 
     def no_other_pending_invitation

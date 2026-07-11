@@ -30,6 +30,9 @@ class InvitationsController < ApplicationController
     end
 
     redirect_to settings_profile_path
+  rescue ActiveRecord::RecordNotUnique
+    flash[:alert] = t(".failure")
+    redirect_to settings_profile_path
   end
 
   def accept
