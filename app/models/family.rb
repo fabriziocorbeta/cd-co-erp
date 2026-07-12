@@ -359,7 +359,7 @@ class Family < ApplicationRecord
   def sync_inventory_account!
     return unless business_mode_enabled
 
-    account = accounts.find_or_create_by!(name: "Inventario", accountable_type: "OtherAsset") do |acc|
+    account = accounts.find_or_create_by!(name: "Mercadería", accountable_type: "OtherAsset") do |acc|
       acc.accountable = OtherAsset.new
       acc.currency = self.currency
       acc.balance = 0
