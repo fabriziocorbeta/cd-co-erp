@@ -14,12 +14,12 @@ class Admin::FamiliesController < Admin::BaseController
     if new_business_mode && !old_business_mode
       family.sync_inventory_account!
 
-      account = family.accounts.find_by(name: "Inventario", accountable_type: "OtherAsset")
+      account = family.accounts.find_by(name: "Mercadería", accountable_type: "OtherAsset")
       if account&.disabled?
         account.enable!
       end
     elsif !new_business_mode && old_business_mode
-      account = family.accounts.find_by(name: "Inventario", accountable_type: "OtherAsset")
+      account = family.accounts.find_by(name: "Mercadería", accountable_type: "OtherAsset")
       account&.disable!
     end
 
