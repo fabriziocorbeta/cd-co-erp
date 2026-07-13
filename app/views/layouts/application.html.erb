@@ -187,6 +187,23 @@ end %>
         </div>
       <% end %>
 
+      <% if content_for?(:page_title) || content_for?(:page_actions) %>
+        <div class="flex items-center justify-between gap-4 mb-6 min-h-9">
+          <% if content_for?(:page_title) %>
+            <h1 class="text-primary text-xl font-medium">
+              <%= content_for :page_title %>
+            </h1>
+          <% else %>
+            <div></div>
+          <% end %>
+          <% if content_for?(:page_actions) %>
+            <div class="flex items-center gap-2 shrink-0">
+              <%= yield :page_actions %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
       <% if content_for?(:page_header) %>
         <%= yield :page_header %>
       <% end %>
