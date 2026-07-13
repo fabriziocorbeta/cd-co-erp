@@ -377,7 +377,12 @@ class Family < ApplicationRecord
       total_balance += amount * rate
     end
 
-    account.update!(balance: total_balance)
+    # account.balance is a cached/derived value that Account::Syncer recomputes
+    # from the account's valuation anchors - a plain `update!(balance:)` gets
+    # silently overwritten back to 0 the next time the account syncs, since an
+    # OtherAsset account with no anchor has no valuation history to derive from.
+    # set_current_balance creates/updates that anchor so the value sticks.
+    account.set_current_balance(total_balance)
   end
 
   private
