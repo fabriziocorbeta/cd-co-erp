@@ -9,7 +9,7 @@ module Admin
     private
       def require_super_admin!
         unless Current.user&.super_admin?
-          redirect_to root_path, alert: t("admin.unauthorized")
+          redirect_to root_path, alert: t("admin.unauthorized") and return
         end
       end
   end
