@@ -38,7 +38,8 @@ export default class extends Controller {
     });
 
     this.titleTarget.textContent = data.title || "Are you sure?";
-    this.subtitleTarget.innerHTML =
+    // Use textContent (not innerHTML) so a record name/body cannot inject markup.
+    this.subtitleTarget.textContent =
       data.body || "This action cannot be undone.";
   }
 

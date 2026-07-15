@@ -10,6 +10,16 @@ class Rack::Attack
     request.ip if request.path == "/oauth/token"
   end
 
+  # Throttle browser password sign-in (POST /sessions) to prevent brute-force
+  throttle("login/ip", limit: 10, period: 1.minute) do |request|
+    request.ip if request.post? && request.path == "/sessions"
+  end
+
+  # Throttle the mobile/API login endpoint (POST /api/v1/auth/login)
+  throttle("api_login/ip", limit: 10, period: 1.minute) do |request|
+    request.ip if request.post? && request.path == "/api/v1/auth/login"
+  end
+
   # Throttle unauthenticated WebAuthn MFA ceremonies similarly to sign-in
   # endpoints; registration remains behind normal application authentication.
   throttle("mfa/webauthn", limit: 10, period: 1.minute) do |request|
