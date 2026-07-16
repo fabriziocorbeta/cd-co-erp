@@ -13,7 +13,10 @@ end
 
 class RequireBusinessModeTest < ActionDispatch::IntegrationTest
   setup do
-    Rails.application.routes.draw do
+    # `draw` replaces the entire route set, which would wipe sessions_path
+    # (needed by sign_in). `prepend` adds this route without discarding the
+    # app's real routes.
+    Rails.application.routes.prepend do
       get "/dummy_business_mode_test", to: "dummy_business_mode_test#index"
     end
   end

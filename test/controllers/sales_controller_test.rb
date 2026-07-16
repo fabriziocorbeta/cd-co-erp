@@ -55,9 +55,10 @@ class SalesControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to sale_url(Sale.last)
-    assert_equal "New Client", Sale.last.client_name
-    assert_equal 1, Sale.last.sale_items.count
+    sale = Sale.order(:created_at).last
+    assert_redirected_to sale_url(sale)
+    assert_equal "New Client", sale.client_name
+    assert_equal 1, sale.sale_items.count
   end
 
   test "should show sale" do
@@ -158,12 +159,11 @@ class SalesControllerTest < ActionDispatch::IntegrationTest
       status: "draft"
     )
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get sale_url(other_sale)
-    end
+    get sale_url(other_sale)
+    assert_response :not_found
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      patch sale_url(other_sale), params: { sale: { client_name: "Hacked" } }
-    end
+    patch sale_url(other_sale), params: { sale: { client_name: "Hacked" } }
+    assert_response :not_found
+    assert_equal "Other Client", other_sale.reload.client_name
   end
 end

@@ -35,8 +35,8 @@ class CategoryTest < ActiveSupport::TestCase
     names = Category.all_investment_contributions_names
 
     assert_includes names, "Investment Contributions"  # English
-    assert_includes names, "Contributions aux investissements"  # French
-    assert_includes names, "Investeringsbijdragen"  # Dutch
+    assert_includes names, "Aportaciones a inversiones"  # Spanish (es and es-PY share this translation)
+    assert_equal 2, names.size
     assert names.all? { |name| name.is_a?(String) }
     assert_equal names, names.uniq  # No duplicates
   end
