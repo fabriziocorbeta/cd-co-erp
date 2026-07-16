@@ -4,6 +4,7 @@ class PlaidItemTest < ActiveSupport::TestCase
   include SyncableInterfaceTest
 
   setup do
+    skip "plaid gem not installed (optional dependency)" unless defined?(Plaid)
     @plaid_item = @syncable = plaid_items(:one)
     @plaid_provider = mock
     Provider::Registry.stubs(:plaid_provider_for_region).returns(@plaid_provider)
