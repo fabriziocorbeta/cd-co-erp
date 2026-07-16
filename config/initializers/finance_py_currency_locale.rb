@@ -26,12 +26,26 @@ module FinancePyLocaleOverrides
 
   DATA = {
     es: { number: { currency: { format: GUARANI_CURRENCY_FORMAT } } },
-    :"es-PY" => { number: { currency: { format: GUARANI_CURRENCY_FORMAT } } }
+    "es-PY": { number: { currency: { format: GUARANI_CURRENCY_FORMAT } } }
   }.freeze
 
   class Backend
     def available_locales
       DATA.keys
+    end
+
+    # Rails' parallel test runner reloads I18n between workers/tests.
+    # Nothing to reload here — this backend has no external data source.
+    def reload!
+      self
+    end
+
+    def eager_load!
+      self
+    end
+
+    def initialized?
+      true
     end
 
     def translate(locale, key, options = {})
