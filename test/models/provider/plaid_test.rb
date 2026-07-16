@@ -2,6 +2,8 @@ require "test_helper"
 
 class Provider::PlaidTest < ActiveSupport::TestCase
   setup do
+    skip "plaid gem not installed (optional dependency, commented out in Gemfile)" unless defined?(Plaid)
+
     # Do not change, this is whitelisted in the Plaid Dashboard for local dev
     @redirect_url = "http://localhost:3000/accounts"
 
