@@ -161,15 +161,12 @@ es:
     currency:
       format:
         delimiter: "."
-        # NOTE: overridden to Guaraní (₲) for Paraguay by config/locales/es.yml.
-        # This file is a vendored rails-i18n baseline; keeping the two in sync
-        # here avoids depending on I18n.load_path ordering between them.
-        format: "%u %n"
-        precision: 0
+        format: "%n %u"
+        precision: 2
         separator: ","
         significant: false
         strip_insignificant_zeros: false
-        unit: "₲"
+        unit: "€"
     format:
       delimiter: "."
       precision: 3

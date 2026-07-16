@@ -28,16 +28,7 @@ module Sure
     config.i18n.fallbacks = true
     config.i18n.default_locale = :es
     config.i18n.available_locales = [ :es, :"es-PY", :en ]
-
-    # config/locales/defaults/ is a vendored copy of the rails-i18n gem's
-    # locale packs (baseline/fallback translations). It must load FIRST so
-    # FinancePY-specific overrides elsewhere in config/locales/ (e.g. the
-    # Guaraní currency format in es.yml) always win. Dir[] on "**/*.yml"
-    # doesn't sort defaults/ before top-level files, so it's split out
-    # explicitly instead of relying on glob order.
-    config.i18n.load_path += Dir[Rails.root.join("config/locales/defaults/**/*.yml")]
     config.i18n.load_path += Dir[Rails.root.join("config/locales/**/*.yml")]
-      .reject { |path| path.include?("/config/locales/defaults/") }
 
     config.app_mode = (ENV["SELF_HOSTED"] == "true" || ENV["SELF_HOSTING_ENABLED"] == "true" ? "self_hosted" : "managed").inquiry
 
