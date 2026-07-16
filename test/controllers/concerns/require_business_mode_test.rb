@@ -1,35 +1,15 @@
 require "test_helper"
 
-# Throwaway controller defined at file scope (not nested in the test class)
-# so Rails' `"dummy_business_mode_test#index"` route resolves to it directly,
-# matching the standard Rails convention for controller-name -> constant lookup.
-class DummyBusinessModeTestController < ApplicationController
-  include RequireBusinessMode
-
-  def index
-    render plain: "ok"
-  end
-end
-
+# Exercises the concern through a real controller/route (FleetVehiclesController)
+# instead of a synthetic route, since dynamically registering routes in a test
+# (Rails.application.routes.draw/prepend) proved unreliable to make take effect
+# for a single request without also disturbing sessions_path.
 class RequireBusinessModeTest < ActionDispatch::IntegrationTest
-  setup do
-    # `draw` replaces the entire route set, which would wipe sessions_path
-    # (needed by sign_in). `prepend` adds this route without discarding the
-    # app's real routes.
-    Rails.application.routes.prepend do
-      get "/dummy_business_mode_test", to: "dummy_business_mode_test#index"
-    end
-  end
-
-  teardown do
-    Rails.application.reload_routes!
-  end
-
   test "redirects to root when family has business mode disabled" do
     sign_in users(:family_admin)
     users(:family_admin).family.update!(business_mode_enabled: false)
 
-    get "/dummy_business_mode_test"
+    get fleet_vehicles_path
 
     assert_redirected_to root_path
   end
@@ -38,9 +18,8 @@ class RequireBusinessModeTest < ActionDispatch::IntegrationTest
     sign_in users(:family_admin)
     users(:family_admin).family.update!(business_mode_enabled: true)
 
-    get "/dummy_business_mode_test"
+    get fleet_vehicles_path
 
     assert_response :success
-    assert_equal "ok", response.body
   end
 end

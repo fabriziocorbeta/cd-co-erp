@@ -109,7 +109,7 @@ class PurchaseOrdersControllerTest < ActionDispatch::IntegrationTest
     @purchase_order.reload
     assert_equal "received", @purchase_order.status
 
-    movement = ProductStockMovement.last
+    movement = ProductStockMovement.order(:created_at).last
     assert_equal "entrada", movement.reason
     assert_equal 5, movement.quantity_delta
   end
@@ -126,7 +126,7 @@ class PurchaseOrdersControllerTest < ActionDispatch::IntegrationTest
     @purchase_order.reload
     assert_equal "cancelled", @purchase_order.status
 
-    movement = ProductStockMovement.last
+    movement = ProductStockMovement.order(:created_at).last
     assert_equal "salida", movement.reason
     assert_equal -5, movement.quantity_delta
   end
