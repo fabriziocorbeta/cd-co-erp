@@ -11,7 +11,7 @@ class PurchaseOrder < ApplicationRecord
   before_validation :assign_order_number, on: :create
   before_destroy :prevent_destroy_unless_draft
 
-  accepts_nested_attributes_for :purchase_order_items, allow_destroy: true, reject_if: proc { |attributes| attributes['product_id'].blank? }
+  accepts_nested_attributes_for :purchase_order_items, allow_destroy: true, reject_if: proc { |attributes| attributes["product_id"].blank? }
 
   attr_accessor :allow_status_change
 
