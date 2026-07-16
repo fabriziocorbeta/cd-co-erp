@@ -21,9 +21,23 @@ class LocaleTest < ActiveSupport::TestCase
   end
 
   test "currency format uses Guaraní symbol" do
+    # TEMP DIAGNOSTIC — remove after root-causing the override loss.
+    puts "DIAG backend class: #{I18n.backend.class}"
+    if I18n.backend.respond_to?(:backends)
+      I18n.backend.backends.each_with_index do |b, i|
+        puts "DIAG backend[#{i}] class: #{b.class}"
+        begin
+          puts "DIAG backend[#{i}] direct lookup: #{b.translate(:es, "number.currency.format.unit").inspect}"
+        rescue => e
+          puts "DIAG backend[#{i}] raised: #{e.class}: #{e.message}"
+        end
+      end
+    end
+
     I18n.with_locale(:es) do
       # Test that the currency symbol is available
       currency_format = I18n.t("number.currency.format.unit")
+      puts "DIAG I18n.t result: #{currency_format.inspect}"
       assert_equal "₲", currency_format
     end
   end
