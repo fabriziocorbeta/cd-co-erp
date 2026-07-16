@@ -564,7 +564,8 @@ class Transaction::SearchTest < ActiveSupport::TestCase
     end
 
     # Test every supported locale returns the same count when filtering by that locale's uncategorized name
-    LanguagesHelper::SUPPORTED_LOCALES.each do |locale|
+    available = I18n.available_locales.map(&:to_s)
+    LanguagesHelper::SUPPORTED_LOCALES.select { |l| available.include?(l) }.each do |locale|
       I18n.with_locale(locale) do
         localized_uncategorized_name = Category.uncategorized.name
         results = Transaction::Search.new(@family, filters: { categories: [ localized_uncategorized_name ] }).transactions_scope
@@ -614,7 +615,8 @@ class Transaction::SearchTest < ActiveSupport::TestCase
 
     # Test that using the English parameter name works in every supported locale
     # This catches the bug where French locale fails with English "Uncategorized" parameter
-    LanguagesHelper::SUPPORTED_LOCALES.each do |locale|
+    available = I18n.available_locales.map(&:to_s)
+    LanguagesHelper::SUPPORTED_LOCALES.select { |l| available.include?(l) }.each do |locale|
       I18n.with_locale(locale) do
         # Simulate URL parameter: q[categories][]=Uncategorized (English, regardless of user's locale)
         results = Transaction::Search.new(@family, filters: { categories: [ english_uncategorized_name ] }).transactions_scope

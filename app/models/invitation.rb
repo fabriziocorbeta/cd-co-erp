@@ -74,7 +74,7 @@ class Invitation < ApplicationRecord
     def expire_stale_unaccepted_invitation
       return if email.blank? || family_id.blank?
 
-      scope = self.class.where(family_id: family_id, accepted_at: nil)
+      scope = self.class.where(family_id: family_id, accepted_at: nil).where("expires_at <= ?", Time.current)
 
       if self.class.encryption_ready?
         scope.where(email: email).delete_all

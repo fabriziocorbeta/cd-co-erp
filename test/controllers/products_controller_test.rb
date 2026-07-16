@@ -38,9 +38,10 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to product_url(Product.last)
-    assert_equal "New Product", Product.last.name
-    assert_equal 0, Product.last.stock
+    product = Product.order(:created_at).last
+    assert_redirected_to product_url(product)
+    assert_equal "New Product", product.name
+    assert_equal 0, product.stock
   end
 
   test "should create product with initial stock" do
@@ -57,7 +58,7 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    product = Product.last
+    product = Product.order(:created_at).last
     assert_redirected_to product_url(product)
     assert_equal "New Product With Stock", product.name
 
@@ -135,12 +136,11 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
       sell_price: 20
     )
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get product_url(other_product)
-    end
+    get product_url(other_product)
+    assert_response :not_found
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      patch product_url(other_product), params: { product: { name: "Hacked" } }
-    end
+    patch product_url(other_product), params: { product: { name: "Hacked" } }
+    assert_response :not_found
+    assert_equal "Other Product", other_product.reload.name
   end
 end

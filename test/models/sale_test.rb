@@ -7,7 +7,7 @@ class SaleTest < ActiveSupport::TestCase
   end
 
   test "sale_number auto-increments per family" do
-    family2 = Family.create!(name: "Another Family", default_account_sharing: "shared", setup_completed_at: Time.current)
+    family2 = Family.create!(name: "Another Family", default_account_sharing: "shared")
 
     sale1 = Sale.create!(family: @family)
     assert_equal 1, sale1.sale_number

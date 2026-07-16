@@ -50,9 +50,10 @@ class PurchaseOrdersControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to purchase_order_url(PurchaseOrder.last)
-    assert_equal "New Supplier", PurchaseOrder.last.supplier_name
-    assert_equal 1, PurchaseOrder.last.purchase_order_items.count
+    purchase_order = PurchaseOrder.order(:created_at).last
+    assert_redirected_to purchase_order_url(purchase_order)
+    assert_equal "New Supplier", purchase_order.supplier_name
+    assert_equal 1, purchase_order.purchase_order_items.count
   end
 
   test "should show purchase order" do
@@ -153,12 +154,11 @@ class PurchaseOrdersControllerTest < ActionDispatch::IntegrationTest
       status: "draft"
     )
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get purchase_order_url(other_purchase_order)
-    end
+    get purchase_order_url(other_purchase_order)
+    assert_response :not_found
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      patch purchase_order_url(other_purchase_order), params: { purchase_order: { supplier_name: "Hacked" } }
-    end
+    patch purchase_order_url(other_purchase_order), params: { purchase_order: { supplier_name: "Hacked" } }
+    assert_response :not_found
+    assert_equal "Other Supplier", other_purchase_order.reload.supplier_name
   end
 end

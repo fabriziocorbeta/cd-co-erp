@@ -26,6 +26,8 @@ class FamilyResetJobTest < ActiveJob::TestCase
   end
 
   test "resets family data even when Plaid credentials are invalid" do
+    skip "plaid gem not installed (optional dependency)" unless defined?(Plaid)
+
     # Use existing plaid item from fixtures
     plaid_item = plaid_items(:one)
     assert_equal @family, plaid_item.family
