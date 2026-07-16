@@ -16,7 +16,7 @@ class Product < ApplicationRecord
 
   private
 
-  def sync_family_inventory
-    family.sync_inventory_account!
-  end
+    def sync_family_inventory
+      family.sync_inventory_account!
+    end
 end

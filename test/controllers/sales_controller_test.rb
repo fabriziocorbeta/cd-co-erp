@@ -52,7 +52,7 @@ class SalesControllerTest < ActionDispatch::IntegrationTest
             }
           }
         }
-      end
+      }
     end
 
     assert_redirected_to sale_url(Sale.last)
