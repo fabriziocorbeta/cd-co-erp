@@ -36,7 +36,7 @@ class SaleTest < ActiveSupport::TestCase
     end
 
     assert_equal "completed", sale.reload.status
-    movement = ProductStockMovement.last
+    movement = ProductStockMovement.order(:created_at).last
     assert_equal "salida", movement.reason
     assert_equal -2, movement.quantity_delta
     assert_equal @product.id, movement.product_id
@@ -52,7 +52,7 @@ class SaleTest < ActiveSupport::TestCase
     end
 
     assert_equal "cancelled", sale.reload.status
-    movement = ProductStockMovement.last
+    movement = ProductStockMovement.order(:created_at).last
     assert_equal "entrada", movement.reason
     assert_equal 2, movement.quantity_delta
   end

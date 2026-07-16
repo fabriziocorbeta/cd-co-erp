@@ -114,7 +114,7 @@ class SalesControllerTest < ActionDispatch::IntegrationTest
     @sale.reload
     assert_equal "completed", @sale.status
 
-    movement = ProductStockMovement.last
+    movement = ProductStockMovement.order(:created_at).last
     assert_equal "salida", movement.reason
     assert_equal -5, movement.quantity_delta
   end
@@ -131,7 +131,7 @@ class SalesControllerTest < ActionDispatch::IntegrationTest
     @sale.reload
     assert_equal "cancelled", @sale.status
 
-    movement = ProductStockMovement.last
+    movement = ProductStockMovement.order(:created_at).last
     assert_equal "entrada", movement.reason
     assert_equal 5, movement.quantity_delta
   end
