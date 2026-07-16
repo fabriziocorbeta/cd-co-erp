@@ -195,6 +195,48 @@
         22
       ],
       "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 105,
+      "fingerprint": "85ecd6506b4291278b61e41396e5c8ba662262e1ef410ce7ad4f044b323bf80b",
+      "check_name": "PermitAttributes",
+      "message": "Potentially dangerous key allowed for mass assignment",
+      "file": "app/controllers/fuel_logs_controller.rb",
+      "line": 33,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.require(:fuel_log).permit(:liters, :cost, :odometer, :account_id, :logged_at, :notes)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "FuelLogsController",
+        "method": "fuel_log_params"
+      },
+      "user_input": ":account_id",
+      "confidence": "High",
+      "cwe_id": [
+        915
+      ],
+      "note": "False positive: account_id is validated by FuelLog#account_belongs_to_family, which rejects accounts outside the vehicle family"
+    },
+    {
+      "warning_type": "Unmaintained Dependency",
+      "warning_code": 122,
+      "fingerprint": "98b26f60d776fd41ee6f088c833725145be9aac2d7c5b33780241c273622db42",
+      "check_name": "EOLRails",
+      "message": "Support for Rails 7.2.3.1 ends on 2026-08-09",
+      "file": "Gemfile.lock",
+      "line": 561,
+      "link": "https://brakemanscanner.org/docs/warning_types/unmaintained_dependency/",
+      "code": null,
+      "render_path": null,
+      "location": null,
+      "user_input": null,
+      "confidence": "Medium",
+      "cwe_id": [
+        1104
+      ],
+      "note": "Rails 7.2 EOL 2026-08-09 - version upgrade tracked separately"
     }
   ],
   "brakeman_version": "7.1.0"
