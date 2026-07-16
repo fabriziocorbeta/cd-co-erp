@@ -3,6 +3,8 @@ require "securerandom"
 
 class PolishPluralizationTest < ActiveSupport::TestCase
   test "uses rails i18n plural rules for polish" do
+    skip "locale pl not shipped (available_locales trimmed)" unless I18n.available_locales.map(&:to_s).include?("pl")
+
     translation_key = "test_pluralization_#{SecureRandom.hex(6)}"
 
     I18n.backend.store_translations(:pl, translation_key => {

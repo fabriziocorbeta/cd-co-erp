@@ -37,8 +37,9 @@ class GoalsControllerTest < ActionDispatch::IntegrationTest
     other_goal.goal_accounts.build(account: other_account)
     other_goal.save!
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get goal_url(other_goal)
-    end
+    get goal_url(other_goal)
+
+    assert_redirected_to goals_path
+    assert_equal I18n.t("goals.errors.not_found"), flash[:alert]
   end
 end

@@ -15,6 +15,8 @@ es:
         token_compromised: El token de configuración puede estar comprometido, caducado o ya utilizado. Por favor, crea uno nuevo.
         create_failed: "No se pudo conectar: %{message}"
         unexpected: Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.
+    dismiss_replacement_suggestion:
+      dismissed: Sugerencia de reemplazo descartada
     destroy:
       success: La conexión SimpleFIN será eliminada.
     update:
@@ -41,6 +43,20 @@ es:
         transaction_count:
           one: "%{count} transacción"
           other: "%{count} transacciones"
+      account_card:
+        balance: Saldo
+      activity:
+        today: hoy
+        yesterday: ayer
+        empty: Aún no se han importado transacciones
+        dormant: Sin actividad en %{days} días
+        likely_closed: Sin actividad reciente y saldo cero — puede ser una tarjeta cerrada o reemplazada
+        days_ago:
+          one: "hace 1 día"
+          other: "hace %{count} días"
+        recent:
+          one: "1 transacción • última %{when}"
+          other: "%{count} transacciones • última %{when}"
     complete_account_setup:
       all_skipped: "Se han omitido todas las cuentas. No se ha creado ninguna."
       no_accounts: "No hay cuentas para configurar."
@@ -97,6 +113,14 @@ es:
       errors:
         only_manual: Solo se pueden vincular cuentas manuales
         invalid_simplefin_account: Se ha seleccionado una cuenta de SimpleFIN no válida
+        different_provider: Esta cuenta está vinculada a un proveedor diferente. Desvincúlala de ese proveedor primero y luego vincúlala a SimpleFIN.
+    replacement_prompt:
+      title: "Es posible que tu tarjeta de %{institution} haya sido reemplazada"
+      description: "\"%{account_name}\" está vinculada a \"%{old_name}\", que no ha tenido actividad reciente y tiene saldo cero. Una nueva tarjeta, \"%{new_name}\", está ahora activa en la misma institución. Vincula de nuevo para mantener tu historial intacto."
+      relink: Vincular de nuevo a la nueva tarjeta
+      dismiss_aria: Descartar sugerencia de reemplazo
+      confirm_title: "¿Vincular de nuevo a la nueva tarjeta?"
+      confirm_body: "\"%{account_name}\" se vinculará a \"%{new_name}\". Tu historial de transacciones se conserva; las transacciones futuras vendrán de la nueva tarjeta."
     reconciled_status:
       message:
         one: "%{count} transacción pendiente duplicada conciliada"

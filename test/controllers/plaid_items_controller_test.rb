@@ -3,7 +3,13 @@ require "ostruct"
 
 class PlaidItemsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    @plaid_enabled_was = ENV["PLAID_ENABLED"]
+    ENV["PLAID_ENABLED"] = "true"
     sign_in @user = users(:family_admin)
+  end
+
+  teardown do
+    ENV["PLAID_ENABLED"] = @plaid_enabled_was
   end
 
   test "create" do

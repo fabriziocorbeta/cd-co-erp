@@ -8,6 +8,11 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Tests (inherited from upstream Sure) assert English strings, and fixture
+  # families keep the schema default locale "en", so requests render English.
+  # Production stays :es (config/application.rb).
+  config.i18n.default_locale = :en
+
   # While tests run files are not watched, reloading is not necessary.
   config.enable_reloading = false
 
