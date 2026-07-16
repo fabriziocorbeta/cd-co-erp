@@ -28,11 +28,11 @@ module StatementParser
 
     private
 
-    def parse_date(value)
-      return nil if value.nil?
-      value.is_a?(Date) ? value : Date.parse(value.to_s)
-    rescue ArgumentError, TypeError
-      nil
-    end
+      def parse_date(value)
+        return nil if value.nil?
+        value.is_a?(Date) ? value : Date.parse(value.to_s)
+      rescue ArgumentError, TypeError
+        nil
+      end
   end
 end

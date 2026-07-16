@@ -12,6 +12,6 @@ class CreatePurchaseOrders < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    add_index :purchase_orders, [:family_id, :order_number], unique: true
+    add_index :purchase_orders, [ :family_id, :order_number ], unique: true
   end
 end

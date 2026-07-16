@@ -15,6 +15,6 @@ class CreateProducts < ActiveRecord::Migration[7.2]
 
       t.timestamps
     end
-    add_index :products, [:family_id, :sku], unique: true, where: "sku IS NOT NULL"
+    add_index :products, [ :family_id, :sku ], unique: true, where: "sku IS NOT NULL"
   end
 end

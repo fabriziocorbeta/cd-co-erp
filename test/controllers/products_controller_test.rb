@@ -72,7 +72,7 @@ class ProductsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not create product with negative initial stock" do
-    assert_no_difference(["Product.count", "ProductStockMovement.count"]) do
+    assert_no_difference([ "Product.count", "ProductStockMovement.count" ]) do
       post products_url, params: {
         product: {
           name: "Invalid Stock Product",

@@ -1,7 +1,7 @@
 class Sale < ApplicationRecord
   belongs_to :family
   has_many :sale_items, dependent: :destroy
-  accepts_nested_attributes_for :sale_items, allow_destroy: true, reject_if: proc { |attributes| attributes['product_id'].blank? }
+  accepts_nested_attributes_for :sale_items, allow_destroy: true, reject_if: proc { |attributes| attributes["product_id"].blank? }
 
   enum :status, { draft: "draft", completed: "completed", cancelled: "cancelled" }, default: "draft"
   enum :currency, { pyg: "pyg", usd: "usd" }, default: "pyg"

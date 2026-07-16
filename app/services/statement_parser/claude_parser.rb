@@ -28,7 +28,7 @@ module StatementParser
         model:      MODEL,
         max_tokens: 8192,
         system:     SYSTEM_PROMPT,
-        messages:   [{ role: "user", content: user_prompt }]
+        messages:   [ { role: "user", content: user_prompt } ]
       )
       raw_json = response.content.first.text
       transactions = JSON.parse(raw_json)
@@ -42,10 +42,10 @@ module StatementParser
 
     private
 
-    def user_prompt
-      parts = @bank_name.present? ? ["Bank: #{@bank_name}"] : []
-      parts << "Statement:\n\n#{@text}"
-      parts.join("\n")
-    end
+      def user_prompt
+        parts = @bank_name.present? ? [ "Bank: #{@bank_name}" ] : []
+        parts << "Statement:\n\n#{@text}"
+        parts.join("\n")
+      end
   end
 end

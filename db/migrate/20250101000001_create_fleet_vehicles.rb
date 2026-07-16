@@ -11,6 +11,6 @@ class CreateFleetVehicles < ActiveRecord::Migration[7.2]
 
       t.timestamps
     end
-    add_index :fleet_vehicles, [:family_id, :plate], unique: true
+    add_index :fleet_vehicles, [ :family_id, :plate ], unique: true
   end
 end
