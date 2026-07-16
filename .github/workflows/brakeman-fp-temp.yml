@@ -1,0 +1,30 @@
+name: brakeman-fingerprints-temp
+on:
+  push:
+    branches: [claude/brakeman-ignore]
+jobs:
+  fingerprints:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Run brakeman and print warning fingerprints
+        run: |
+          bin/brakeman -f json -o /tmp/brakeman.json --no-pager || true
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/brakeman.json'))
+          for w in d.get('warnings', []):
+              print('FPLINE|%s|%s|%s|%s' % (w['fingerprint'], w['file'], w['check_name'], w.get('line')))
+          print('RAWJSON-START')
+          print(json.dumps(d.get('warnings', []), indent=1))
+          print('RAWJSON-END')
+          PY
