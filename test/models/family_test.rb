@@ -47,52 +47,52 @@ class FamilyTest < ActiveSupport::TestCase
 
   test "investment_contributions_category uses family locale consistently" do
     family = families(:dylan_family)
-    family.update!(locale: "fr")
-    family.categories.where(name: [ "Investment Contributions", "Contributions aux investissements" ]).destroy_all
+    family.update!(locale: "es")
+    family.categories.where(name: [ "Investment Contributions", "Aportaciones a inversiones" ]).destroy_all
 
     # Simulate different request locales (e.g., from Accept-Language header)
-    # The category should always be created with the family's locale (French)
+    # The category should always be created with the family's locale (Spanish)
     category_from_english_request = I18n.with_locale(:en) do
       family.investment_contributions_category
     end
 
-    assert_equal "Contributions aux investissements", category_from_english_request.name
+    assert_equal "Aportaciones a inversiones", category_from_english_request.name
 
     # Second request with different locale should find the same category
     assert_no_difference "Category.count" do
-      category_from_dutch_request = I18n.with_locale(:nl) do
+      category_from_second_request = I18n.with_locale(:en) do
         family.investment_contributions_category
       end
 
-      assert_equal category_from_english_request.id, category_from_dutch_request.id
-      assert_equal "Contributions aux investissements", category_from_dutch_request.name
+      assert_equal category_from_english_request.id, category_from_second_request.id
+      assert_equal "Aportaciones a inversiones", category_from_second_request.name
     end
   end
 
   test "investment_contributions_category prevents duplicate categories across locales" do
     family = families(:dylan_family)
     family.update!(locale: "en")
-    family.categories.where(name: [ "Investment Contributions", "Contributions aux investissements" ]).destroy_all
+    family.categories.where(name: [ "Investment Contributions", "Aportaciones a inversiones" ]).destroy_all
 
     # Create category under English family locale
     english_category = family.investment_contributions_category
     assert_equal "Investment Contributions", english_category.name
 
-    # Simulate a request with French locale (e.g., from browser Accept-Language)
-    # Should still return the English category, not create a French one
+    # Simulate a request with Spanish locale (e.g., from browser Accept-Language)
+    # Should still return the English category, not create a Spanish one
     assert_no_difference "Category.count" do
-      I18n.with_locale(:fr) do
-        french_request_category = family.investment_contributions_category
-        assert_equal english_category.id, french_request_category.id
-        assert_equal "Investment Contributions", french_request_category.name
+      I18n.with_locale(:es) do
+        spanish_request_category = family.investment_contributions_category
+        assert_equal english_category.id, spanish_request_category.id
+        assert_equal "Investment Contributions", spanish_request_category.name
       end
     end
   end
 
   test "investment_contributions_category reuses legacy category with wrong locale" do
     family = families(:dylan_family)
-    family.update!(locale: "fr")
-    family.categories.where(name: [ "Investment Contributions", "Contributions aux investissements" ]).destroy_all
+    family.update!(locale: "es")
+    family.categories.where(name: [ "Investment Contributions", "Aportaciones a inversiones" ]).destroy_all
 
     # Simulate legacy: category was created with English name (old bug behavior)
     legacy_category = family.categories.create!(
@@ -101,18 +101,18 @@ class FamilyTest < ActiveSupport::TestCase
       lucide_icon: "trending-up"
     )
 
-    # Should find and reuse the legacy category, updating its name to French
+    # Should find and reuse the legacy category, updating its name to Spanish
     assert_no_difference "Category.count" do
       result = family.investment_contributions_category
       assert_equal legacy_category.id, result.id
-      assert_equal "Contributions aux investissements", result.name
+      assert_equal "Aportaciones a inversiones", result.name
     end
   end
 
   test "investment_contributions_category merges multiple locale variants" do
     family = families(:dylan_family)
     family.update!(locale: "en")
-    family.categories.where(name: [ "Investment Contributions", "Contributions aux investissements" ]).destroy_all
+    family.categories.where(name: [ "Investment Contributions", "Aportaciones a inversiones" ]).destroy_all
 
     # Simulate legacy: multiple categories created under different locales
     english_category = family.categories.create!(
@@ -121,8 +121,8 @@ class FamilyTest < ActiveSupport::TestCase
       lucide_icon: "trending-up"
     )
 
-    french_category = family.categories.create!(
-      name: "Contributions aux investissements",
+    spanish_category = family.categories.create!(
+      name: "Aportaciones a inversiones",
       color: "#0d9488",
       lucide_icon: "trending-up"
     )
@@ -139,7 +139,7 @@ class FamilyTest < ActiveSupport::TestCase
       name: "Test 1"
     )
 
-    txn2 = Transaction.create!(category: french_category)
+    txn2 = Transaction.create!(category: spanish_category)
     Entry.create!(
       account: account,
       entryable: txn2,
@@ -159,8 +159,8 @@ class FamilyTest < ActiveSupport::TestCase
       assert_equal english_category.id, txn1.reload.category_id
       assert_equal english_category.id, txn2.reload.category_id
 
-      # French category should be deleted
-      assert_nil Category.find_by(id: french_category.id)
+      # Spanish category should be deleted
+      assert_nil Category.find_by(id: spanish_category.id)
     end
   end
 
