@@ -24,6 +24,9 @@ jobs:
           test-vectors: 'false'
           exclude-paths: |
             .env.example
+            .env.production.example
+            .github/workflows/ci.yml
+            .github/workflows/llm-evals.yml
             compose.example.yml
             compose.example.ai.yml
             config/locales/views/reports/
