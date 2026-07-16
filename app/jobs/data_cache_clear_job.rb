@@ -3,8 +3,11 @@ class DataCacheClearJob < ApplicationJob
 
   def perform(family)
     ActiveRecord::Base.transaction do
-      ExchangeRate.delete_all
-      Security::Price.delete_all
+      # ExchangeRate and Security::Price are shared reference data across all
+      # families on the instance, not family-scoped — deleting them here (as
+      # this job previously did, unconditionally) would wipe every other
+      # family's cached rates/prices as a side effect of one family clearing
+      # its own cache. Only clear what actually belongs to this family.
       family.accounts.each do |account|
         account.balances.delete_all
         account.holdings.delete_all
