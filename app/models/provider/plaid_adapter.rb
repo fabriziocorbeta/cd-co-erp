@@ -132,6 +132,13 @@ class Provider::PlaidAdapter < Provider::Base
 
   # Reload Plaid US configuration when settings are updated
   def self.reload_configuration
+    # The plaid gem is optional (commented out in the Gemfile); without it
+    # there is no Plaid::Configuration to build, regardless of credentials.
+    unless defined?(Plaid)
+      Rails.application.config.plaid = nil
+      return
+    end
+
     client_id = config_value(:client_id).presence || ENV["PLAID_CLIENT_ID"]
     secret = config_value(:secret).presence || ENV["PLAID_SECRET"]
     environment = config_value(:environment).presence || ENV["PLAID_ENV"] || "sandbox"
