@@ -2,6 +2,7 @@ require "test_helper"
 
 class SnaptradeItemTest < ActiveSupport::TestCase
   setup do
+    skip "snaptrade gem not installed (optional dependency)" unless defined?(SnapTrade)
     @family = families(:dylan_family)
   end
 

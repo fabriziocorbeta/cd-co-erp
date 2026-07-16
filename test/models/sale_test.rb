@@ -3,19 +3,7 @@ require "test_helper"
 class SaleTest < ActiveSupport::TestCase
   setup do
     @family = families(:dylan_family)
-    @product = products(:one) if defined?(products)
-
-    # Manually create a product if fixtures aren't available for some reason
-    unless defined?(products) && @product
-      @product = Product.create!(
-        family: @family,
-        name: "Test Product",
-        buy_price: 10,
-        sell_price: 20,
-        stock: 50,
-        min_stock: 5
-      )
-    end
+    @product = products(:dylan_product_1)
   end
 
   test "sale_number auto-increments per family" do

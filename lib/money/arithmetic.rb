@@ -42,6 +42,10 @@ module Money::Arithmetic
     self.class.new(amount.abs, currency)
   end
 
+  def round(ndigits = 0)
+    self.class.new(amount.round(ndigits), currency)
+  end
+
   def zero?
     amount.zero?
   end
