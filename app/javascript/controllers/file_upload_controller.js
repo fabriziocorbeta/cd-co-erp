@@ -4,24 +4,30 @@ export default class extends Controller {
   static targets = ["input", "fileName", "uploadArea", "uploadText"]
 
   connect() {
+    // Bind once and keep the reference — a fresh .bind(this) call in
+    // disconnect() would produce a different function object, so
+    // removeEventListener would never actually match and remove this listener.
+    this.boundFileSelected = this.fileSelected.bind(this)
+    this.boundFormSubmitting = this.formSubmitting.bind(this)
+
     if (this.hasInputTarget) {
-      this.inputTarget.addEventListener("change", this.fileSelected.bind(this))
+      this.inputTarget.addEventListener("change", this.boundFileSelected)
     }
-    
+
     // Find the form element
     this.form = this.element.closest("form")
     if (this.form) {
-      this.form.addEventListener("turbo:submit-start", this.formSubmitting.bind(this))
+      this.form.addEventListener("turbo:submit-start", this.boundFormSubmitting)
     }
   }
 
   disconnect() {
     if (this.hasInputTarget) {
-      this.inputTarget.removeEventListener("change", this.fileSelected.bind(this))
+      this.inputTarget.removeEventListener("change", this.boundFileSelected)
     }
-    
+
     if (this.form) {
-      this.form.removeEventListener("turbo:submit-start", this.formSubmitting.bind(this))
+      this.form.removeEventListener("turbo:submit-start", this.boundFormSubmitting)
     }
   }
 
