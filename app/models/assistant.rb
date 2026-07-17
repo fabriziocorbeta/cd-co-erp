@@ -27,6 +27,9 @@ module Assistant
         Function::GetHoldings,
         Function::GetBalanceSheet,
         Function::GetIncomeStatement,
+        Function::GetBudgets,
+        Function::GetLoans,
+        Function::GetGoals,
         Function::ImportBankStatement,
         Function::SearchFamilyFiles
       ]
