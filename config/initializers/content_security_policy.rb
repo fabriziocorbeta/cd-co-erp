@@ -13,6 +13,11 @@ Rails.application.configure do
     policy.script_src  :self, :https, "https://us.i.posthog.com"
     policy.style_src   :self, :https
     policy.connect_src :self, :https, "https://us.i.posthog.com"
+
+    # Report violations so there's evidence to check before enforcing —
+    # without this, report-only mode silently discards every violation and
+    # "confirm the reports are clean" has nothing to confirm against.
+    policy.report_uri "/csp_reports"
   end
 
   # Generate session nonces for permitted importmap, inline scripts, and inline styles.

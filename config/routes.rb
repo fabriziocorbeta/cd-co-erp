@@ -156,6 +156,8 @@ Rails.application.routes.draw do
 
   resource :current_session, only: %i[update]
 
+  post "csp_reports", to: "csp_reports#create"
+
   resource :registration, only: %i[new create]
   resources :sessions, only: %i[index new create destroy]
   get "/auth/mobile/:provider", to: "sessions#mobile_sso_start"
