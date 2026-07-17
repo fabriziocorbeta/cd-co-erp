@@ -14,6 +14,9 @@ x-rails-env: &rails_env
   PRODUCT_NAME: ${PRODUCT_NAME:-FinancePY}
   BRAND_NAME: ${BRAND_NAME:-CD & Co.}
   REDIS_URL: redis://redis:6379/1
+  ONBOARDING_STATE: ${ONBOARDING_STATE:-open}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://finance.cd-co.com.py}
+  CSP_REPORT_ONLY: ${CSP_REPORT_ONLY:-true}
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   # AI Assistant vía NVIDIA API Catalog (endpoint OpenAI-compatible, modelos open-weight)
   OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN:-}
