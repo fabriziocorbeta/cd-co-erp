@@ -12,6 +12,17 @@ class FamilyResetJob < ApplicationJob
       family.plaid_items.destroy_all
       family.imports.destroy_all
       family.budgets.destroy_all
+      family.goals.destroy_all
+      family.rules.destroy_all
+      family.recurring_transactions.destroy_all
+
+      # ERP data (FinancePY-specific). Sales/purchase orders first: Product
+      # restricts destroy while sale_items/purchase_order_items still
+      # reference it.
+      family.sales.destroy_all
+      family.purchase_orders.destroy_all
+      family.fleet_vehicles.destroy_all
+      family.products.destroy_all
     end
 
     if load_sample_data_for_email.present?
