@@ -1,0 +1,61 @@
+<% content_for :title do %>
+  <%= t(".document_title") %> #<%= @sale.sale_number %>
+<% end %>
+
+<div class="tufte-report">
+  <header class="tufte-header">
+    <h1 class="tufte-title"><%= t(".title") %></h1>
+    <span class="tufte-period">#<%= @sale.sale_number %></span>
+    <p class="tufte-meta"><%= Current.family.name %> · <%= t(".generated_on", date: Time.current.strftime("%d/%m/%Y")) %></p>
+  </header>
+
+  <section class="tufte-section">
+    <div class="tufte-metric-row">
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".date") %></span>
+        <p class="tufte-meta"><%= @sale.created_at.strftime("%d/%m/%Y") %></p>
+      </div>
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".client") %></span>
+        <p class="tufte-meta"><%= @sale.client_name.presence || "-" %></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tufte-section">
+    <table class="tufte-table">
+      <thead>
+        <tr>
+          <th><%= t(".product") %></th>
+          <th class="tufte-right"><%= t(".quantity") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @sale.sale_items.each do |item| %>
+          <tr>
+            <td><%= item.product.name %></td>
+            <td class="tufte-right"><%= item.quantity %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="tufte-section tufte-keep-together">
+    <div class="tufte-two-col">
+      <div>
+        <p class="tufte-metric-card-label"><%= t(".received_by") %></p>
+        <p class="tufte-meta">_______________________________</p>
+      </div>
+      <div>
+        <p class="tufte-metric-card-label"><%= t(".signature") %></p>
+        <p class="tufte-meta">_______________________________</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tufte-section">
+    <p class="tufte-metric-card-label"><%= t(".delivery_date") %></p>
+    <p class="tufte-meta">_______________________________</p>
+  </section>
+</div>

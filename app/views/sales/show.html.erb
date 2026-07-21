@@ -1,5 +1,21 @@
 <%= content_for :page_title, "#{t('.title')} ##{@sale.sale_number}" %>
 <%= content_for :page_actions do %>
+  <%= render DS::Link.new(
+    text: t(".print"),
+    variant: "outline",
+    icon: "download",
+    href: print_sale_path(@sale),
+    target: "_blank"
+  ) %>
+
+  <%= render DS::Link.new(
+    text: t(".delivery_note"),
+    variant: "outline",
+    icon: "truck",
+    href: delivery_note_sale_path(@sale),
+    target: "_blank"
+  ) %>
+
   <%= render DS::Menu.new do |menu| %>
     <% menu.with_item(
       variant: "button",

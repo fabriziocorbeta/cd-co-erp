@@ -1,13 +1,21 @@
 class SalesController < ApplicationController
   include RequireBusinessMode
 
-  before_action :set_sale, only: %i[show edit update destroy complete cancel]
+  before_action :set_sale, only: %i[show edit update destroy complete cancel print delivery_note]
 
   def index
     @sales = Current.family.sales.includes(:sale_items).order(created_at: :desc)
   end
 
   def show
+  end
+
+  def print
+    render layout: "print"
+  end
+
+  def delivery_note
+    render layout: "print"
   end
 
   def new

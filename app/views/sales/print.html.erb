@@ -1,0 +1,72 @@
+<% content_for :title do %>
+  <%= t(".document_title") %> #<%= @sale.sale_number %>
+<% end %>
+
+<div class="tufte-report">
+  <header class="tufte-header">
+    <h1 class="tufte-title"><%= t(".title") %></h1>
+    <span class="tufte-period">#<%= @sale.sale_number %></span>
+    <p class="tufte-meta"><%= Current.family.name %> · <%= t(".generated_on", date: Time.current.strftime("%d/%m/%Y")) %></p>
+  </header>
+
+  <section class="tufte-section">
+    <div class="tufte-metric-row">
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".date") %></span>
+        <p class="tufte-meta"><%= @sale.created_at.strftime("%d/%m/%Y") %></p>
+      </div>
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".client") %></span>
+        <p class="tufte-meta"><%= @sale.client_name.presence || "-" %></p>
+      </div>
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".payment_method") %></span>
+        <p class="tufte-meta"><%= @sale.payment_method.presence || "-" %></p>
+      </div>
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".invoice_number") %></span>
+        <p class="tufte-meta"><%= @sale.invoice_number.presence || "-" %></p>
+      </div>
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".condition") %></span>
+        <p class="tufte-meta"><%= @sale.condition.presence || "-" %></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tufte-section">
+    <table class="tufte-table">
+      <thead>
+        <tr>
+          <th><%= t(".product") %></th>
+          <th class="tufte-right"><%= t(".quantity") %></th>
+          <th class="tufte-right"><%= t(".unit_price") %></th>
+          <th class="tufte-right"><%= t(".subtotal") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @sale.sale_items.each do |item| %>
+          <tr>
+            <td><%= item.product.name %></td>
+            <td class="tufte-right"><%= item.quantity %></td>
+            <td class="tufte-right"><%= number_to_currency(item.unit_price, unit: "", separator: ",", delimiter: ".") %></td>
+            <td class="tufte-right"><%= number_to_currency(item.subtotal, unit: "", separator: ",", delimiter: ".") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="tufte-right"><strong><%= t(".total") %></strong></td>
+          <td class="tufte-right"><strong><%= number_to_currency(@sale.total, unit: "", separator: ",", delimiter: ".") %> <%= @sale.currency.upcase %></strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <% if @sale.notes.present? %>
+    <section class="tufte-section">
+      <h2 class="tufte-section-title"><%= t(".notes") %></h2>
+      <p class="tufte-meta"><%= @sale.notes %></p>
+    </section>
+  <% end %>
+</div>
