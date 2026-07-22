@@ -23,7 +23,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           <% @fleet_vehicles.each do |vehicle| %>
-            <tr class="hover:bg-gray-50/50 cursor-pointer" onclick="window.location='<%= fleet_vehicle_path(vehicle) %>'">
+            <tr class="hover:bg-gray-50/50 cursor-pointer" data-controller="row-click" data-row-click-url-value="<%= fleet_vehicle_path(vehicle) %>" data-action="click->row-click#visit">
               <td class="px-4 py-3 text-sm text-primary font-medium">
                 <%= vehicle.plate %>
               </td>

@@ -23,7 +23,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           <% @sales.each do |sale| %>
-            <tr class="hover:bg-gray-50/50 cursor-pointer" onclick="window.location='<%= sale_path(sale) %>'">
+            <tr class="hover:bg-gray-50/50 cursor-pointer" data-controller="row-click" data-row-click-url-value="<%= sale_path(sale) %>" data-action="click->row-click#visit">
               <td class="px-4 py-3 text-sm text-primary font-medium">
                 #<%= sale.sale_number %>
               </td>
