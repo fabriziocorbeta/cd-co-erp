@@ -23,6 +23,10 @@
         <span class="tufte-metric-card-label"><%= t(".client") %></span>
         <p class="tufte-meta"><%= @sale.client_name.presence || "-" %></p>
       </div>
+      <div>
+        <span class="tufte-metric-card-label"><%= t(".carrier") %></span>
+        <p class="tufte-meta"><%= @sale.carrier.presence || "-" %></p>
+      </div>
     </div>
     <div class="tufte-metric-row">
       <div>

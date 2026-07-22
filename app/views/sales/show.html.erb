@@ -105,7 +105,11 @@
         <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.form.delivery_date") %></h4>
         <p class="text-primary mt-1"><%= @sale.delivery_date&.strftime("%d/%m/%Y") || "-" %></p>
       </div>
-      <div class="col-span-2 md:col-span-3">
+      <div>
+        <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.form.carrier") %></h4>
+        <p class="text-primary mt-1"><%= @sale.carrier.presence || "-" %></p>
+      </div>
+      <div class="col-span-2 md:col-span-2">
         <h4 class="text-xs font-medium text-secondary uppercase"><%= t("sales.form.delivery_address") %></h4>
         <p class="text-primary mt-1"><%= @sale.delivery_address.presence || "-" %></p>
       </div>

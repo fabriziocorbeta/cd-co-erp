@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_22_030000) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_22_040000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -1386,6 +1386,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_22_030000) do
     t.datetime "updated_at", null: false
     t.text "delivery_address"
     t.date "delivery_date"
+    t.string "carrier"
     t.index ["family_id", "sale_number"], name: "index_sales_on_family_id_and_sale_number", unique: true
     t.index ["family_id"], name: "index_sales_on_family_id"
   end

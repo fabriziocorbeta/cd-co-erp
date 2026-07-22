@@ -21,7 +21,10 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <%= f.text_area :delivery_address, label: t(".delivery_address"), rows: 2 %>
-      <%= f.date_field :delivery_date, label: t(".delivery_date") %>
+      <div class="grid grid-cols-1 gap-4">
+        <%= f.date_field :delivery_date, label: t(".delivery_date") %>
+        <%= f.text_field :carrier, label: t(".carrier") %>
+      </div>
     </div>
   </div>
 
