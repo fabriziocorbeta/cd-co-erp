@@ -6,7 +6,7 @@
   <header class="tufte-header">
     <h1 class="tufte-title"><%= t(".title") %></h1>
     <span class="tufte-period">#<%= @sale.sale_number %></span>
-    <p class="tufte-meta"><%= Current.family.name %> · <%= t(".generated_on", date: Time.current.strftime("%d/%m/%Y")) %></p>
+    <p class="tufte-meta"><%= brand_name %> · <%= t(".generated_on", date: Time.current.strftime("%d/%m/%Y")) %></p>
   </header>
 
   <section class="tufte-section">

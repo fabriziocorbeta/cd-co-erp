@@ -18,6 +18,11 @@
     </div>
 
     <%= f.text_area :notes, label: t(".notes"), rows: 2 %>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <%= f.text_area :delivery_address, label: t(".delivery_address"), rows: 2 %>
+      <%= f.date_field :delivery_date, label: t(".delivery_date") %>
+    </div>
   </div>
 
   <div class="space-y-4">
