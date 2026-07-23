@@ -8,6 +8,11 @@
   ) %>
 <% end %>
 
+<div data-controller="pending-sales" data-pending-sales-target="container" class="hidden bg-container rounded-xl shadow-border-xs p-4 mb-4">
+  <h3 class="text-sm font-medium text-secondary uppercase tracking-wide mb-2">Ventas pendientes de sincronizar</h3>
+  <div data-pending-sales-target="list"></div>
+</div>
+
 <div class="bg-container rounded-xl shadow-border-xs p-4">
   <% if @sales.any? %>
     <div class="overflow-x-auto">
