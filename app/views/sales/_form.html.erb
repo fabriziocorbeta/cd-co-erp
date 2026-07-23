@@ -1,6 +1,6 @@
 <%# locals: (sale:) %>
 
-<%= styled_form_with model: sale, class: "space-y-6" do |f| %>
+<%= styled_form_with model: sale, class: "space-y-6", data: (sale.new_record? ? { controller: "offline-sale-form", action: "submit->offline-sale-form#submit" } : {}) do |f| %>
   <% if sale.errors.any? %>
     <%= render "shared/form_errors", model: sale %>
   <% end %>
