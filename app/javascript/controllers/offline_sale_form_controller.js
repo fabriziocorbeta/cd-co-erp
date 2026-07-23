@@ -10,6 +10,7 @@ export default class extends Controller {
 
     const form = this.element;
     const entries = Array.from(new FormData(form).entries());
+    entries.push(["client_request_id", crypto.randomUUID()]);
 
     await addPendingSale(entries);
     await this.registerBackgroundSync();

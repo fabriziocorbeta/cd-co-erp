@@ -161,7 +161,20 @@ function updatePendingSaleRecord(record) {
   }));
 }
 
+let replayInFlight = false;
+
 async function replayPendingSales() {
+  if (replayInFlight) return;
+  replayInFlight = true;
+
+  try {
+    await doReplayPendingSales();
+  } finally {
+    replayInFlight = false;
+  }
+}
+
+async function doReplayPendingSales() {
   const pending = await getAllPendingSales();
 
   for (const sale of pending) {

@@ -45,9 +45,11 @@ export default class extends Controller {
 
   async handleRetryClick(event) {
     const button = event.target.closest("[data-retry-id]");
-    if (!button) return;
+    if (!button || button.disabled) return;
 
     const id = Number(button.dataset.retryId);
+    button.disabled = true;
+
     const pending = await getPendingSales();
     const sale = pending.find((s) => s.id === id);
     if (!sale) return;

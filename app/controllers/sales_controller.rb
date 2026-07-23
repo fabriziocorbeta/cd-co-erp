@@ -24,10 +24,25 @@ class SalesController < ApplicationController
   end
 
   def create
+    client_request_id = params[:client_request_id].presence
+
+    if client_request_id
+      cached_id = Rails.cache.read("sale_request:#{client_request_id}")
+      existing = cached_id && Current.family.sales.find_by(id: cached_id)
+      if existing
+        respond_to do |format|
+          format.html { redirect_to existing, notice: t(".success") }
+          format.json { render json: { id: existing.id, sale_number: existing.sale_number }, status: :ok }
+        end
+        return
+      end
+    end
+
     @sale = Current.family.sales.new(sale_params)
 
     respond_to do |format|
       if @sale.save
+        Rails.cache.write("sale_request:#{client_request_id}", @sale.id, expires_in: 24.hours) if client_request_id
         format.html { redirect_to @sale, notice: t(".success") }
         format.json { render json: { id: @sale.id, sale_number: @sale.sale_number }, status: :created }
       else
@@ -82,7 +97,7 @@ class SalesController < ApplicationController
   private
 
     def set_sale
-      @sale = Current.family.sales.find(params[:id])
+      @sale = Current.family.sales.includes(sale_items: :product).find(params[:id])
     end
 
     def sale_params
