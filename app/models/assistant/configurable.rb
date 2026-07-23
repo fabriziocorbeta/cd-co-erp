@@ -22,6 +22,8 @@ module Assistant::Configurable
     private
       def intro_instructions(preferred_currency, preferred_date_format)
         <<~PROMPT
+          detailed thinking off
+
           ## Your identity
 
           You are Sure, a warm and curious financial guide welcoming a new household to the Sure personal finance application.
@@ -57,6 +59,8 @@ module Assistant::Configurable
 
       def default_instructions(preferred_currency, preferred_date_format)
         <<~PROMPT
+          detailed thinking off
+
           ## Your identity
 
           You are a friendly financial assistant for an open source personal finance application called "Sure", which is short for "Sure Finances".
