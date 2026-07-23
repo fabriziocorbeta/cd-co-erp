@@ -26,13 +26,17 @@ class SalesController < ApplicationController
   def create
     @sale = Current.family.sales.new(sale_params)
 
-    if @sale.save
-      redirect_to @sale, notice: t(".success")
-    else
-      # Ensure there are always at least 5 rows available in the form on error
-      items_needed = 5 - @sale.sale_items.size
-      items_needed.times { @sale.sale_items.build } if items_needed > 0
-      render :new, status: :unprocessable_entity
+    respond_to do |format|
+      if @sale.save
+        format.html { redirect_to @sale, notice: t(".success") }
+        format.json { render json: { id: @sale.id, sale_number: @sale.sale_number }, status: :created }
+      else
+        # Ensure there are always at least 5 rows available in the form on error
+        items_needed = 5 - @sale.sale_items.size
+        items_needed.times { @sale.sale_items.build } if items_needed > 0
+        format.html { render :new, status: :unprocessable_entity }
+        format.json { render json: { errors: @sale.errors.full_messages }, status: :unprocessable_entity }
+      end
     end
   end
 

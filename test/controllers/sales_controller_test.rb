@@ -61,6 +61,49 @@ class SalesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, sale.sale_items.count
   end
 
+  test "should create sale via json and return sale_number" do
+    assert_difference("Sale.count", 1) do
+      post sales_url, params: {
+        sale: {
+          client_name: "JSON Client",
+          sale_items_attributes: {
+            "0" => {
+              product_id: @product.id,
+              quantity: 1,
+              unit_price: 20
+            }
+          }
+        }
+      }, as: :json
+    end
+
+    assert_response :created
+    body = JSON.parse(response.body)
+    assert body["id"].present?
+    assert body["sale_number"].present?
+  end
+
+  test "should return json errors on invalid sale" do
+    assert_no_difference("Sale.count") do
+      post sales_url, params: {
+        sale: {
+          client_name: "Invalid Client",
+          sale_items_attributes: {
+            "0" => {
+              product_id: @product.id,
+              quantity: 0,
+              unit_price: 20
+            }
+          }
+        }
+      }, as: :json
+    end
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(response.body)
+    assert body["errors"].present?
+  end
+
   test "should show sale" do
     get sale_url(@sale)
     assert_response :success
