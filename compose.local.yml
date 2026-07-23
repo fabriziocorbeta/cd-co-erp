@@ -1,0 +1,112 @@
+# FinancePY — Hosting local (PC de casa) durante fase de prueba, no comercial.
+# Datos críticos viven en Supabase (mismo DATABASE_URL que prod) → esta PC solo
+# corre compute, no hay Postgres local ni backup de DB que hacer acá.
+#
+# Uso (dentro de WSL2/Ubuntu con Docker Desktop):
+#   cp .env.production.example .env.local && editar valores
+#   docker compose -f compose.local.yml --env-file .env.local up -d --build
+#
+# Networking: Cloudflare Tunnel aparte apunta a http://localhost:8080 (Caddy).
+# Ver docs/cloudflared-config.yml.example
+#
+# Límites de recursos (para no afectar a otras personas usando esta PC):
+# Total: ~3.1GB RAM (bajo el techo de 4GB) / ~1.6 cores de 4 disponibles.
+# cpu_shares bajo en todos los servicios: en contención, el uso normal de la
+# PC gana prioridad sobre estos contenedores.
+
+x-rails-env: &rails_env
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE requerido en .env.local}
+  DATABASE_URL: ${DATABASE_URL:?DATABASE_URL requerido en .env.local (mismo Supabase de prod)}
+  SELF_HOSTED: "true"
+  RAILS_FORCE_SSL: "false"
+  RAILS_ASSUME_SSL: "true"
+  APP_DOMAIN: ${APP_DOMAIN:-finance.cd-co.com.py}
+  PRODUCT_NAME: ${PRODUCT_NAME:-FinancePY}
+  BRAND_NAME: ${BRAND_NAME:-CD & Co.}
+  REDIS_URL: redis://redis:6379/1
+  ONBOARDING_STATE: ${ONBOARDING_STATE:-closed}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://finance.cd-co.com.py}
+  CSP_REPORT_ONLY: ${CSP_REPORT_ONLY:-false}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN:-}
+  OPENAI_URI_BASE: ${OPENAI_URI_BASE:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-}
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - web
+    networks:
+      - financespy_net
+    mem_limit: 128m
+    cpus: 0.1
+    cpu_shares: 256
+
+  web:
+    build: .
+    volumes:
+      - app-storage:/rails/storage
+    restart: unless-stopped
+    environment:
+      <<: *rails_env
+    depends_on:
+      redis:
+        condition: service_healthy
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    networks:
+      - financespy_net
+    mem_limit: 2g
+    cpus: 1.0
+    cpu_shares: 512
+
+  worker:
+    build: .
+    command: bundle exec sidekiq
+    volumes:
+      - app-storage:/rails/storage
+    restart: unless-stopped
+    environment:
+      <<: *rails_env
+    depends_on:
+      redis:
+        condition: service_healthy
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    networks:
+      - financespy_net
+    mem_limit: 768m
+    cpus: 0.4
+    cpu_shares: 512
+
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - financespy_net
+    mem_limit: 256m
+    cpus: 0.1
+    cpu_shares: 256
+
+volumes:
+  app-storage:
+  redis-data:
+
+networks:
+  financespy_net:
+    driver: bridge
