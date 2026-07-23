@@ -26,6 +26,11 @@ Rails.application.configure do
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 
+  # Guarantee gzip compression at the app layer regardless of what (if anything) sits in
+  # front of Puma at the infra level — cheap CPU cost, meaningfully smaller first-paint
+  # payload for HTML/CSS/JS/JSON responses.
+  config.middleware.use Rack::Deflater
+
   # Specifies the header that your server uses for sending files.
   # config.action_dispatch.x_sendfile_header = "X-Sendfile" # for Apache
   # config.action_dispatch.x_sendfile_header = "X-Accel-Redirect" # for NGINX

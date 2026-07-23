@@ -6,6 +6,9 @@
 
   <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
 
+  <%# Primary variable font used for all text; preload so it doesn't wait on CSSOM to be discovered %>
+  <link rel="preload" as="font" type="font/woff2" href="<%= asset_path("geist/Geist[wght].woff2") %>" crossorigin>
+
   <%= combobox_style_tag %>
 
   <%= javascript_importmap_tags %>
