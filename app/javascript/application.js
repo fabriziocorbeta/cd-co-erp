@@ -61,4 +61,15 @@ if ('serviceWorker' in navigator) {
         console.log('Service Worker registration failed:', error);
       });
   });
+
+  // Fallback for browsers without Background Sync (e.g. iOS Safari):
+  // ask the service worker to replay any queued offline sales as soon as
+  // connectivity returns.
+  window.addEventListener('online', () => {
+    navigator.serviceWorker.ready.then((registration) => {
+      if (registration.active) {
+        registration.active.postMessage('replay-pending-sales');
+      }
+    });
+  });
 }

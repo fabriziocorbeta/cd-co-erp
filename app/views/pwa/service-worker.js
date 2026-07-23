@@ -1,4 +1,5 @@
 const CACHE_VERSION = 'v3';
+const RUNTIME_CACHE = 'runtime-v1';
 const OFFLINE_ASSETS = [
   '/offline.html',
   '/logo-offline.svg'
@@ -37,7 +38,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_VERSION) {
+          if (cacheName !== CACHE_VERSION && cacheName !== RUNTIME_CACHE) {
             return caches.delete(cacheName);
           }
         })
@@ -53,16 +54,26 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Handle navigation requests (page loads)
+  // Handle navigation requests (page loads) - network-first: try the live
+  // page (financial data changes, freshness matters more than instant load
+  // here), cache the successful response so the same page can be reopened
+  // offline later, and fall back to the last cached copy (or the generic
+  // offline page if this URL was never visited) when the network fails.
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch((error) => {
-        // Only show offline page for network errors
-        if (error.name === 'TypeError' || !navigator.onLine) {
-          return caches.match('/offline.html');
-        }
-        throw error;
-      })
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => {
+            return cached || caches.match('/offline.html');
+          });
+        })
     );
     return;
   }
@@ -91,6 +102,118 @@ self.addEventListener('fetch', (event) => {
         return response || fetch(event.request);
       })
     );
+  }
+});
+
+// --- Background Sync: replay queued offline Sale submissions ---
+//
+// This duplicates the small IndexedDB helper from
+// app/javascript/services/offline_sales_db.js on purpose: this file is
+// served as a classic (non-module) script by Rails' rails/pwa controller,
+// so it cannot `import` that module.
+
+const OFFLINE_DB_NAME = 'financespy_offline';
+const OFFLINE_DB_VERSION = 1;
+const PENDING_SALES_STORE = 'pending_sales';
+const MAX_SYNC_ATTEMPTS = 5;
+
+function openOfflineDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(PENDING_SALES_STORE)) {
+        db.createObjectStore(PENDING_SALES_STORE, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
+
+function getAllPendingSales() {
+  return openOfflineDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(PENDING_SALES_STORE, 'readonly');
+    const store = tx.objectStore(PENDING_SALES_STORE);
+    const request = store.getAll();
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = (event) => reject(event.target.error);
+  }));
+}
+
+function deletePendingSaleRecord(id) {
+  return openOfflineDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(PENDING_SALES_STORE, 'readwrite');
+    const store = tx.objectStore(PENDING_SALES_STORE);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = (event) => reject(event.target.error);
+  }));
+}
+
+function updatePendingSaleRecord(record) {
+  return openOfflineDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(PENDING_SALES_STORE, 'readwrite');
+    const store = tx.objectStore(PENDING_SALES_STORE);
+    const request = store.put(record);
+    request.onsuccess = () => resolve();
+    request.onerror = (event) => reject(event.target.error);
+  }));
+}
+
+async function replayPendingSales() {
+  const pending = await getAllPendingSales();
+
+  for (const sale of pending) {
+    if (sale.status === 'needs_review') continue;
+
+    const body = new FormData();
+    sale.formData.forEach(([key, value]) => body.append(key, value));
+
+    try {
+      const response = await fetch('/sales', {
+        method: 'POST',
+        body,
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin'
+      });
+
+      if (response.ok) {
+        await deletePendingSaleRecord(sale.id);
+      } else if (response.status === 422) {
+        sale.status = 'needs_review';
+        sale.errorMessage = 'Datos inválidos - revisar manualmente';
+        await updatePendingSaleRecord(sale);
+      } else {
+        sale.attempts = (sale.attempts || 0) + 1;
+        if (sale.attempts >= MAX_SYNC_ATTEMPTS) {
+          sale.status = 'needs_review';
+          sale.errorMessage = 'Falló tras varios intentos';
+        }
+        await updatePendingSaleRecord(sale);
+      }
+    } catch (error) {
+      sale.attempts = (sale.attempts || 0) + 1;
+      if (sale.attempts >= MAX_SYNC_ATTEMPTS) {
+        sale.status = 'needs_review';
+        sale.errorMessage = 'Sin conexión tras varios intentos';
+      }
+      await updatePendingSaleRecord(sale);
+    }
+  }
+}
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sale-sync') {
+    event.waitUntil(replayPendingSales());
+  }
+});
+
+// Manual trigger for browsers without Background Sync support (iOS Safari):
+// application.js posts a message here on the 'online' event.
+self.addEventListener('message', (event) => {
+  if (event.data === 'replay-pending-sales') {
+    event.waitUntil(replayPendingSales());
   }
 });
 
