@@ -1,0 +1,23 @@
+# FinancePY — Cloudflare Tunnel (PC local)
+#
+# Setup (WSL2/Ubuntu):
+#   curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+#   sudo dpkg -i cloudflared.deb
+#   cloudflared tunnel login
+#   cloudflared tunnel create financespy-local
+#   cp docs/cloudflared-config.yml.example ~/.cloudflared/config.yml
+#     — completar tunnel/credentials-file con lo que devolvió "tunnel create"
+#   cloudflared tunnel route dns financespy-local finance.cd-co.com.py
+#   sudo cloudflared service install
+#
+# Esto reemplaza el DNS actual de finance.cd-co.com.py (hoy apuntando a la VM
+# alejandro-vm) por un registro CNAME al túnel — cambiar solo cuando el stack
+# local esté probado y listo, para no cortar el sitio en producción a medias.
+
+tunnel: <TUNNEL_ID>
+credentials-file: /home/<usuario>/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: finance.cd-co.com.py
+    service: http://localhost:8080
+  - service: http_status:404
