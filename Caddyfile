@@ -1,6 +1,9 @@
 finance.cd-co.com.py {
 	reverse_proxy web:3000
-	encode gzip
+	encode zstd gzip
+
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

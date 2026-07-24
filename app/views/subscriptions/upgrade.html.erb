@@ -22,7 +22,7 @@
   </nav>
 
   <div class="grow flex flex-col items-center justify-center">
-    <%= image_tag "logo-color.png", class: "w-16 mb-6" %>
+    <%= image_tag "logo-color.png", class: "w-16 mb-6", width: 64, height: 64 %>
 
     <% if Current.family.trialing? %>
       <p class="text-xl lg:text-3xl text-primary font-display font-medium"><%= t("subscriptions.upgrade.trialing", count: Current.family.days_left_in_trial, days: Current.family.days_left_in_trial) %></p>
